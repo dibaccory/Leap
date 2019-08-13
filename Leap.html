@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Leap</title>
+    <script src="https://www.richarddibacco.com/Leap/js/main.js"></script>
+    <script src="js/gameui.js"></script>
+    <script src="js/ai.js"></script>
+</head>
+<body>
+    <canvas id="leap" width="401" height="401"></canvas>
+    <p><em>
+        Predictions made last turn: <span id="predictor">0</span>. The AI will be effective if your browser can pull off at least 10,000.
+    </em></p>
+    <script>
+        var canvas = document.getElementById('leap');
+        var predictor = document.getElementById('predictor');
+        var ui = new CanvasCheckers(canvas, predictor, 8, 8);
+        var game = new Checkers.Game(ui);
+        game.start();
+    </script>
+
+</body>
+</html>
