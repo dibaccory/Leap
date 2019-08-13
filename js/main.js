@@ -1,3 +1,4 @@
+
 //row is passed a single row from the board, returns a container and a Cell for each item in the array
 var Row = React.createClass({
 	render: function() {
@@ -44,6 +45,7 @@ var Statistics = React.createClass({
 		)
 	}
 });
+
 
 //cell is passed a single item in a row, and renders it out, it also calls it's grand-parent's swapper function on click
 var Popup = React.createClass({
@@ -102,7 +104,7 @@ var GameBoard = React.createClass({
 				<button onClick={this.aboutPopOpen}>About</button>
 				<Statistics board={this.state.board}/>
 				<Popup shown={this.state.popShown} close={this.aboutPopClose} copy="
-					Hey! Thanks for checking out my checkers game. I know that the title says 'React Checkers', but there isn't a ton of React in use here, it's only handling the display (that's its job, huh?). Essentially React displays our board array, and most of the moving and detection are just accessing that array. The AI is built out using a limited version of the minimax algorithm (see http://neverstopbuilding.com/minimax for a nice explanation of what that means), simply it means that the program forecasts futures, assumes you'll play as if you were doing the same, and picks the route that it thinks will result in the best for itself if you also play 'perfeclty', and I use that word loosely because this AI currently only looks 3 turns in to the future. It uses a point system to determine 'good' and 'bad' stuff that could happen, for example, if it can win in the next 3 turns, thats a 100 point outcome. If it will lose in the next 3 turns, thats worth -100 points, losing a king or killing an enemy king are worth -25 or 25 points respectively, and killing/losing regular pieces are worth +-10 points. Lastly, classifies making a new king of it's own as worth 15 points, so slightly better than killing 1 opponent. The bot looks through something like 1000-1500 possible futures before each move.
+					This is leap lol
 				"/>
 			</div>
 		);
@@ -322,6 +324,10 @@ var GameBoard = React.createClass({
         for (var i = 0; i < board.length; i++) output.push(board[i].slice(0));
         return output;
     },
+
+
+
+
 	ai: function() {
 		//prep a branching future prediction
 		this.count = 0;
