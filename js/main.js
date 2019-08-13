@@ -1,442 +1,485 @@
-// vim: set ts=4 sw=4 tw=99 et:
-// Copyright (C) 2010 David Anderson
-// dvander@alliedmods.net
-//
-// Permission is hereby granted, free of charge, to any person
-// obtaining a copy of this software and associated documentation
-// files (the "Software"), to deal in the Software without
-// restriction, including without limitation the rights to use,
-// copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following
-// conditions:
-//
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-// OTHER DEALINGS IN THE SOFTWARE.
+//row is passed a single row from the board, returns a container and a Cell for each item in the array
+var Row = React.createClass({
+	render: function() {
+		return (
+			<div className="row">
+				{
+					this.props.rowArr.map(function(cell, index) {
+						return (
+							<Cell rowIndex={this.props.rowIndex} index={index} cell={cell} handlePieceClick={this.props.handlePieceClick} />
+						)
+					}, this)
+				}
+			</div>
+		)
+	}
+});
 
-var Checkers = {
-    EmptyPlayer: 0,
-    PlayerOne:   2,
-    PlayerTwo:   3,
+//cell is passed a single item in a row, and renders it out, it also calls it's grand-parent's swapper function on click
+var Cell = React.createClass({
+	render: function() {
+		return(
+			<div  className={'cell cell-'+this.props.cell} >
+				<div onClick={this.props.handlePieceClick} data-row={this.props.rowIndex} data-cell={this.props.index} className="gamePiece"></div>
+			</div>
+		)
+	}
+});
 
-    MoveList: function (size) {
-        this.list = new Array(size);
-        this.length = 0;
+var Statistics = React.createClass({
+	render: function() {
+		return(
+			<div  className="stats" >
+				<div className="half" style={{color: '#e26b6b'}}>
+					Red(Player):<br/>
+					{ (this.props.board.map( function(row){return(row.join(''))} ).join('').match(/r/g) || []).length} Soldiers<br/>
+					{ (this.props.board.map( function(row){return(row.join(''))} ).join('').match(/r\sk/g) || []).length} Kings
+				</div>
+				<div className="half">
+					Black(AI):<br/>
+					{ (this.props.board.map( function(row){return(row.join(''))} ).join('').match(/b/g) || []).length} Soldiers<br/>
+					{ (this.props.board.map( function(row){return(row.join(''))} ).join('').match(/b\sk/g) || []).length} Kings
+				</div>
+			</div>
+		)
+	}
+});
 
-        this.add = function (fromRow, fromCol, toRow, toCol) {
-            var b = (fromRow << 24) |
-                (fromCol << 16) |
-                (toRow << 8) |
-                (toCol);
-            this.list[this.length++] = b;
-        }
+//cell is passed a single item in a row, and renders it out, it also calls it's grand-parent's swapper function on click
+var Popup = React.createClass({
+	render: function() {
+		if (this.props.shown) {
+			return(
+				<div className="pop" onClick={this.props.close} >
+					<div className="internal" >
+						{this.props.copy}
+						<button onClick={this.props.close} className="close">x</button>
+					</div>
+				</div>
+			)
+		}
+		else {
+			return(
+				<div style={{display: 'none'}}></div>
+			)
+		}
+	}
+});
 
-        this.clear = function () {
-            this.length = 0;
-        }
+//game board calls row for each item in the board array
+var GameBoard = React.createClass({
+	getInitialState: function() {
+		return {
+			board: [
+				['b','-','b','-','b','-','b','-'],
+				['-','b','-','b','-','b','-','b'],
+				['b','-','b','-','b','-','b','-'],
+				['-','-','-','-','-','-','-','-'],
+				['-','-','-','-','-','-','-','-'],
+				['-','r','-','r','-','r','-','r'],
+				['r','-','r','-','r','-','r','-'],
+				['-','r','-','r','-','r','-','r']
+			],
+			activePlayer: 'r',
+			aiDepthCutoff: 3,
+			count: 0,
+			popShown: false
+		}
+	},
+	render: function() {
+		var rowIndex;
+		return (
+			<div className="container">
+				<div className={'board '+this.state.activePlayer}>
+					{
+						this.state.board.map(function(row, index) {
+							return (<Row rowArr={row} handlePieceClick={this.handlePieceClick.bind(this)} rowIndex={index}/>)
+						},this)
+					}
+				</div>
+				<div className="clear"></div>
+				<button onClick={this.reset}>Reset</button>
+				<button onClick={this.aboutPopOpen}>About</button>
+				<Statistics board={this.state.board}/>
+				<Popup shown={this.state.popShown} close={this.aboutPopClose} copy="
+					Hey! Thanks for checking out my checkers game. I know that the title says 'React Checkers', but there isn't a ton of React in use here, it's only handling the display (that's its job, huh?). Essentially React displays our board array, and most of the moving and detection are just accessing that array. The AI is built out using a limited version of the minimax algorithm (see http://neverstopbuilding.com/minimax for a nice explanation of what that means), simply it means that the program forecasts futures, assumes you'll play as if you were doing the same, and picks the route that it thinks will result in the best for itself if you also play 'perfeclty', and I use that word loosely because this AI currently only looks 3 turns in to the future. It uses a point system to determine 'good' and 'bad' stuff that could happen, for example, if it can win in the next 3 turns, thats a 100 point outcome. If it will lose in the next 3 turns, thats worth -100 points, losing a king or killing an enemy king are worth -25 or 25 points respectively, and killing/losing regular pieces are worth +-10 points. Lastly, classifies making a new king of it's own as worth 15 points, so slightly better than killing 1 opponent. The bot looks through something like 1000-1500 possible futures before each move.
+				"/>
+			</div>
+		);
+	},
+	aboutPopOpen: function(e) {
+		this.setState({popShown: true});
+	},
+	aboutPopClose: function(e) {
+		this.setState({popShown: false});
+	},
+	handlePieceClick: function(e) {
+		var rowIndex = parseInt(e.target.attributes['data-row'].nodeValue);
+		var cellIndex = parseInt(e.target.attributes['data-cell'].nodeValue);
+		if (this.state.board[rowIndex][cellIndex].indexOf(this.state.activePlayer) > -1) {
+			//this is triggered if the piece that was clicked on is one of the player's own pieces, it activates it and highlights possible moves
+			this.state.board = this.state.board.map(function(row){return row.map(function(cell){return cell.replace('a', '')});}); //un-activate any previously activated pieces
+			this.state.board[rowIndex][cellIndex] = 'a'+this.state.board[rowIndex][cellIndex];
+			this.highlightPossibleMoves(rowIndex, cellIndex);
+		}
+		else if(this.state.board[rowIndex][cellIndex].indexOf('h') > -1) {
+			//this is activated if the piece clicked is a highlighted square, it moves the active piece to that spot.
+			this.state.board = this.executeMove(rowIndex, cellIndex, this.state.board, this.state.activePlayer);
+			//is the game over? if not, swap active player
+			this.setState(this.state);
+			if (this.winDetection(this.state.board, this.state.activePlayer)) {
+				console.log(this.state.activePlayer+ ' won the game!');
+			}
+			else {
+				this.state.activePlayer = (this.state.activePlayer == 'r' ? 'b' : 'r');
+				if (this.state.activePlayer == 'b') {
+					setTimeout(function() {this.ai();}.bind(this), 50);
+				}
+			}
+		}
+		this.setState(this.state);
+	},
+	executeMove: function(rowIndex, cellIndex, board, activePlayer) {
+		var activePiece;
+		for (var i = 0; i < board.length; i++) {
+			//for each row
+			for (var j = 0; j < board[i].length; j++) {
+				if (board[i][j].indexOf('a')>-1) {
+					activePiece = board[i][j];
+				}
+			}
+		}
+		//make any jump deletions
+		var deletions = board[rowIndex][cellIndex].match(/d\d\d/g);
+		if (typeof deletions !== undefined && deletions !== null && deletions.length > 0) {
+			for (var k = 0; k < deletions.length; k++) {
+				var deleteCoords = deletions[k].replace('d', '').split('');
+				board[deleteCoords[0]][deleteCoords[1]] = '-';
+			}
+		}
+		//remove active piece from it's place
+		board = board.map(function(row){return row.map(function(cell){return cell.replace(activePiece, '-')});});
+		//unhighlight
+		board = board.map(function(row){return row.map(function(cell){return cell.replace('h', '-').replace(/d\d\d/g, '').trim()});});
+		//place active piece, now unactive, in it's new place
+		board[rowIndex][cellIndex] = activePiece.replace('a', '');
+		if ( (activePlayer == 'b' && rowIndex == 7) || (activePlayer == 'r' && rowIndex == 0) ) {
+			board[rowIndex][cellIndex]+= ' k';
+		}
+		return board;
+	},
+	highlightPossibleMoves: function(rowIndex, cellIndex) {
+		//unhighlight any previously highlighted cells
+		this.state.board = this.state.board.map(function(row){return row.map(function(cell){return cell.replace('h', '-').replace(/d\d\d/g, '').trim()});});
+
+		var possibleMoves = this.findAllPossibleMoves(rowIndex, cellIndex, this.state.board, this.state.activePlayer);
+
+		//actually highlight the possible moves on the board
+		//the 'highlightTag' inserts the information in to a cell that specifies
+		for (var j = 0; j < possibleMoves.length; j++) {
+			var buildHighlightTag = 'h ';
+			for (var k = 0; k < possibleMoves[j].wouldDelete.length; k++) {
+				buildHighlightTag += 'd'+String(possibleMoves[j].wouldDelete[k].targetRow) + String(possibleMoves[j].wouldDelete[k].targetCell)+' ';
+			}
+			this.state.board[possibleMoves[j].targetRow][possibleMoves[j].targetCell] = buildHighlightTag;
+		}
+
+		this.setState(this.state);
+	},
+	findAllPossibleMoves: function(rowIndex, cellIndex, board, activePlayer) {
+		var possibleMoves = [];
+		var directionOfMotion = [];
+		var leftOrRight = [1,-1];
+		var isKing = board[rowIndex][cellIndex].indexOf('k') > -1;
+		if (activePlayer == 'b') {
+			directionOfMotion.push(1);
+		}
+		else {
+			directionOfMotion.push(-1);
+		}
+
+		//if it's a king, we allow it to both go forward and backward, otherwise it can only move in it's color's normal direction
+		//the move loop below runs through every direction of motion allowed, so if there are two it will hit them both
+		if (isKing) {
+			directionOfMotion.push(directionOfMotion[0]*-1);
+		}
+
+		//normal move detection happens here (ie. non jumps)
+		//for each direction of motion allowed to the piece it loops (forward for normal pieces, both for kings)
+		//inside of that loop, it checks in that direction of motion for both left and right (checkers move diagonally)
+		//any moves found are pushed in to the possible moves array
+		for (var j = 0; j < directionOfMotion.length; j++) {
+			for (var i = 0; i < leftOrRight.length; i++) {
+				if (
+					typeof board[rowIndex+directionOfMotion[j]] !== 'undefined' &&
+					typeof board[rowIndex+directionOfMotion[j]][cellIndex + leftOrRight[i]] !== 'undefined' &&
+					board[rowIndex+directionOfMotion[j]][cellIndex + leftOrRight[i]] == '-'
+				){
+					if (possibleMoves.map(function(move){return String(move.targetRow)+String(move.targetCell);}).indexOf(String(rowIndex+directionOfMotion[j])+String(cellIndex+leftOrRight[i])) < 0) {
+						possibleMoves.push({targetRow: rowIndex+directionOfMotion[j], targetCell: cellIndex+leftOrRight[i], wouldDelete:[]});
+					}
+				}
+			}
+		}
+
+		//get jumps
+		var jumps = this.findAllJumps(rowIndex, cellIndex, board, directionOfMotion[0], [], [], isKing, activePlayer);
+
+		//loop and push all jumps in to possibleMoves
+		for (var i = 0; i < jumps.length; i++) {
+			possibleMoves.push(jumps[i]);
+		}
+		return possibleMoves;
+	},
+	findAllJumps: function(sourceRowIndex, sourceCellIndex, board, directionOfMotion, possibleJumps, wouldDelete, isKing, activePlayer) {
+		//jump moves
+		var thisIterationDidSomething = false;
+		var directions = [directionOfMotion];
+		var leftOrRight = [1, -1];
+		if (isKing) {
+			//if it's a king, we'll also look at moving backwards
+			directions.push(directions[0]*-1);
+		}
+		//here we detect any jump possible moves
+		//for each direction available to the piece (based on if it's a king or not)
+		//and for each diag (left or right) we look 2 diag spaces away to see if it's open and if we'd jump an enemy to get there.
+		for (var k = 0; k < directions.length; k++) {
+			for (var l = 0; l < leftOrRight.length; l++) {
+				leftOrRight[l]
+				if (
+					typeof board[sourceRowIndex+directions[k]] !== 'undefined' &&
+					typeof board[sourceRowIndex+directions[k]][sourceCellIndex+leftOrRight[l]] !== 'undefined' &&
+					typeof board[sourceRowIndex+(directions[k]*2)] !== 'undefined' &&
+					typeof board[sourceRowIndex+(directions[k]*2)][sourceCellIndex+(leftOrRight[l]*2)] !== 'undefined' &&
+					board[sourceRowIndex+directions[k]][sourceCellIndex+leftOrRight[l]].indexOf((activePlayer == 'r' ? 'b' : 'r')) > -1 &&
+					board[sourceRowIndex+(directions[k]*2)][sourceCellIndex+(leftOrRight[l]*2)] == '-'
+				){
+					if (possibleJumps.map(function(move){return String(move.targetRow)+String(move.targetCell);}).indexOf(String(sourceRowIndex+(directions[k]*2))+String(sourceCellIndex+(leftOrRight[l]*2))) < 0) {
+						//this eventual jump target did not already exist in the list
+						var tempJumpObject = {
+							targetRow: sourceRowIndex+(directions[k]*2),
+							targetCell: sourceCellIndex+(leftOrRight[l]*2),
+							wouldDelete:[
+								{
+									targetRow:sourceRowIndex+directions[k],
+									targetCell:sourceCellIndex+leftOrRight[l]
+								}
+							]
+						};
+						for (var i = 0; i < wouldDelete.length; i++) {
+							tempJumpObject.wouldDelete.push(wouldDelete[i]);
+						}
+						possibleJumps.push(tempJumpObject);
+						thisIterationDidSomething = true;
+					}
+				}
+			}
+		}
+
+		//if a jump was found, thisIterationDidSomething is set to true and this function calls itself again from that source point, this is how we recurse to find multi jumps
+		if(thisIterationDidSomething) {
+			for (var i = 0; i < possibleJumps.length; i++) {
+				var coords = [possibleJumps[i].targetRow, possibleJumps[i].targetCell];
+				var children = this.findAllJumps(coords[0], coords[1], board, directionOfMotion, possibleJumps, possibleJumps[i].wouldDelete, isKing, activePlayer);
+				for (var j = 0; j < children.length; j++) {
+					if (possibleJumps.indexOf(children[j]) < 0) {
+						possibleJumps.push(children[j]);
+					}
+				}
+			}
+		}
+		return possibleJumps;
+	},
+	reset: function() {
+		this.setState({
+			board: [
+				['b','-','b','-','b','-','b','-'],
+				['-','b','-','b','-','b','-','b'],
+				['b','-','b','-','b','-','b','-'],
+				['-','-','-','-','-','-','-','-'],
+				['-','-','-','-','-','-','-','-'],
+				['-','r','-','r','-','r','-','r'],
+				['r','-','r','-','r','-','r','-'],
+				['-','r','-','r','-','r','-','r']
+			],
+			activePlayer: 'r'
+		});
+	},
+	winDetection: function(board, activePlayer) {
+		var enemyPlayer = (activePlayer == 'r' ? 'b' : 'r');
+		var result = true;
+		for (var i = 0; i < board.length; i++) {
+			for (var j = 0; j < board[i].length; j++) {
+				if (board[i][j].indexOf(enemyPlayer) > -1) {
+					result = false;
+				}
+			}
+		}
+		return result;
+	},
+	cloneBoard : function(board) {
+        var output = [];
+        for (var i = 0; i < board.length; i++) output.push(board[i].slice(0));
+        return output;
     },
+	ai: function() {
+		//prep a branching future prediction
+		this.count = 0;
+		console.time('decisionTree');
+		var decisionTree = this.aiBranch(this.state.board, this.state.activePlayer, 1);
+		console.timeEnd('decisionTree');
+		console.log(this.count);
+		//execute the most favorable move
+		if (decisionTree.length > 0) {
+			console.log(decisionTree[0]);
+			setTimeout(function() {
+				this.handlePieceClick({
+					target:{
+						attributes:{
+							'data-row':{
+								nodeValue:decisionTree[0].piece.targetRow
+							},
+							'data-cell':{
+								nodeValue:decisionTree[0].piece.targetCell
+							}
+						}
+					}
+				});
 
-    Game: function (ui) {
-        var EmptyPlayer = 0;
-        var PlayerOne = 2;
-        var PlayerTwo = 3;
-        var rows = ui.rows;
-        var cols = ui.cols;
-        var RowsPerPlayer = (rows - 2) >> 1;
-        var BoardArea = rows * cols;
-        var PiecesPerPlayer = RowsPerPlayer * (cols / 2);
+				setTimeout(function() {
+					this.handlePieceClick({
+						target:{
+							attributes:{
+								'data-row':{
+									nodeValue:decisionTree[0].move.targetRow
+								},
+								'data-cell':{
+									nodeValue:decisionTree[0].move.targetCell
+								}
+							}
+						}
+					});
+				}.bind(this), 1000);
+			}.bind(this), 750);
+		}
+		else {
+			alert('no moves, you win!');
+		}
+	},
+	aiBranch: function(hypotheticalBoard, activePlayer, depth) {
+		this.count++;
+		var output = [];
+		for (var i = 0; i < hypotheticalBoard.length; i++) {
+			for (var j = 0; j < hypotheticalBoard[i].length; j++) {
+				if (hypotheticalBoard[i][j].indexOf(activePlayer) > -1) {
+					var possibleMoves = this.findAllPossibleMoves(i, j, hypotheticalBoard, activePlayer);
+					for (var k = 0; k < possibleMoves.length; k++) {
+						var tempBoard = this.cloneBoard(hypotheticalBoard);
+                    	tempBoard[i][j] = 'a'+tempBoard[i][j];
 
-        var Board = function () {
-            this.rows = rows;
-            this.cols = cols;
-            this.pieceCount = [0, 0, PiecesPerPlayer, PiecesPerPlayer];
+						var buildHighlightTag = 'h ';
+						for (var m = 0; m < possibleMoves[k].wouldDelete.length; m++) {
+							buildHighlightTag += 'd'+String(possibleMoves[k].wouldDelete[m].targetRow) + String(possibleMoves[k].wouldDelete[m].targetCell)+' ';
+						}
+						tempBoard[possibleMoves[k].targetRow][possibleMoves[k].targetCell] = buildHighlightTag;
 
-            // The BoardArea part of the grid stores:
-            //   bit  0-1: Player ID
-            //   bit    2: 0 if normal, 1 if king
-            //   bit 8-16: key
-            //
-            // After BoardArea comes a list of each player's pieces,
-            // PlayerOne followed by PlayerTwo. The list is sparse,
-            // and indexed directly by key, from above. Each value is
-            // -1 for "removed", or:
-            //   bit  0-7: row
-            //   bit 8-16: column
-            this.grid = new Array(BoardArea + (PiecesPerPlayer * 2));
-        }
+						var buildingObject = {
+							piece: {targetRow: i, targetCell: j},
+							move:possibleMoves[k],
+							board:this.executeMove(possibleMoves[k].targetRow, possibleMoves[k].targetCell, tempBoard, activePlayer),
+							terminal: null,
+							children:[],
+							score:0,
+							activePlayer: activePlayer,
+							depth: depth,
+						}
+						//does that move win the game?
+						buildingObject.terminal = this.winDetection(buildingObject.board, activePlayer);
 
-        Board.prototype.initPiece = function (row, col, key, player) {
-            this.grid[row * this.cols + col] = (key << 8) | player;
-            this.grid[BoardArea + key] = (row << 8) | col;
-        }
+						if (buildingObject.terminal) {
+							//console.log('a terminal move was found');
+							//if terminal, score is easy, just depends on who won
+							if (activePlayer == this.state.activePlayer) {
+								buildingObject.score = 100-depth;
+							}
+							else {
+								buildingObject.score = -100-depth;
+							}
+						}
+						else if(depth > this.state.aiDepthCutoff) {
+							//don't want to blow up the call stack boiiiiii
+							buildingObject.score = 0;
+						}
+						else {
+							buildingObject.children = this.aiBranch(buildingObject.board, (activePlayer == 'r' ? 'b' : 'r'), depth+1);
+							//if not terminal, we want the best score from this route (or worst depending on who won)
+							var scoreHolder = [];
 
-        Board.prototype.removePiece = function (row, col) {
-            var pos = row * this.cols + col;
-            var piece = this.grid[pos];
-            this.grid[pos] = 0;
+					        for (var l = 0; l < buildingObject.children.length; l++) {
+					        	if (typeof buildingObject.children[l].score !== 'undefined'){
+					        		scoreHolder.push(buildingObject.children[l].score);
+					        	}
+					        }
 
-            var key = (piece >> 8) & 0xFF;
-            var player = piece & 0x3;
-            this.grid[BoardArea + key] = -1;
+					        scoreHolder.sort(function(a,b){ if (a > b) return -1; if (a < b) return 1; return 0; });
 
-            // If removing a king, decrement the king count.
-            if (piece & 4)
-                this.pieceCount[player & 1]--;
+					        if (scoreHolder.length > 0) {
+						        if (activePlayer == this.state.activePlayer) {
+									buildingObject.score = scoreHolder[scoreHolder.length-1];
+								}
+								else {
+									buildingObject.score = scoreHolder[0];
+								}
+							}
+							else {
+								if (activePlayer == this.state.activePlayer) {
+									buildingObject.score = 100-depth;
+								}
+								else {
+									buildingObject.score = -100-depth;
+								}
+							}
+						}
+						if (activePlayer == this.state.activePlayer) {
+							for (var n = 0; n < buildingObject.move.wouldDelete.length; n++) {
+								if (hypotheticalBoard[buildingObject.move.wouldDelete[n].targetRow][buildingObject.move.wouldDelete[n].targetCell].indexOf('k') > -1) {
+									buildingObject.score+=(25-depth);
+								}
+								else {
+									buildingObject.score+=(10-depth);
+								}
+							}
+							if ((JSON.stringify(hypotheticalBoard).match(/k/g) || []).length < (JSON.stringify(buildingObject.board).match(/k/g) || []).length) {
+								//new king made after this move
+								buildingObject.score+=(15-depth);
+							}
+						}
+						else {
+							for (var n = 0; n < buildingObject.move.wouldDelete.length; n++) {
+								if (hypotheticalBoard[buildingObject.move.wouldDelete[n].targetRow][buildingObject.move.wouldDelete[n].targetCell].indexOf('k') > -1) {
+									buildingObject.score-=(25-depth);
+								}
+								else {
+									buildingObject.score-=(10-depth);
+								}
+							}
+							if ((JSON.stringify(hypotheticalBoard).match(/k/g) || []).length < (JSON.stringify(buildingObject.board).match(/k/g) || []).length) {
+								//new king made after this move
+								buildingObject.score-=(15-depth);
+							}
+						}
+						buildingObject.score+=buildingObject.move.wouldDelete.length;
+						output.push(buildingObject);
+					}
+				}
+			}
+		}
 
-            return --this.pieceCount[player];
-        }
+		output = output.sort(function(a,b){ if (a.score > b.score) return -1; if (a.score < b.score) return 1; return 0; });
+		return output;
+	}
+});
 
-        Board.prototype.getPiece = function (row, col) {
-            return this.grid[(row << 3) + col];
-            //return this.grid[row * this.cols + col];
-        }
 
-        Board.prototype.getPlayer = function (row, col) {
-            return this.getPiece(row, col) & 3;
-        }
-
-        Board.prototype.clear = function () {
-            this.player = PlayerOne;
-            this.multiTurn = false;
-            for (var i = 0; i < BoardArea; i++)
-                this.grid[i] = 0;
-        }
-
-        Board.prototype.coordToIndex = function (row, col) {
-            return (row << 3) + col;
-            //return row * this.cols + col;
-        }
-
-        Board.prototype.opponent = function () {
-            return this.player ^ 1;
-        }
-
-        Board.prototype.area = function () {
-            return BoardArea;
-        }
-
-        Board.prototype.validateMove = function (fromRow, fromCol, toRow, toCol) {
-            // Source piece must be the current player.
-            if (this.getPlayer(fromRow, fromCol) != this.player)
-                throw "piece is not yours";
-
-            // Destination cannot have a filled square.
-            if (this.getPiece(toRow, toCol))
-                throw "square is not empty";
-
-            // Movement must be diagonal.
-            var rowDelta = Math.abs(fromRow - toRow);
-            var colDelta = Math.abs(fromCol - toCol);
-            if (rowDelta != colDelta)
-                throw "moves must be diagonal";
-
-            // Non-kings cannot move backwards.
-            if (!(this.getPiece(fromRow, fromCol) & 4)) {
-                if (this.player == PlayerTwo && toRow > fromRow)
-                    throw "this piece must move forward";
-                else if (this.player == PlayerOne && toRow < fromRow)
-                    throw "this piece must move forward";
-            }
-
-            if (rowDelta > 1) {
-                if (rowDelta > 2)
-                    throw "you cannot move more than 2 spaces";
-                if (!this.isValidJump(fromRow, fromCol, toRow, toCol))
-                    throw "you can only move 2 spaces by jumping another piece";
-                return true;
-            }
-
-            // A multi-turn must have ended in a jump.
-            if (this.multiTurn)
-                throw "if a jump is possible, you must jump";
-
-            // Detect if any jumps are possible.
-            for (var row = 0; row < this.rows; row++) {
-                for (var col = 0; col < this.cols; col++) {
-                    if (this.getPlayer(row, col) != this.player)
-                        continue;
-                    var isKing = this.isKing(row, col);
-                    if (this.canCapture(isKing, row, col))
-                        throw "if a jump is possible, you must jump";
-                }
-            }
-        }
-
-        // Move lists are vectors where each entry is a move, encoded as a
-        // bitstring for efficiency.
-        Board.prototype.fillMoveList = function (moveList) {
-            var start = BoardArea + (this.player & 1) * PiecesPerPlayer;
-            var canCapture = false;
-            for (var i = 0; i < PiecesPerPlayer; i++) {
-                var piece = this.grid[start + i];
-                if (piece == -1)
-                    continue;
-
-                var fromRow = piece >> 8;
-                var fromCol = piece & 0xFF;
-                var isKing = this.grid[this.coordToIndex(fromRow, fromCol)] & 4;
-                var opponent = this.player ^ 1;
-
-                // Test movement from row 0 -> E.
-                if ((isKing || this.player == 2) && fromRow != this.rows - 1) {
-                    var left = 0, right = 0;
-                    if (fromCol != 0) {
-                        left = this.getPiece(fromRow + 1, fromCol - 1);
-                        if (!left && !canCapture)
-                            moveList.add(fromRow, fromCol, fromRow + 1, fromCol - 1);
-                    }
-                    if (fromCol != this.cols - 1) {
-                        right = this.getPiece(fromRow + 1, fromCol + 1);
-                        if (!right && !canCapture)
-                            moveList.add(fromRow, fromCol, fromRow + 1, fromCol + 1);
-                    }
-
-                    // Test if we can add any jumps.
-                    if (fromRow != this.rows - 2) {
-                        if ((left & 3) == opponent &&
-                            fromCol >= 2 &&
-                            !this.getPiece(fromRow + 2, fromCol - 2)) {
-                            if (!canCapture) {
-                                moveList.clear();
-                                canCapture = true;
-                            }
-                            moveList.add(fromRow, fromCol, fromRow + 2, fromCol - 2);
-                        }
-                        if ((right & 3) == opponent &&
-                            fromCol < this.cols - 2 &&
-                            !this.getPiece(fromRow + 2, fromCol + 2)) {
-                            if (!canCapture) {
-                                moveList.clear();
-                                canCapture = true;
-                            }
-                            moveList.add(fromRow, fromCol, fromRow + 2, fromCol + 2);
-                        }
-                    }
-                }
-
-                // Test movement from row E -> 0.
-                if ((isKing || this.player == 3) && fromRow != 0) {
-                    var left = 0, right = 0;
-                    if (fromCol != 0) {
-                        left = this.getPiece(fromRow - 1, fromCol - 1);
-                        if (!left && !canCapture)
-                            moveList.add(fromRow, fromCol, fromRow - 1, fromCol - 1);
-                    }
-                    if (fromCol != this.cols - 1) {
-                        right = this.getPiece(fromRow - 1, fromCol + 1);
-                        if (!right && !canCapture)
-                            moveList.add(fromRow, fromCol, fromRow - 1, fromCol + 1);
-                    }
-
-                    // Test if we can add any jumps.
-                    if (fromRow >= 2) {
-                        if ((left & 3) == opponent &&
-                            fromCol >= 2 &&
-                            !this.getPiece(fromRow - 2, fromCol - 2)) {
-                            if (!canCapture) {
-                                moveList.clear();
-                                canCapture = true;
-                            }
-                            moveList.add(fromRow, fromCol, fromRow - 2, fromCol - 2);
-                        }
-                        if ((right & 3) == opponent &&
-                            fromCol < this.cols - 2 &&
-                            !this.getPiece(fromRow - 2, fromCol + 2)) {
-                            if (!canCapture) {
-                                moveList.clear();
-                                canCapture = true;
-                            }
-                            moveList.add(fromRow, fromCol, fromRow - 2, fromCol + 2);
-                        }
-                    }
-                }
-            }
-        }
-
-        Board.prototype.isValidJump = function (fromRow, fromCol, toRow, toCol) {
-            // The intervening empty square must have an enemy piece.
-            var middleRow = (fromRow + toRow) >> 1;
-            var middleCol = (fromCol + toCol) >> 1;
-            var middlePiece = this.getPlayer(middleRow, middleCol);
-            return middlePiece == (this.player ^ 1);
-        }
-
-        Board.prototype.isValidHop = function (fromRow, fromCol, toRow, toCol) {
-            // Destination must be empty.
-            if (this.getPiece(toRow, toCol))
-                return false;
-            return this.isValidJump(fromRow, fromCol, toRow, toCol);
-        }
-
-        Board.prototype.canCapture = function (isKing, row, col) {
-            return (row >= 2 && col >= 2 &&
-                (isKing || this.player == 3) &&
-                this.isValidHop(row, col, row - 2, col - 2)) ||
-                (row >= 2 && col < this.cols - 2 &&
-                    (isKing || this.player == 3) &&
-                    this.isValidHop(row, col, row - 2, col + 2)) ||
-                (row < this.rows - 2 && col >= 2 &&
-                    (isKing || this.player == 2) &&
-                    this.isValidHop(row, col, row + 2, col - 2)) ||
-                (row < this.rows - 2 && col < this.cols - 2 &&
-                    (isKing || this.player == 2) &&
-                    this.isValidHop(row, col, row + 2, col + 2));
-        }
-
-        Board.prototype.isKing = function (row, col) {
-            return this.getPiece(row, col) & 4;
-        }
-
-        Board.prototype.evaluateScore = function (player) {
-            return (this.pieceCount[player & 1] * 5) +
-                (this.pieceCount[player]);
-        }
-
-        // This function is called in the tightest loop inside UCT, and is
-        // thus EXTREMELY hot.
-        Board.prototype.move = function (fromRow, fromCol, toRow, toCol) {
-            var fromIndex = this.coordToIndex(fromRow, fromCol);
-            var piece = this.grid[fromIndex];
-            this.grid[fromIndex] = 0;
-
-            if ((this.player == 2 && toRow == this.rows - 1) ||
-                (this.player == 3 && toRow == 0)) {
-                // King me!
-                piece |= 4;
-                this.pieceCount[this.player & 1]++;
-            }
-
-            // Update board.
-            var toIndex = this.coordToIndex(toRow, toCol);
-            this.grid[toIndex] = piece;
-
-            // Update tracking.
-            var key = (piece >> 8) & 0xFF;
-            this.grid[BoardArea + key] = (toRow << 8) | toCol;
-
-            // Trick: 1 and -1 have bit 1 set, 2 and -2 do not.
-            if (!((fromRow - toRow) & 1)) {
-                // We assume that move validity was checked already, and that
-                // if this piece has an even delta, it is jumping something.
-                var middleRow = (fromRow + toRow) >> 1;
-                var middleCol = (fromCol + toCol) >> 1;
-                if (!this.removePiece(middleRow, middleCol))
-                    return true;
-
-                // A successful jump means the player gets to jump again.
-                // Detect that by seeing if any two-space hops are legal.
-                var multiTurn = this.canCapture(piece & 4, toRow, toCol);
-                this.multiTurn = multiTurn;
-                if (multiTurn)
-                    return false;
-            }
-
-            // Switch to the next player.
-            this.player ^= 1;
-
-            return false;
-        }
-
-        Board.prototype.copy = function () {
-            var board = new Board();
-            var gridSize = this.grid.length;
-            var to = board.grid;
-            var from = this.grid;
-            for (var i = 0; i < gridSize; i++)
-                to[i] = from[i];
-            board.player = this.player;
-            board.multiTurn = this.multiTurn;
-            board.pieceCount[0] = this.pieceCount[0];
-            board.pieceCount[1] = this.pieceCount[1];
-            board.pieceCount[2] = this.pieceCount[2];
-            board.pieceCount[3] = this.pieceCount[3];
-            return board;
-        }
-
-        // If no moves are available, returns that the opponent won.
-        // If the move is a winning move, return the current player.
-        // Otherwise, return 0.
-        Board.prototype.moveRandom = function (moves) {
-            moves.clear();
-            this.fillMoveList(moves);
-            if (!moves.length)
-                return this.opponent();
-            var r = Math.floor(Math.random() * moves.length);
-            var move = moves.list[r];
-            var fromRow = move >> 24;
-            var fromCol = (move >> 16) & 0xFF;
-            var toRow = (move >> 8) & 0xFF;
-            var toCol = (move) & 0xFF;
-            if (this.move(fromRow, fromCol, toRow, toCol))
-                return this.player;
-            return 0;
-        }
-
-        Board.prototype.init = function () {
-            this.clear();
-
-            // First fill in player one.
-            var odds = 1;
-            var key = 0;
-            for (var i = 0; i < RowsPerPlayer; i++) {
-                for (var j = odds; j < this.cols; j += 2) {
-                    this.initPiece(i, j, key, PlayerOne);
-                    key++;
-                }
-                odds ^= 1;
-            }
-
-            // Fill in player two.
-            odds = 0;
-            for (var i = RowsPerPlayer + 2; i < this.rows; i++) {
-                for (var j = odds; j < this.cols; j += 2) {
-                    this.initPiece(i, j, key, PlayerTwo);
-                    key++;
-                }
-                odds ^= 1;
-            }
-        }
-
-        this.player = function () {
-            return this.board.player;
-        };
-        this.playerAt = function (row, col) {
-            return this.board.getPlayer(row, col);
-        }
-        this.inMultiTurn = function () {
-            return this.board.multiTurn;
-        };
-
-        this.move = function (fromRow, fromCol, toRow, toCol) {
-            this.board.validateMove(fromRow, fromCol, toRow, toCol);
-            if (this.board.move(fromRow, fromCol, toRow, toCol))
-                return this.board.player;
-            var moves = new Checkers.MoveList(BoardArea);
-            this.board.fillMoveList(moves);
-            if (!moves.length)
-                return this.board.opponent();
-            return 0;
-        };
-
-        this.suggest = function (maxTime) {
-            return UCT(this.board, maxTime);
-        }
-
-        this.board = new Board();
-        this.board.init();
-
-        this.start = function () {
-            ui.start(this);
-        }
-    }
-};
-
+//render the gameboard on the board element
+ReactDOM.render(<GameBoard />, document.getElementById('board'));
