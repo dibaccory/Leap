@@ -75,6 +75,19 @@ Board.prototype.fill_board = function(board) {
 	}
 	return board;
 }
+
+Board.prototype.update = function () {
+	for(let [i, row] of this.board.entries()) {
+		//if board[pieces[cell].row][pieces[cell].col] == and !pieces[cell].removed
+
+		//if piece[cell] at different location than on board
+		row.map((cell, j) => {
+			let p = cell != null ? this.pieces[cell] : null;
+			if(this.board[p.row][p.col] == this.board[i][j])
+		};
+	}
+};
+
 /*
 Board.prototype.clone_piece(p) {
 	p.isCloned = true;
@@ -86,21 +99,23 @@ Board.prototype.is_this_jump = function(piece, row) {
 }
 */
 
+
 Board.prototype.make_clone = function(p, row, col) {
 	this.pieces[p].cloned = true;
-	//TODO: think of an update board function. get piece index from html? idk lol
+	//TODO: UPDATE BOARD function. get piece index from html? idk lol
+
 	//row will only be 0 or 7, so we can use this to determine player and placement
 	return (row) ? this.pieces.unshift({player: this.p1, cloned: true, row: row, col: col, removed: false})
 	 						 : this.pieces.push({player: this.p2, cloned: true, row: row, col: col, removed: false});
 }
 
-Board.prototype.is_clone = function(p) {
-	return this.pieces[p].cloned;
+Board.prototype.can_clone = function(piece_i) {
+	let p = this.pieces[piece_i];
+	return (!p.cloned && (p.player == this.p1 && !p.row) || (p.player == this.p2 && p.row == 7));
 }
 
-Board.prototype.get_player = function(piece) {
-	let c = this.pieces[piece];
-	return c.player ? c.player : null;
+Board.prototype.get_player = function(piece_i) {
+	return this.pieces[piece_i].player;
 }
 
 //Player has no more moves when (1): all player's pieces are removed (2): every piece has no moves
@@ -114,8 +129,8 @@ Board.prototype.has_moves = function(player) {
 	return false;
 }
 
-Board.prototype.valid_move = function(piece, row, col) {
-	let m = this.get_moves(player);
+Board.prototype.valid_move = function(piece_i, row, col) {
+	let m = this.get_moves(piece_i);
 	let moves = [];
 	moves = moves.concat(m.phase, m.adjs, m.jumps, m.leaps);
 		for (let type in moves) {
@@ -138,7 +153,7 @@ Board.prototype.do_move = function(p, row, col) {
 	c.col = col;
 	this.board[row][col] = p;
 
-
+	//TODO: if there is a captured piece, remove from this.board and this.pieces[capt_piece].removed = true
 
 
 

@@ -2,6 +2,25 @@ import React, { Component } from 'react';
 import './css/ui.css';
 import './js/board.js';
 
+/*
+TODO:
+highlight pieces
+
+Game description:
+
+
+"How to Play":
+-directions
+-tutorial?
+
+Check HTML integrity (if somebody is editing it, get mad lol)
+
+multiplayer
+
+
+
+*/
+
 const BOARD_SIZE = 8;
 const PLAYER_ONE = 1;
 const PLAYER_TWO = 2;
@@ -50,30 +69,42 @@ class Leap extends Component {{
 
     console.log("handling move...");
     let board = this.state.board;
-    let piece = this.state.selected_piece;
-    //let start = board.board[selected.row][selected.column];
-    if (!board.valid_move(piece, row, col)) {
+    let sel = this.state.selected_piece;
+    let piece_i = board.board[sel.row][sel.col];
+    if (!board.valid_move(piece_i, row, col)) {
       console.log("illegal move");
       return;
     }
 
-    //TODO: check if can clone, or continue move (jump, leap, clone, or switch)
+    board.do_move(p, row, col);
+    //TODO: check if can clone, or continue move (jump, leap, or phase)
 
+    //Check if piece can be cloned...
+    if(board.can_clone(piece_i)) {
+      let cl_row = (board.get_player(p) == board.p1) ? 0: 7;
+      let cl_col = ;
+      for(let i=1;i<7;i++) {
+
+      }
+
+      board.make_clone(p, cl_row, cl_col);
+    }
   }
 
   can_select_piece(row, col) {
-    let cell = this.state.board.board[row][col];
-    if (!cell) return false;
-    let player = this.state.board.pieces[cell].player;
-    return player == this.state.turn;
+    let s = this.state;
+    let cell = s.board.board[row][col];
+    if (cell != null) return false;
+    let player = s.board.pieces[cell].player;
+    return player == s.turn;
   }
 
-  set_piece(cell) {
-    this.setState({selected_piece: this.state.board.pieces[cell]});
+  set_piece(row, col) {
+      this.setState({selected_piece: {row: row, col: col}});
   }
 
   next_player() {
-    return (this.state.turn == PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE)
+    return (this.state.turn == PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE);
   }
 
   restart() {
@@ -137,7 +168,7 @@ class Row extends Component {
     let selected_col = this.props.selected_piece ? this.props.selected_piece.column : null;
     let cells = this.props.row.map((cell, i) => {
       return <Cell key={i}
-              val={cell ? this.props.pieces[cell] : null}
+              val={cell != null ? this.props.pieces[cell] : null}
               row={this.props.row_i}
               column={i}
               selected={i == selected_col ? true : false}
@@ -173,7 +204,7 @@ function Piece(props) {
   if (props.piece) {
     classes += PLAYERS[props.piece.player].class;
     if (props.piece.is_clone) {
-      classes += " king";
+      classes += " cloned";
     }
   }
   return (
