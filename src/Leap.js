@@ -39,9 +39,9 @@ class Leap extends Component {{
   componentDidUpdate(prevProps, prevState) {
     if (prevState.turn != this.state.turn) {
       let board = this.state.board;
-      if (!board.valid_moves(this.state.turn)) {
+      if (!board.has_moves(this.state.turn)) {
         console.log("no available moves!!!");
-        this.setState({winner: this.nextPlayer()});
+        this.setState({winner: this.next_player()});
       }
     }
   }
@@ -52,7 +52,7 @@ class Leap extends Component {{
     let board = this.state.board;
     let piece = this.state.selected_piece;
     //let start = board.board[selected.row][selected.column];
-    if (!board.can_move(piece, row, col)) {
+    if (!board.valid_move(piece, row, col)) {
       console.log("illegal move");
       return;
     }

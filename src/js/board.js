@@ -103,25 +103,15 @@ Board.prototype.get_player = function(piece) {
 	return c.player ? c.player : null;
 }
 
-Board.prototype.get_all_moves = function(player) {
-	let all_moves = {phase: [], adjs: [], jumps: [], leaps: []};
-	this.pieces.forEach((p, i) => {
-		if (p.player == player && !p.removed) {
-			let p_moves = this.get_moves(i);
-			all_moves.jumps = (all_moves.jumps).concat(p_moves.jumps);
-			all_moves.adjs = (all_moves.adjs).concat(p_moves.adjs);
-			all_moves.leaps = (all_moves.leaps).concat(p_moves.leaps);
-			all_moves.phase.push(p_moves.phase);
-		}
-	});
-	console.log("moves: " + JSON.stringify(moves));
-	return all_moves;
-}
-
-//If player dead or player's pieces surrounded
+//Player has no more moves when (1): all player's pieces are removed (2): every piece has no moves
 Board.prototype.has_moves = function(player) {
-	let moves = this.get_all_moves(player);
-	return moves.jumps.length + moves.adjs.length + moves.phase.length + moves.leaps.length > 0;
+	for(let i=0; i < this.pieces.length) {
+		let piece = this.pieces[i];
+		if(!piece.removed && piece.player == player) {
+			if(!this.get_moves(i).every(t => t == [] || t == {} || t = null)) return true;
+		}
+	}
+	return false;
 }
 
 Board.prototype.valid_move = function(piece, row, col) {
@@ -136,19 +126,21 @@ Board.prototype.valid_move = function(piece, row, col) {
 	return false;
 }
 
-Board.prototype.can_continue = function(piece) {
-	let moves = this.get_moves(piece).jumps;
-	console.log(JSON.stringify(moves));
-	if (moves.length) {
-		return true;
-	}
-	return false;
+Board.prototype.can_continue = function(piece_i) {
+	let moves = this.get_moves(piece_i);
+	return !moves.every(t => t == [] || t == {} || t = null);
 }
 
-Board.prototype.do_move = function (piece, row, col) {
-	let c = this.pieces[piece];
-	let cRow = c.row;
-	let cCol = c.col;
+Board.prototype.do_move = function(p, row, col) {
+	let c = this.pieces[p];
+	this.board[c.row][c.col] = null;
+	c.row = row;
+	c.col = col;
+	this.board[row][col] = p;
+
+
+
+
 
 	//check if
 	/*
@@ -160,10 +152,7 @@ Board.prototype.do_move = function (piece, row, col) {
 		this.pieces[removedPlayer].removed = true;
 	}
 	*/
-	c.row = row;
-	c.col = col;
-	this.board[cRow][cCol] = null;
-	this.board[row][col] = piece;
+
 }
 
 Board.prototype.get_moves = function(piece) {
@@ -178,6 +167,7 @@ Board.prototype.get_moves = function(piece) {
 
 	for(let r=-1;r<2;r++) {
 		for(let c=-1;c<2; c++) {
+			//check within boundaries and ignore the middle
 			if(in_bounds(p.row + r, p.col + c) && (r || c)) {
 				let cell_adj = this.board[p.row + r][p.col + r];
 				let is_phase = cell_type(p.row + r, p.col + c) > 1;
