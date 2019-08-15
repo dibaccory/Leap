@@ -16,87 +16,73 @@ const PLAYERS = {
   }
 }
 
+const CELL_COLORS = [ "gray1", "gray2", "pink", "red", "orange", "yellow", "green", "blue"];
+
 class Leap extends Component {{
   constructor() {
     super();
     this.state = { board: new Board(BOARD_SIZE, PLAYER_ONE, PLAYER_TWO),
                   turn: PLAYER_ONE,
-                  selected_cell: null, winner: null };
-
+                  selected_piece: null, winner: null };
   }
 
-  select_cell(row, column) {
-    console.log("in select square for row "+row+" column "+column);
-    let selected = this.state.selected_cell;
-    if (this.can_select_cell(row, column)) {
-      this.setSquare(row, column);
-    } else if (selected) {
-      this.handleMove(row, column);
+  select_cell(row, col) {
+    console.log("in select cell for row "+row+" column "+col);
+    if (this.can_select_piece(row, col)) {
+      this.set_piece(row, col);
+    } else if (this.state.selected_piece) {
+      this.handle_move(row, col);
     }
   }
 
-  handleMove(row, col) {
+  handle_move(row, col) {
+
     console.log("handling move...");
     let board = this.state.board;
-    let selected = this.state.selected_cell;
-    let start = board.board[selected.row][selected.column];
-    if (!board.canMoveChecker(start, row, col)) {
+    let piece = this.state.selected_piece;
+    //let start = board.board[selected.row][selected.column];
+    if (!board.can_move(piece, row, col)) {
       console.log("illegal move");
       return;
     }
 
-    let isJump = board.isJumpMove(start, row, col);
-    let becameKing = false;
-    board.moveChecker(start, row, col);
-    if (!board.isKing(start) && (board.getPlayer(start) == PLAYER_ONE && row == 0)
-    || (board.getPlayer(start) == PLAYER_TWO && row == ((board.board.length)-1))) {
-      console.log("making King....");
-      becameKing = true;
-      board.makeKing(start);
-    }
+    //TODO: check if can clone, or continue move (jump, leap, clone, or switch)
 
-    if (!becameKing && isJump && board.canKeepJumping(start)) {
-      this.setState({board: board, selected_cell: {row: row, column: col}});
-    } else {
-      this.setState({board: board, turn: this.nextPlayer(), selected_cell: null});
-    }
   }
 
-  can_select_cell(row, column) {
-    let square = this.state.board.board[row][column];
-    if (!square) {
-      return false;
-    }
-    let player = this.state.board.checkers[square].player;
+  can_select_piece(row, col) {
+    let cell = this.state.board.board[row][col];
+    if (!cell) return false;
+    let player = this.state.board.pieces[cell].player;
     return player == this.state.turn;
   }
 
-  setSquare(row, column) {
-    this.setState({selected_cell: {row: row, column: column}});
+  set_piece(cell) {
+    this.setState({selected_piece: this.state.board.pieces[cell]});
   }
 
-  nextPlayer() {
+  next_player() {
     return (this.state.turn == PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE)
   }
 
   restart() {
     this.setState({ board: new Board(BOARD_SIZE, PLAYER_ONE, PLAYER_TWO),
-                  turn: PLAYER_ONE, selected_cell: null, winner: null });
+                  turn: PLAYER_ONE, selected_piece: null, winner: null });
   }
 
   render() {
     return (
-      <div className="App">
+      <div className="Leap">
         <div className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
-          <h2>React Checkers</h2>
+          <h2>Leap</h2>
         </div>
         {this.state.winner &&
           <Winner player={this.state.winner} restart={this.restart.bind(this)} />
         }
         <h3>Current turn: {PLAYERS[this.state.turn].name}<span className={PLAYERS[this.state.turn].class}></span></h3>
         <GameBoard board={this.state.board}
-        selected_cell={this.state.selected_cell}
+        selected_piece={this.state.selected_piece}
         select_cell={this.select_cell.bind(this)} />
       </div>
     );
@@ -104,42 +90,66 @@ class Leap extends Component {{
 }
 
 
-class Row extends Component {
+function Winner(props) {
+  let player = PLAYERS[props.player].name;
+  return (
+    <div id="winner">
+      <div>
+        <p>{player} has won the game!</p>
+        <button onClick={props.restart}>Play again?</button>
+      </div>
+    </div>
+  );
+}
+
+class GameBoard extends Component {
   render() {
-    let selectedCol = this.props.selectedSquare ? this.props.selectedSquare.column : null;
-    let squares = this.props.row.map((square, i) => {
-      return <Square key={i}
-              val={square != null ? this.props.checkers[square] : null}
-              row={this.props.rowNum}
-              column={i}
-              selected={i == selectedCol ? true : false}
-              selectSquare={this.props.selectSquare} />
+    let selected_row = this.props.selected_piece ? this.props.selected_piece.row : null;
+    let rows = this.props.board.board.map((row, i) => {
+      return <Row key={i}
+              row={row}
+              selected_piece={i == selected_row ? this.props.selected_piece : null}
+              row_i={i}
+              pieces={this.props.board.pieces}
+              select_cell={this.props.select_cell} />;
     });
     return (
-      <div className="row">
-        {squares}
+      <div className="board">
+        {rows}
       </div>
     )
   }
 }
 
-class Square extends Component {
+class Row extends Component {
   render() {
-    /*
-  	(row == 1 && col == 2) || (row == 6 && col == 5) pink
-  	(row == 3 && col == 2) || (row == 4 && col == 5) red
-  	(row == 4 && col == 2) || (row == 3 && col == 5) orange
-  	(row == 5 && col == 3) || (row == 2 && col == 4) yellow
-  	(row == 5 && col == 4) || (row == 2 && col == 3) green
-  	(row == 6 && col == 2) || (row == 1 && col == 5) blue
-  	*/
-    let color = (this.props.row + this.props.column) % 2 == 0 ? "red" : "black";
-    let selection = this.props.selected ? " selected" : "";
-    let classes = "square " + color + selection;
+    let selected_col = this.props.selected_piece ? this.props.selected_piece.column : null;
+    let cells = this.props.row.map((cell, i) => {
+      return <Cell key={i}
+              val={cell ? this.props.pieces[cell] : null}
+              row={this.props.row_i}
+              column={i}
+              selected={i == selected_col ? true : false}
+              select_cell={this.props.select_cell} />
+    });
     return (
-      <div className={classes} onClick={() => this.props.selectSquare(this.props.row, this.props.column)}>
+      <div className="row">
+        {cells}
+      </div>
+    )
+  }
+}
+
+class Cell extends Component {
+  render() {
+    let color = CELL_COLORS[cell_type(this.props.row, this.props.column)];
+
+    let selection = this.props.selected ? " selected" : "";
+    let classes = "cell " + color + selection;
+    return (
+      <div className={classes} onClick={() => this.props.select_cell(this.props.row, this.props.column)}>
         {this.props.val != null &&
-          <Piece checker={this.props.val} />
+          <Piece piece={this.props.val} />
         }
       </div>
     )
@@ -147,11 +157,11 @@ class Square extends Component {
 }
 
 function Piece(props) {
-  console.log(props.checker);
+  console.log(props.piece);
   let classes = "";
-  if (props.checker) {
-    classes += PLAYERS[props.checker.player].class;
-    if (props.checker.isKing) {
+  if (props.piece) {
+    classes += PLAYERS[props.piece.player].class;
+    if (props.piece.is_clone) {
       classes += " king";
     }
   }
