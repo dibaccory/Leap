@@ -154,7 +154,7 @@ Board.prototype.do_move = function (piece, row, col) {
 
 Board.prototype.get_moves = function(piece) {
 	let adjs = [];
-	let phase;
+	let phase = {};
 	let jumps = [];
 	let leaps = [];
 	let p = this.pieces[piece];
@@ -171,43 +171,33 @@ Board.prototype.get_moves = function(piece) {
 	if(cell_type(p.row, p.col) > 1 && !this.board[7 - p.row][7 - p.col]) phase = {row: 7 - p.row, col: 7 - p.col};
 
 	for(let r=-1;r<2;r++) {
-		for(let c=-1;c<2;c++) {
-			if(in_bounds(p.row + r, p.col + c)) {
-				let neighbor_cell = this.board[p.row + r][p.col + r];
-				if(cell_type(p.row + r, p.col + c) > 1 && !this.board[7 - p.row][7 - p.col]) { //if phase adj and end destination is empty
-					let p_on_adj_phase = neighbor_cell;
-					let p_on_far_phase = this.board[7 - (p.row + r)][7 - (p.col + r)];
-					//if(p_on_adj_phase && p_on_far_phase)
-					leaps.push(this.get_leap());
-				}
-				/*
-				adj: !neighbor_cell
-				jump: neighbor_cell && is_bounds(jump place) && neighbor_cell.player != p.player
-				leap: neighbor_cell
-				*/
-				if(neighbor_cell) {	//if adj cell occupied
+		for(let c=-1;c<2; c++) {
+			if(in_bounds(p.row + r, p.col + c) && (r || c)) {
+				let cell_adj = this.board[p.row + r][p.col + r];
+				let is_phase = cell_type(p.row + r, p.col + c) > 1;
 
-					if(in_bounds(p.row + r*2, p.col + c*2)) {
-						if(!this.board[p.row + r*2][p.col + c*2]
-						&& this.get_player(this.board[p.row + r][p.col + c]) != p.player) { //if there is an enemy piece adjacent to this one
-						jumps.push({row: row  + r*2, col: p.col + c*2, captured = });
+				//if neighbor cell is a phase, leap_cell clear, and (enemy piece on phase_adj XOR enemy piece on phase_far)
+				if(is_phase && !this.board[7 - p.row][7 - p.col]) {
+					let phase_adj = cell_adj;
+					let phase_far = this.board[7 - (p.row + r)][7 - (p.col + r)];
+
+					if((phase_adj || phase_far) && !(phase_adj && phase_far)) {
+						let capt = phase_adj ? phase_adj : phase_far;
+						leaps.push({row: 7 - p.row, col: 7 - p.col, captured: capt});
+					}
+				}
+
+				if(cell_adj) {	//if adj cell occupied, jump_cell in bounds, jump_cell clear, and jump_cell has enemy piece
+					if(in_bounds(p.row + r*2, p.col + c*2) && !this.board[p.row + r*2][p.col + c*2]
+					&& this.get_player(cell_adj) != p.player) {
+							jumps.push({row: row  + r*2, col: p.col + c*2, captured: cell_adj});
 					}
 				} else adjs.push({row: row + r, col: col + c});	//adjacent moves
-
 			}
 		}
 	}
 
-	return {adjs: adjs, jumps: jumps};
-}
-
-Board.prototype.get_jump = function(p, row_inc, col_inc) {
-	if(in_bounds(p.row + r*2, p.col + c*2) && !this.board[p.row + r][p.col + c]) {
-
-
-	}
-
-	return moves;
+	return {phase: phase, adjs: adjs, jumps: jumps, leaps: leaps};
 }
 
 
