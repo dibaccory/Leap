@@ -45,15 +45,6 @@ class Leap extends Component {{
                   selected_piece: null, winner: null };
   }
 
-  select_cell(row, col) {
-    console.log("in select cell for row "+row+" column "+col);
-    if (this.can_select_piece(row, col)) {
-      this.set_piece(row, col);
-    } else if (this.state.selected_piece) {
-      this.handle_move(row, col);
-    }
-  }
-
   //React update method
   componentDidUpdate(prevProps, prevState) {
     if (prevState.turn != this.state.turn) {
@@ -62,6 +53,15 @@ class Leap extends Component {{
         console.log("no available moves!!!");
         this.setState({winner: this.next_player()});
       }
+    }
+  }
+
+  select_cell(row, col) {
+    console.log("in select cell for row "+row+" column "+col);
+    if (this.can_select_piece(row, col)) {
+      this.set_piece(row, col);
+    } else if (this.state.selected_piece) {
+      this.handle_move(row, col);
     }
   }
 
@@ -76,25 +76,28 @@ class Leap extends Component {{
       return;
     }
 
-    board.do_move(p, row, col);
-    //TODO: check if can clone, or continue move (jump, leap, or phase)
+    let piece_captured = board.do_move(p, row, col);
 
     //Check if piece can be cloned...
-    if(board.can_clone(piece_i)) {
-      let cl_row = (board.get_player(p) == board.p1) ? 0: 7;
+    if(board.can_clone(pi)) {
+      let cl_row = (board.get_player(pi) == board.p1) ? 0: 7;
+      //Have user select cell to place clone
       let cl_col = ;
-      for(let i=1;i<7;i++) {
-
-      }
+      for(let i=1;i<7;i++) {}
 
       board.make_clone(p, cl_row, cl_col);
+      return;
+    }
+
+    if(piece_captured && ) {
+
     }
   }
 
   can_select_piece(row, col) {
     let s = this.state;
     let cell = s.board.board[row][col];
-    if (cell != null) return false;
+    if (cell !== null) return false;
     let player = s.board.pieces[cell].player;
     return player == s.turn;
   }
