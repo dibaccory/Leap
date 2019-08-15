@@ -1,3 +1,13 @@
+//single, phase, jump, super-jump
+/*
+adj: adjacent
+phase: change portal side
+leap: capture piece while jumping through a portal
+jitch: jump, then phase
+swump: switch, then jump
+}
+*/
+
 function cell_type(row, col) {
 	let type;
 	switch true {
@@ -47,12 +57,12 @@ Board.prototype.init_board = function(size) {
     return b;
 }
 
-Board.prototype.init_pieces = function(size, p1, p2) {
-	let white_pieces = 0;
-	let black_pieces = 0;
+Board.prototype.init_pieces = function(size) {
+	let white_pieces = [];
+	let black_pieces = [];
 	for (let i = 0; i < size; i++) {
-		white_pieces.push({player: p1, cloned: false, row: 0, col: 1, removed: false});
-		black_pieces.push({player: p2, cloned: false, row: 7, col: 1, removed: false});
+		white_pieces.push({player: this.p1, cloned: false, row: 7, col: 1, removed: false});
+		black_pieces.push({player: this.p2, cloned: false, row: 0, col: 1, removed: false});
 	}
     return white_pieces.concat(black_pieces);
 }
@@ -60,8 +70,8 @@ Board.prototype.init_pieces = function(size, p1, p2) {
 Board.prototype.fill_board = function(board) {
 	let size = board.length;
 	for(let i=0; i<size; i++) {
-		board[0][i] = i;			//black pieces
-		board[7][i] = 8 + i;	//white pieces
+		board[7][i] = i;			//white pieces
+		board[0][i] = 8 + i;	//black pieces
 	}
 	return board;
 }
@@ -76,14 +86,16 @@ Board.prototype.is_this_jump = function(piece, row) {
 }
 */
 
-Board.prototype.make_clone = function(piece) {
-	let c = this.pieces[piece];
-	c.is_clone = true;
+Board.prototype.make_clone = function(p, row, col) {
+	this.pieces[p].cloned = true;
+	//TODO: think of an update board function. get piece index from html? idk lol
+	//row will only be 0 or 7, so we can use this to determine player and placement
+	return (row) ? this.pieces.unshift({player: this.p1, cloned: true, row: row, col: col, removed: false})
+	 						 : this.pieces.push({player: this.p2, cloned: true, row: row, col: col, removed: false});
 }
 
-Board.prototype.is_clone = function(piece) {
-	let c = this.pieces[piece];
-	return c.is_clone;
+Board.prototype.is_clone = function(p) {
+	return this.pieces[p].cloned;
 }
 
 Board.prototype.get_player = function(piece) {
@@ -92,31 +104,33 @@ Board.prototype.get_player = function(piece) {
 }
 
 Board.prototype.get_all_moves = function(player) {
-	let moves = {jumps: [], adjs: []};
-	let pieces = this.pieces;
-	pieces.forEach((piece, i) => {
-		if (piece.player == player && !piece.removed) {
-			let cMoves = this.get_moves(i);
-			moves.jumps = (moves.jumps).concat(cMoves.jumps);
-			moves.adjs = (moves.adjs).concat(cMoves.adjs);
+	let all_moves = {phase: [], adjs: [], jumps: [], leaps: []};
+	this.pieces.forEach((p, i) => {
+		if (p.player == player && !p.removed) {
+			let p_moves = this.get_moves(i);
+			all_moves.jumps = (all_moves.jumps).concat(p_moves.jumps);
+			all_moves.adjs = (all_moves.adjs).concat(p_moves.adjs);
+			all_moves.leaps = (all_moves.leaps).concat(p_moves.leaps);
+			all_moves.phase.push(p_moves.phase);
 		}
 	});
 	console.log("moves: " + JSON.stringify(moves));
-	return moves;
+	return all_moves;
 }
 
+//If player dead or player's pieces surrounded
 Board.prototype.has_moves = function(player) {
 	let moves = this.get_all_moves(player);
-	return moves.jumps.length + moves.adjs.length > 0;
+	return moves.jumps.length + moves.adjs.length + moves.phase.length + moves.leaps.length > 0;
 }
 
-Board.prototype.can_move = function(piece, row, col) {
-	let player = this.pieces[piece].player;
-	let moves = this.get_all_moves(player); //why get all moves????
-	let movesToCheck = moves.jumps.length ? moves.jumps : moves.adjs;
-		for (let move of movesToCheck) {
-			if (move.row === row && move.col === col) {
-				return true;
+Board.prototype.valid_move = function(piece, row, col) {
+	let m = this.get_moves(player);
+	let moves = [];
+	moves = moves.concat(m.phase, m.adjs, m.jumps, m.leaps);
+		for (let type in moves) {
+			for (let move of type) {
+				if (move.row == row && move.col == col) return true;
 			}
 		}
 	return false;
@@ -159,15 +173,7 @@ Board.prototype.get_moves = function(piece) {
 	let leaps = [];
 	let p = this.pieces[piece];
 
-	//single, phase, jump, super-jump
-	/*
-	adj: adjacent
-	phase: change portal side
-	leap: capture piece while jumping through a portal
-	jitch: jump, then phase
-	swump: switch, then jump
-	}
-	*/
+
 	if(cell_type(p.row, p.col) > 1 && !this.board[7 - p.row][7 - p.col]) phase = {row: 7 - p.row, col: 7 - p.col};
 
 	for(let r=-1;r<2;r++) {

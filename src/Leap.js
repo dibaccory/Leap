@@ -35,6 +35,17 @@ class Leap extends Component {{
     }
   }
 
+  //React update method
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.turn != this.state.turn) {
+      let board = this.state.board;
+      if (!board.valid_moves(this.state.turn)) {
+        console.log("no available moves!!!");
+        this.setState({winner: this.nextPlayer()});
+      }
+    }
+  }
+
   handle_move(row, col) {
 
     console.log("handling move...");
