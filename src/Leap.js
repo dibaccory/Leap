@@ -65,13 +65,13 @@ class Leap extends Component {{
     }
   }
 
-  handle_move(row, col) {
+  handle_move(row, col) { //row, col of destination
 
     console.log("handling move...");
     let board = this.state.board;
     let sel = this.state.selected_piece;
-    let piece_i = board.board[sel.row][sel.col];
-    if (!board.valid_move(piece_i, row, col)) {
+    let pi = board.board[sel.row][sel.col];
+    if (!board.valid_move(pi, row, col)) {
       console.log("illegal move");
       return;
     }
@@ -89,9 +89,10 @@ class Leap extends Component {{
       return;
     }
 
-    if(piece_captured && ) {
-
-    }
+    //if this move is a capturing move and there are more capturing moves
+    (piece_captured && board.can_continue_turn(pi))
+    ? this.setState({board: board, turn: this.state.turn, selected_piece: {row: row, col: col}});
+    : this.setState({board: board, turn: next_player(this.state.turn), selected_piece: null});
   }
 
   can_select_piece(row, col) {
