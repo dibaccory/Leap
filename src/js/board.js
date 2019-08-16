@@ -19,7 +19,7 @@ p = piece Board.pieces[pi]
 
 function cell_type(row, col) {
 	let type;
-	switch true {
+	switch (true) {
 		case (row == 1 && col == 2) || (row == 6 && col == 5):
 			type = 2;
 			break;
@@ -101,14 +101,14 @@ Board.prototype.insert_at_separation_index = function () {
 Board.prototype.make_clone = function (pi, row, col) {
 	this.pieces[pi].cloned = true;
 	//row will only be 0 or 7, so we can use this to determine player and placement
-	let player = row ? this.p1, this.p2;
+	let player = row ? this.p1 : this.p2;
 	let clone = {player: player, cloned: true, row: row, col: col, alive: true};
 	return this.pieces.splice(this.insert_at_separation_index(),0, clone);
 }
 
 Board.prototype.can_clone = function (pi) {
 	let p = this.pieces[pi];
-	return (!p.cloned && (p.player == this.p1 && !p.row) || (p.player == this.p2 && p.row == 7));
+	return (!p.cloned && ( (p.player == this.p1 && !p.row) || (p.player == this.p2 && p.row == 7) ));
 }
 
 /*==========											MOVES															==========*/
@@ -147,14 +147,14 @@ Board.prototype.is_clone_spawn = function (p) {
 	let spawn_row = p.player == this.p1 ? this.board[0] : this.board[7];
 
 	let clone_spawns = [];
-	for(let cell=1; cell<7;cell++]) {
+	for(let cell=1; cell<7;cell++) {
 		if (spawn_row[cell] === null) clone_spawns.push(spawn_row[cell]);
 	}
-	return .
+	return clone_spawns;
 }
 
 Board.prototype.get_moves = function (pi) {
-	let phase = {}, adjs = [], jumps = [], leaps = [];
+	let adjs = [], jumps = [], leaps = [];
 	let p = this.pieces[pi];
 
 	/*
@@ -179,10 +179,7 @@ Board.prototype.get_moves = function (pi) {
 	 for some row,col,  and p = this.piece[pi]
 	 to Leap.set_piece(), add this.state.board.update_board()
 
-	 I should also
 	*/
-	let clone_move = this.is_clone_spawn(p);
-	if(clone_move && !p.cloned)
 
 	let phase, jump, leap;
 	for(let r=-1;r<2;r++) {
@@ -206,43 +203,12 @@ Board.prototype.get_moves = function (pi) {
 		}
 	}
 
-	return {phase: phase, adjs: adjs, jumps: jumps, leaps: leaps};
-}
-
-Board.prototype.can_continue_turn = function (pi) {
-	let moves = this.get_moves(pi);
-	let capturing_moves = { jumps: moves.jumps, leaps: moves.leaps
-	//return !parseInt(Object.values(a).reduce( (j,i) => i.length !== undefined ? i.length + j: j));
-	return !moves.every(t => t == [] || t == {} || t == null);
-}
-
-Board.prototype.can_continue = function (pi) {
-	let moves = this.get_moves(pi);
-	//return !parseInt(Object.values(a).reduce( (j,i) => i.length !== undefined ? i.length + j: j));
-	return !moves.every(t => t == [] || t == {} || t == null);
-}
-
-//Player has no more moves when (1): all player's pieces are dead (2): every piece has no moves
-Board.prototype.has_moves = function (player) {
-	for(let pi=0; pi < this.pieces.length; pi++) {
-		let p = this.pieces[pi];
-		if(p.alive && p.player == player) {
-			if(this.can_continue(pi)) return true;
-		}
+	let piece_moves = {phase: phase, adjs: adjs, jumps: jumps, leaps: leaps};
+	if (this.can_clone(pi)) {
+		let clone_spawns = this.is_clone_spawn(p);
+		if (clone_spawns.length) piece_moves.clone_spawns = clone_spawns;
 	}
-	return false;
-}
-
-Board.prototype.valid_move = function (pi, row, col) {
-	let m = this.get_moves(pi);
-	let moves = [];
-	moves = moves.concat(m.phase, m.adjs, m.jumps, m.leaps);
-		for (let type in moves) {
-			for (let move of type) {
-				if (move.row == row && move.col == col) return true;
-			}
-		}
-	return false;
+	return piece_moves;
 }
 
 //Performs move. returns true if captured piece in process, else false
@@ -256,10 +222,48 @@ Board.prototype.do_move = function (pi, row, col) {
 	//if piece p contains captured piece
 	let c = p.captured_pi !== undefined ? this.pieces[p.captured_pi] : null;
 	if (c) {
-		c.alive = true;
+		c.alive = false;
 		this.board[c.row][c.col] = null;
 		return true;
 	}
+	return false;
+}
+
+/*==========											INTEGRITY													==========*/
+
+Board.prototype.can_continue_turn = function (pi) {
+	let moves = this.get_moves(pi);
+	moves.adjs = [];
+	//return !parseInt(Object.values(a).reduce( (j,i) => i.length !== undefined ? i.length + j: j));
+	return !moves.every(t => t == [] || t == {} || t == null);
+}
+
+Board.prototype.has_moves = function (pi) {
+	let moves = this.get_moves(pi);
+	//return !parseInt(Object.values(a).reduce( (j,i) => i.length !== undefined ? i.length + j: j));
+	return !moves.every(t => t == [] || t == {} || t == null);
+}
+
+//Player has no more moves when (1): all player's pieces are dead (2): every piece has no moves
+Board.prototype.moves_left = function (player) {
+	for(let pi=0; pi < this.pieces.length; pi++) {
+		let p = this.pieces[pi];
+		if(p.alive && p.player == player) {
+			if(this.has_moves(pi)) return true;
+		}
+	}
+	return false;
+}
+
+Board.prototype.valid_move = function (pi, row, col) {
+	let m = this.get_moves(pi); //** this.board[row][col].highlight
+	let moves = [];
+	moves = moves.concat(m.phase, m.adjs, m.jumps, m.leaps);
+		for (let type in moves) {
+			for (let move of type) {
+				if (move.row == row && move.col == col) return true;
+			}
+		}
 	return false;
 }
 

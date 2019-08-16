@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import './css/ui.css';
-import './js/board.js';
+import Board from './js/board.js';
+import Countdown from 'react-countdown-now';
 
 /*
 TODO:
@@ -37,7 +38,7 @@ const PLAYERS = {
 
 const CELL_COLORS = [ "gray1", "gray2", "pink", "red", "orange", "yellow", "green", "blue"];
 
-class Leap extends Component {{
+class Leap extends Component {
   constructor() {
     super();
     this.state = { board: new Board(BOARD_SIZE, PLAYER_ONE, PLAYER_TWO),
@@ -49,20 +50,21 @@ class Leap extends Component {{
   componentDidUpdate(prevProps, prevState) {
     if (prevState.turn != this.state.turn) {
       let board = this.state.board;
-      if (!board.has_moves(this.state.turn)) {
-        console.log("no available moves!!!");
+      if (!board.moves_left(this.state.turn)) {
+        console.log("${this.state.turn} has no more moves!");
         this.setState({winner: this.next_player()});
       }
+    } else {
+      //if is a move continuation, start the timer
     }
   }
 
-  select_cell(row, col) {
-    console.log("in select cell for row "+row+" column "+col);
-    if (this.can_select_piece(row, col)) {
-      this.set_piece(row, col);
-    } else if (this.state.selected_piece) {
-      this.handle_move(row, col);
-    }
+  select_cell(row, col, cell_highlighted) {
+    //If a move is not a continuation, default case,
+    if (!this.state.continued_move) {
+      if (this.can_select_piece(row, col)) this.set_piece(row, col);
+      else if (this.state.selected_piece)  this.handle_move(row, col);
+    } else if (cell_highlighted) this.handle_move(row, col); //if continuation + selects valid move
   }
 
   handle_move(row, col) { //row, col of destination
@@ -72,26 +74,25 @@ class Leap extends Component {{
     let sel = this.state.selected_piece;
     let pi = board.board[sel.row][sel.col];
     if (!board.valid_move(pi, row, col)) {
-      console.log("illegal move");
+      console.log("Invalid move!");
       return;
     }
 
-    let piece_captured = board.do_move(p, row, col);
+    let piece_captured = board.do_move(pi, row, col);
 
-    //Check if piece can be cloned...
+    //If piece can phase, extend player turn to allow option
+    if (board.is_phase(p))
+
+    //if piece can be cloned, extend player turn to allow option
     if(board.can_clone(pi)) {
-      let cl_row = (board.get_player(pi) == board.p1) ? 0: 7;
-      //Have user select cell to place clone
-      let cl_col = ;
-      for(let i=1;i<7;i++) {}
 
-      board.make_clone(p, cl_row, cl_col);
+      board.make_clone(pi, cl_row, cl_col);
       return;
     }
 
     //if this move is a capturing move and there are more capturing moves
     (piece_captured && board.can_continue_turn(pi))
-    ? this.setState({board: board, turn: this.state.turn, selected_piece: {row: row, col: col}});
+    ? this.setState({board: board, turn: this.state.turn, continued_move: true, selected_piece: {row: row, col: col}})
     : this.setState({board: board, turn: next_player(this.state.turn), selected_piece: null});
   }
 
@@ -123,13 +124,19 @@ class Leap extends Component {{
           <img src={logo} className="App-logo" alt="logo" />
           <h2>Leap</h2>
         </div>
-        {this.state.winner &&
-          <Winner player={this.state.winner} restart={this.restart.bind(this)} />
-        }
+        { this.state.winner && <Winner player={this.state.winner} restart={this.restart.bind(this)} /> }
         <h3>Current turn: {PLAYERS[this.state.turn].name}<span className={PLAYERS[this.state.turn].class}></span></h3>
+        <Countdown date={Date.now() + 10000}
+                   intervalDelay={0}
+                   precision={3}
+                   autoStart={false}
+                   renderer={d => <div>
+                      <span className="countdown-s">{d.seconds}</span>
+                      <span className="countdown-ms">:{d.milliseconds}</span>
+                   </div>}/>
         <GameBoard board={this.state.board}
-        selected_piece={this.state.selected_piece}
-        select_cell={this.select_cell.bind(this)} />
+                   selected_piece={this.state.selected_piece}
+                   select_cell={this.select_cell.bind(this)} />
       </div>
     );
   }
@@ -159,11 +166,7 @@ class GameBoard extends Component {
               pieces={this.props.board.pieces}
               select_cell={this.props.select_cell} />;
     });
-    return (
-      <div className="board">
-        {rows}
-      </div>
-    )
+    return (<div className="board"> {rows} </div>)
   }
 }
 
@@ -178,11 +181,7 @@ class Row extends Component {
               selected={i == selected_col ? true : false}
               select_cell={this.props.select_cell} />
     });
-    return (
-      <div className="row">
-        {cells}
-      </div>
-    )
+    return (<div className="row"> {cells} </div>)
   }
 }
 
@@ -194,9 +193,7 @@ class Cell extends Component {
     let classes = "cell " + color + selection;
     return (
       <div className={classes} onClick={() => this.props.select_cell(this.props.row, this.props.column)}>
-        {this.props.val != null &&
-          <Piece piece={this.props.val} />
-        }
+        {this.props.val != null && <Piece piece={this.props.val} />}
       </div>
     )
   }
@@ -207,13 +204,9 @@ function Piece(props) {
   let classes = "";
   if (props.piece) {
     classes += PLAYERS[props.piece.player].class;
-    if (props.piece.is_clone) {
-      classes += " cloned";
-    }
+    if (props.piece.cloned) classes += " cloned";
   }
-  return (
-    <div className={classes}></div>
-  )
+  return (<div className={classes}></div>)
 }
 
 export default Leap;
