@@ -93,7 +93,7 @@ class Leap extends Component {
   can_select_piece(row, col) {
     let s = this.state;
     let cell = s.board.board[row][col];
-    if (cell !== null) return false;
+    if (cell === null) return false;
     let player = s.board.pieces[cell].player;
     return player == s.turn;
   }
@@ -115,7 +115,7 @@ class Leap extends Component {
   render() {
     return (
       <div className="Leap">
-        <div className="App-header">
+        <div className="Leap-header">
           <h2>Leap</h2>
         </div>
         { this.state.winner && <Winner player={this.state.winner} restart={this.restart.bind(this)} /> }
@@ -128,9 +128,13 @@ class Leap extends Component {
                       <span className="countdown-s">{d.seconds}</span>
                       <span className="countdown-ms">:{d.milliseconds}</span>
                    </div>}/>
-        <GameBoard board={this.state.board}
-                   selected_piece={this.state.selected_piece}
-                   select_cell={this.select_cell.bind(this)} />
+        <div className="game-container">
+          <div className="game-options"></div>
+          <GameBoard board={this.state.board}
+                     selected_piece={this.state.selected_piece}
+                     select_cell={this.select_cell.bind(this)} />
+          <div className="game-menu"></div>
+        </div>
       </div>
     );
   }
@@ -175,7 +179,7 @@ class Row extends Component {
               selected={i == selected_col ? true : false}
               select_cell={this.props.select_cell} />
     });
-    return (<div className="row"> {cells} </div>)
+    return (<span className="row"> {cells} </span>)
   }
 }
 
