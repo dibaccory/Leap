@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import './css/ui.css';
-import * as util from './js/util.js';
 import Board from './js/board.js';
 import Countdown from 'react-countdown-now';
+var util = require('./js/util.js');
 
 /*
 TODO:
@@ -50,7 +50,7 @@ class Leap extends Component {
 
   //React update method
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.turn != this.state.turn) {
+    if (prevState.turn !== this.state.turn) {
       let board = this.state.board;
       if (!board.moves_left(this.state.turn)) {
         console.log("${this.state.turn} has no more moves!");
@@ -95,7 +95,7 @@ class Leap extends Component {
     let cell = s.board.board[row][col];
     if (cell !== null) return false;
     let player = s.board.pieces[cell].player;
-    return player == s.turn;
+    return player === s.turn;
   }
 
   set_piece(row, col) {
@@ -119,7 +119,7 @@ class Leap extends Component {
           <h2>Leap</h2>
         </div>
         { this.state.winner && <Winner player={this.state.winner} restart={this.restart.bind(this)} /> }
-        <h3>Current turn: {PLAYERS[this.state.turn].name}<span className={PLAYERS[this.state.turn].class}></span></h3>
+        <h3>Current turn: {PLAYERS[this.state.turn].name}<span className={PLAYERS[this.state.turn].class+"-token"}></span></h3>
         <Countdown date={Date.now() + 10000}
                    intervalDelay={0}
                    precision={3}
@@ -159,7 +159,7 @@ class GameBoard extends Component {
     let rows = this.props.board.board.map((row, i) => {
       return <Row key={i}
               row={row} //board[row]
-              selected_piece={i == selected_row ? this.props.selected_piece : null}
+              selected_piece={i === selected_row ? this.props.selected_piece : null}
               row_i={i}
               pieces={this.props.board.pieces}
               select_cell={this.props.select_cell} />;
@@ -173,7 +173,7 @@ class Row extends Component {
     let selected_col = this.props.selected_piece ? this.props.selected_piece.column : null;
     let cells = this.props.row.map((cell, i) => {
       return <Cell key={i}
-              val={cell != null ? this.props.pieces[cell] : null} //so this.board[row][col] = {who: p.player | null, highlight: {row: some_row, col: some_col} | null
+              val={cell !== null ? this.props.pieces[cell] : null} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selected_col then this.board[row][col].highlight
               row={this.props.row_i}
               column={i}
               selected={i === selected_col ? true : false}
@@ -191,7 +191,7 @@ class Cell extends Component {
     let classes = "cell " + color + selection;
     return (
       <div className={classes} onClick={() => this.props.select_cell(this.props.row, this.props.column)}>
-        {this.props.val != null && <Piece piece={this.props.val} />}
+        {this.props.val !== null && <Piece piece={this.props.val} />}
       </div>
     )
   }

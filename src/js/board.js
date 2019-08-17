@@ -56,15 +56,14 @@ function Board(size, p1, p2) {
 //It follows that I will have to remove other calls to this.get_moves()
 Board.prototype.update_board = function () {
 	this.board.map(row => row.map((cell, j) =>
-		cell ? (this.pieces[j].alive ? cell : null) : null ));
+		cell !== null ? (this.pieces[cell].alive ? this.pieces[cell] : null) : null ));
 }
 
 Board.prototype.init_board = function (size) {
     let b = [];
-		let i = 0;
-    b.push(Array(size).fill(this.p1));			//TODO: fill as {who: this.p1, highlight: null}
+    b.push([0,1,2,3,4,5,6,7]);			//TODO: fill as {who: pi (this.pieces index), highlight: null}
 		for (let i = 1; i < size-1; i++) b.push(Array(size).fill(null));
-		b.push(Array(size).fill(this.p2));
+		b.push([8,9,10,11,12,13,14,15]);
     return b;
 }
 
@@ -75,7 +74,7 @@ Board.prototype.init_pieces = function (size) {
 		white_pieces.push({player: this.p1, cloned: false, row: 7, col: c, alive: true});
 		black_pieces.push({player: this.p2, cloned: false, row: 0, col: c, alive: true});
 	}
-    return white_pieces.concat(black_pieces);
+    return black_pieces.concat(white_pieces);
 }
 
 /*==========											CLONE															==========*/
@@ -84,7 +83,7 @@ Board.prototype.init_pieces = function (size) {
 Board.prototype.insert_at_separation_index = function () {
 	for(let pi=this.pieces_separator; pi<this.pieces.length; pi++) {
 		//Finds index that separates p1 and p2 pieces
-		if(this.pieces[pi].player != this.p1) {
+		if(this.pieces[pi].player !== this.p1) {
 			this.pieces_separator = pi; //update
 			return pi;
 		}
@@ -101,7 +100,7 @@ Board.prototype.make_clone = function (pi, row, col) {
 
 Board.prototype.can_clone = function (pi) {
 	let p = this.pieces[pi];
-	return (!p.cloned && p.col < 7 && p.col > 0 && ( (p.player == this.p1 && !p.row) || (p.player == this.p2 && p.row == 7) ));
+	return (!p.cloned && p.col < 7 && p.col > 0 && ( (p.player === this.p1 && !p.row) || (p.player === this.p2 && p.row === 7) ));
 }
 
 /*==========											MOVES															==========*/
@@ -125,7 +124,7 @@ Board.prototype.is_leap = function (p, row_incr, col_incr, is_phase, cell_adj) {
 Board.prototype.is_jump = function (p, row_incr, col_incr, cell_adj) {
 	//if adj cell occupied, jump_cell in bounds, jump_cell clear, and jump_cell has enemy piece
 	if(util.in_bounds(p.row + row_incr*2, p.col + col_incr*2)) {
-		if (this.get_player(cell_adj) != p.player && !this.board[p.row + row_incr*2][p.col + col_incr*2]) {
+		if (this.get_player(cell_adj) !== p.player && !this.board[p.row + row_incr*2][p.col + col_incr*2]) {
 				return {row: p.row + row_incr*2, col: p.col + col_incr*2, captured_pi: cell_adj};
 		}
 	}
@@ -141,7 +140,7 @@ Board.prototype.is_clone_spawn = function (pi, row, col) {
 }
 
 Board.prototype.get_clone_spawns = function (p) {
-	let row = p.player == this.p1 ? 0 : 7;
+	let row = p.player === this.p1 ? 0 : 7;
 
 	let clone_spawns = [];
 	for(let col=1; col<7;col++) {
@@ -212,20 +211,20 @@ Board.prototype.can_continue_move = function (pi) {
 	//TODO: Only check moves in the same direction as the initial move
 	moves.adjs = [];
 	//return !parseInt(Object.values(a).reduce( (j,i) => i.length !== undefined ? i.length + j: j));
-	return !moves.every(t => t == [] || t == {} || t == null);
+	return !moves.every(t => t === [] || t === {} || t === null);
 }
 
 Board.prototype.has_moves = function (pi) {
 	let moves = this.get_moves(pi);
 	//return !parseInt(Object.values(a).reduce( (j,i) => i.length !== undefined ? i.length + j: j));
-	return !Object.values(moves).every(t => t == [] || t == {} || t == null);
+	return !Object.values(moves).every(t => t === [] || t === {} || t === null);
 }
 
 //Player has no more moves when (1): all player's pieces are dead (2): every piece has no moves
 Board.prototype.moves_left = function (player) {
 	for(let pi=0; pi < this.pieces.length; pi++) {
 		let p = this.pieces[pi];
-		if(p.alive && p.player == player) {
+		if(p.alive && p.player === player) {
 			if(this.has_moves(pi)) return true;
 		}
 	}
@@ -238,7 +237,7 @@ Board.prototype.valid_move = function (pi, row, col) {
 	moves = moves.concat(m.phase, m.adjs, m.jumps, m.leaps);
 		for (let type in moves) {
 			for (let move of type) {
-				if (move.row == row && move.col == col) return true;
+				if (move.row === row && move.col === col) return true;
 			}
 		}
 	return false;
