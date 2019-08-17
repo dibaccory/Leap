@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import './css/ui.css';
+import * as util from './js/util.js';
 import Board from './js/board.js';
 import Countdown from 'react-countdown-now';
 
@@ -43,6 +44,7 @@ class Leap extends Component {
     super();
     this.state = { board: new Board(BOARD_SIZE, PLAYER_ONE, PLAYER_TWO),
                   turn: PLAYER_ONE,
+                  continued_move: false,
                   selected_piece: null, winner: null };
   }
 
@@ -77,23 +79,15 @@ class Leap extends Component {
       console.log("Invalid move!");
       return;
     }
-
-    let piece_captured = board.do_move(pi, row, col);
-
-    //If piece can phase, extend player turn to allow option
-    if (board.is_phase(p))
-
-    //if piece can be cloned, extend player turn to allow option
-    if(board.can_clone(pi)) {
-
-      board.make_clone(pi, cl_row, cl_col);
-      return;
-    }
+    let is_capture;
+    //Check if move is a clone move; If it is, we need not call do_move
+    if(board.is_clone_spawn(pi,row, col)) board.make_clone(pi, row, col);
+    else is_capture = board.do_move(pi, row, col);
 
     //if this move is a capturing move and there are more capturing moves
-    (piece_captured && board.can_continue_turn(pi))
-    ? this.setState({board: board, turn: this.state.turn, continued_move: true, selected_piece: {row: row, col: col}})
-    : this.setState({board: board, turn: next_player(this.state.turn), selected_piece: null});
+    (is_capture && board.can_continue_move(pi))
+    ? this.setState( {board: board, turn: this.state.turn, continued_move: is_capture, selected_piece: {row: row, col: col}})
+    : this.setState({board: board, turn: this.next_player(this.state.turn), continued_move: false, selected_piece: null});
   }
 
   can_select_piece(row, col) {
@@ -114,14 +108,14 @@ class Leap extends Component {
 
   restart() {
     this.setState({ board: new Board(BOARD_SIZE, PLAYER_ONE, PLAYER_TWO),
-                  turn: PLAYER_ONE, selected_piece: null, winner: null });
+                    continued_move: false, turn: PLAYER_ONE,
+                    selected_piece: null, winner: null });
   }
 
   render() {
     return (
       <div className="Leap">
         <div className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
           <h2>Leap</h2>
         </div>
         { this.state.winner && <Winner player={this.state.winner} restart={this.restart.bind(this)} /> }
@@ -129,7 +123,7 @@ class Leap extends Component {
         <Countdown date={Date.now() + 10000}
                    intervalDelay={0}
                    precision={3}
-                   autoStart={false}
+                   autoStart={this.state.continued_move}
                    renderer={d => <div>
                       <span className="countdown-s">{d.seconds}</span>
                       <span className="countdown-ms">:{d.milliseconds}</span>
@@ -160,7 +154,7 @@ class GameBoard extends Component {
     let selected_row = this.props.selected_piece ? this.props.selected_piece.row : null;
     let rows = this.props.board.board.map((row, i) => {
       return <Row key={i}
-              row={row}
+              row={row} //board[row]
               selected_piece={i == selected_row ? this.props.selected_piece : null}
               row_i={i}
               pieces={this.props.board.pieces}
@@ -175,7 +169,7 @@ class Row extends Component {
     let selected_col = this.props.selected_piece ? this.props.selected_piece.column : null;
     let cells = this.props.row.map((cell, i) => {
       return <Cell key={i}
-              val={cell != null ? this.props.pieces[cell] : null}
+              val={cell != null ? this.props.pieces[cell] : null} //so this.board[row][col] = {who: p.player | null, highlight: {row: some_row, col: some_col} | null
               row={this.props.row_i}
               column={i}
               selected={i == selected_col ? true : false}
@@ -187,7 +181,7 @@ class Row extends Component {
 
 class Cell extends Component {
   render() {
-    let color = CELL_COLORS[cell_type(this.props.row, this.props.column)];
+    let color = CELL_COLORS[util.cell_type(this.props.row, this.props.column)];
 
     let selection = this.props.selected ? " selected" : "";
     let classes = "cell " + color + selection;

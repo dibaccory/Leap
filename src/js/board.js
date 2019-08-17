@@ -1,3 +1,4 @@
+var util = require('./util.js');
 //single, phase, jump, super-jump
 /*
 adj: adjacent
@@ -11,43 +12,32 @@ swump: switch, then jump
 LEGEND
 pi = piece index in Board.pieces
 p = piece Board.pieces[pi]
+*/
+
+/*
+Previously, I assumed that if a uncloned piece reaches the end of the other player's side,
+then that piece must duplicate before continuing the game. However, my assumption fails
+if the player's spawn row is full and hence I will give the player the option to choose.
+
+This realization got me thinking about adding different game modes that
+modify things like the board size, and side-wrapping.
+
+board size: If board were 9x9, we can put a clone phaser in the center
+that duplicates any non-clone pieces at most once.
+
+side wrapping: columns are cyclic: make board[row] = cyclic linked List?
 
 
 
+Speaking of linked lists... Why am I not using them now?
+Maybe this is what I needed to store highlight;
+ represent each of this.state.selected_piece's moves as a boolean for 'highlight' in
+ this.board[row][col] = {who: p.player | null, highlight: true | false :: added in Board.get_moves(pi)}
+ for some row,col,  and p = this.piece[pi]
+ to Leap.set_piece(), add this.state.board.update_board()
 
 */
 
-function cell_type(row, col) {
-	let type;
-	switch (true) {
-		case (row == 1 && col == 2) || (row == 6 && col == 5):
-			type = 2;
-			break;
-		case (row == 3 && col == 2) || (row == 4 && col == 5):
-			type = 3;
-			break;
-		case (row == 4 && col == 2) || (row == 3 && col == 5):
-			type = 4;
-			break;
-		case (row == 5 && col == 3) || (row == 2 && col == 4):
-			type = 5;
-			break;
-		case (row == 5 && col == 4) || (row == 2 && col == 3):
-			type = 6;
-			break;
-		case (row == 6 && col == 2) || (row == 1 && col == 5):
-			type = 7;
-			break;
-		default:
-			type = (row + col) % 2 == 0 ? 0 : 1;
-			break;
-	}
-	return type;
-}
-
-function in_bounds(row, col) {
-	return ((row > -1 || row < 8) && (col > -1 || col < 8));
-}
 
 function Board(size, p1, p2) {
 	this.board = this.init_board(size);
@@ -80,7 +70,7 @@ Board.prototype.init_pieces = function (size) {
 	for (let i = 0; i < size; i++) {
 		white_pieces.push({player: this.p1, cloned: false, row: 7, col: 1, alive: true});
 		black_pieces.push({player: this.p2, cloned: false, row: 0, col: 1, alive: true});
-	}i
+	}
 		this.update_board(); //add pieces to board
     return white_pieces.concat(black_pieces);
 }
@@ -108,7 +98,7 @@ Board.prototype.make_clone = function (pi, row, col) {
 
 Board.prototype.can_clone = function (pi) {
 	let p = this.pieces[pi];
-	return (!p.cloned && ( (p.player == this.p1 && !p.row) || (p.player == this.p2 && p.row == 7) ));
+	return (!p.cloned && p.col < 7 && p.col > 0 && ( (p.player == this.p1 && !p.row) || (p.player == this.p2 && p.row == 7) ));
 }
 
 /*==========											MOVES															==========*/
@@ -117,7 +107,7 @@ Board.prototype.get_player = function (pi) {
 	return this.pieces[pi].player;
 }
 
-Board.prototype.is_leap = function (p, row_incr, col_incr) {
+Board.prototype.is_leap = function (p, row_incr, col_incr, is_phase, cell_adj) {
 	//if neighbor cell is a phase, leap_cell clear, and (enemy piece on phase_adj XOR enemy piece on phase_far)
 	if(is_phase && !this.board[7 - p.row][7 - p.col]) {
 		let phase_adj = cell_adj;
@@ -129,26 +119,30 @@ Board.prototype.is_leap = function (p, row_incr, col_incr) {
 	}
 }
 
-Board.prototype.is_jump = function (p, row_incr, col_incr) {
+Board.prototype.is_jump = function (p, row_incr, col_incr, cell_adj) {
 	//if adj cell occupied, jump_cell in bounds, jump_cell clear, and jump_cell has enemy piece
-	if(in_bounds(p.row + row_incr*2, p.col + col_incr*2)) {
+	if(util.in_bounds(p.row + row_incr*2, p.col + col_incr*2)) {
 		if (this.get_player(cell_adj) != p.player && !this.board[p.row + row_incr*2][p.col + col_incr*2]) {
-				return {row: row  + row_incr*2, col: p.col + col_incr*2, captured_pi: cell_adj};
+				return {row: p.row + row_incr*2, col: p.col + col_incr*2, captured_pi: cell_adj};
 		}
 	}
 }
 
 Board.prototype.is_phase = function (p) {
-	let is_phase = cell_type(p.row, p.col) > 1;
+	let is_phase = util.cell_type(p.row, p.col) > 1;
 	if(is_phase && !this.board[7 - p.row][7 - p.col]) return {row: 7 - p.row, col: 7 - p.col};
 }
 
-Board.prototype.is_clone_spawn = function (p) {
-	let spawn_row = p.player == this.p1 ? this.board[0] : this.board[7];
+Board.prototype.is_clone_spawn = function (pi, row, col) {
+	if (this.can_clone(pi)) return (this.board[row][col] === null);
+}
+
+Board.prototype.get_clone_spawns = function (p) {
+	let row = p.player == this.p1 ? 0 : 7;
 
 	let clone_spawns = [];
-	for(let cell=1; cell<7;cell++) {
-		if (spawn_row[cell] === null) clone_spawns.push(spawn_row[cell]);
+	for(let col=1; col<7;col++) {
+		if (this.board[row][col] === null) clone_spawns.push({row: row, col: col});
 	}
 	return clone_spawns;
 }
@@ -157,56 +151,32 @@ Board.prototype.get_moves = function (pi) {
 	let adjs = [], jumps = [], leaps = [];
 	let p = this.pieces[pi];
 
-	/*
-	Previously, I assumed that if a uncloned piece reaches the end of the other player's side,
-	then that piece must duplicate before continuing the game. However, my assumption fails
-	if the player's spawn row is full and hence I will give the player the option to choose.
 
-	This realization got me thinking about adding different game modes that
-	modify things like the board size, and side-wrapping.
-
-	board size: If board were 9x9, we can put a clone phaser in the center
-	that duplicates any non-clone pieces at most once.
-
-	side wrapping: columns are cyclic: make board[row] = cyclic linked List?
-
-
-
-	Speaking of linked lists... Why am I not using them now?
-	Maybe this is what I needed to store highlight;
-	 represent each of this.state.selected_piece's moves as a boolean for 'highlight' in
-	 this.board[row][col] = {who: p.player | null, highlight: {row: some_row, col: some_col} | null:: added in Board.get_moves(pi)}
-	 for some row,col,  and p = this.piece[pi]
-	 to Leap.set_piece(), add this.state.board.update_board()
-
-	*/
+	//TODO: ref this.board[p.row + r][p.col + r].who, and set highlight = true for every destination
 
 	let phase, jump, leap;
 	for(let r=-1;r<2;r++) {
 		for(let c=-1;c<2; c++) {
 			//check adjacent cells of piece p wrt the boundary
-			if(in_bounds(p.row + r, p.col + c) && (r || c)) {
+			if(util.in_bounds(p.row + r, p.col + c) && (r || c)) {
 				let cell_adj = this.board[p.row + r][p.col + r];
-				let is_phase = cell_type(p.row + r, p.col + c) > 1;
+				let is_phase = util.cell_type(p.row + r, p.col + c) > 1;
 
-				leap = this.can_leap(p, r, c);
-				if(cell_adj) jump = this.can_jump(p, r, c);
-				else adjs.push({row: row + r, col: col + c});	//adjacent moves
-
-				//add key: clone_spawn for ANY move resulting in can_clone == true
-
+				leap = this.is_leap(p, r, c);
+				if(cell_adj) jump = this.is_jump(p, r, c);
+				else adjs.push({row: p.row + r, col: p.col + c});	//adjacent moves
 
 				if (leap !== undefined) leaps.push(leap);
 				if (jump !== undefined) jumps.push(jump);
-				if (phase !== undefined) phase = this.can_phase(p);
 			}
 		}
 	}
 
-	let piece_moves = {phase: phase, adjs: adjs, jumps: jumps, leaps: leaps};
+	//add key clone_spawns if piece can be cloned
+	let piece_moves = {phase: this.is_phase(p), adjs: adjs, jumps: jumps, leaps: leaps};
 	if (this.can_clone(pi)) {
-		let clone_spawns = this.is_clone_spawn(p);
-		if (clone_spawns.length) piece_moves.clone_spawns = clone_spawns;
+		let clone_spawns = this.get_clone_spawns(p);
+		if (clone_spawns.length) piece_moves.clone_spawns = clone_spawns; //Check if spawn row has at least one empty cell
 	}
 	return piece_moves;
 }
@@ -214,6 +184,8 @@ Board.prototype.get_moves = function (pi) {
 //Performs move. returns true if captured piece in process, else false
 Board.prototype.do_move = function (pi, row, col) {
 	let p = this.pieces[pi];
+	//If piece (is on super cell) can phase, extend player turn to allow option
+	//if (this.is_phase(p))
 	this.board[p.row][p.col] = null;
 	this.board[row][col] = pi;
 	p.row = row;
@@ -224,15 +196,17 @@ Board.prototype.do_move = function (pi, row, col) {
 	if (c) {
 		c.alive = false;
 		this.board[c.row][c.col] = null;
-		return true;
+
+		//return direction of move
+		return {row_incr: Math.sign(p.row-c.row), col_incr: Math.sign(p.col-c.col)};
 	}
-	return false;
 }
 
 /*==========											INTEGRITY													==========*/
 
-Board.prototype.can_continue_turn = function (pi) {
+Board.prototype.can_continue_move = function (pi) {
 	let moves = this.get_moves(pi);
+	//TODO: Only check moves in the same direction as the initial move
 	moves.adjs = [];
 	//return !parseInt(Object.values(a).reduce( (j,i) => i.length !== undefined ? i.length + j: j));
 	return !moves.every(t => t == [] || t == {} || t == null);
@@ -241,7 +215,7 @@ Board.prototype.can_continue_turn = function (pi) {
 Board.prototype.has_moves = function (pi) {
 	let moves = this.get_moves(pi);
 	//return !parseInt(Object.values(a).reduce( (j,i) => i.length !== undefined ? i.length + j: j));
-	return !moves.every(t => t == [] || t == {} || t == null);
+	return !Object.values(moves).every(t => t == [] || t == {} || t == null);
 }
 
 //Player has no more moves when (1): all player's pieces are dead (2): every piece has no moves
