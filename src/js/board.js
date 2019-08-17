@@ -40,11 +40,12 @@ Maybe this is what I needed to store highlight;
 
 
 function Board(size, p1, p2) {
-	this.board = this.init_board(size);
 	this.p1 = p1;
 	this.p2 = p2;
+	this.board = this.init_board(size);
 	this.pieces_separator = 8;
 	this.pieces = this.init_pieces(size, p1, p2);
+	this.update_board(); //add pieces to board
 }
 
 //TODO:
@@ -55,23 +56,25 @@ function Board(size, p1, p2) {
 //It follows that I will have to remove other calls to this.get_moves()
 Board.prototype.update_board = function () {
 	this.board.map(row => row.map((cell, j) =>
-		cell !== null ? (this.pieces[cell].alive ? this.pieces[cell] : null) : null ));
+		cell ? (this.pieces[j].alive ? cell : null) : null ));
 }
 
 Board.prototype.init_board = function (size) {
     let b = [];
-    for (let i = 0; i < size; i++) b.push(Array(size).fill(null));
+		let i = 0;
+    b.push(Array(size).fill(this.p1));			//TODO: fill as {who: this.p1, highlight: null}
+		for (let i = 1; i < size-1; i++) b.push(Array(size).fill(null));
+		b.push(Array(size).fill(this.p2));
     return b;
 }
 
 Board.prototype.init_pieces = function (size) {
 	let white_pieces = [];
 	let black_pieces = [];
-	for (let i = 0; i < size; i++) {
-		white_pieces.push({player: this.p1, cloned: false, row: 7, col: 1, alive: true});
-		black_pieces.push({player: this.p2, cloned: false, row: 0, col: 1, alive: true});
+	for (let c = 0; c < size; c++) {
+		white_pieces.push({player: this.p1, cloned: false, row: 7, col: c, alive: true});
+		black_pieces.push({player: this.p2, cloned: false, row: 0, col: c, alive: true});
 	}
-		this.update_board(); //add pieces to board
     return white_pieces.concat(black_pieces);
 }
 

@@ -44,6 +44,7 @@
   border: 1px solid #ddd;
   border-radius: 5px;
   margin: 2px;
+  padding: 1%;
 }
 
 .gray1 {
@@ -80,9 +81,14 @@
 
 .player-one {
   background-color: white;
+  border-radius: 50%;
+  border: 2px ridge black;
+  height: 100%;
 }
 
 .player-two {
   background-color: black;
+  border-radius: 50%;
   border: 2px ridge white;
+  height: 100%;
 }

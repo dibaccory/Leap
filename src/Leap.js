@@ -93,7 +93,7 @@ class Leap extends Component {
   can_select_piece(row, col) {
     let s = this.state;
     let cell = s.board.board[row][col];
-    if (cell === null) return false;
+    if (cell !== null) return false;
     let player = s.board.pieces[cell].player;
     return player == s.turn;
   }
@@ -103,7 +103,7 @@ class Leap extends Component {
   }
 
   next_player() {
-    return (this.state.turn == PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE);
+    return (this.state.turn === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE);
   }
 
   restart() {
@@ -176,7 +176,7 @@ class Row extends Component {
               val={cell != null ? this.props.pieces[cell] : null} //so this.board[row][col] = {who: p.player | null, highlight: {row: some_row, col: some_col} | null
               row={this.props.row_i}
               column={i}
-              selected={i == selected_col ? true : false}
+              selected={i === selected_col ? true : false}
               select_cell={this.props.select_cell} />
     });
     return (<span className="row"> {cells} </span>)
