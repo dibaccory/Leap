@@ -50,6 +50,7 @@ class Leap extends Component {
 
   //React update method
   componentDidUpdate(prevProps, prevState) {
+    //this.state.board.update_board();
     if (prevState.turn !== this.state.turn) {
       let board = this.state.board;
       if (!board.moves_left(this.state.turn)) {
@@ -74,7 +75,7 @@ class Leap extends Component {
     console.log("handling move...");
     let board = this.state.board;
     let sel = this.state.selected_piece;
-    let pi = board.board[sel.row][sel.col];
+    let pi = board.board[sel.row][sel.col].who;
     if (!board.valid_move(pi, row, col)) {
       console.log("Invalid move!");
       return;
@@ -83,23 +84,27 @@ class Leap extends Component {
     //Check if move is a clone move; If it is, we need not call do_move
     if(board.is_clone_spawn(pi,row, col)) board.make_clone(pi, row, col);
     else is_capture = board.do_move(pi, row, col);
-
+    board.update_board();
     //if this move is a capturing move and there are more capturing moves
-    (is_capture && board.can_continue_move(pi))
+    (is_capture && board.can_continue_move(pi, is_capture))
     ? this.setState( {board: board, turn: this.state.turn, continued_move: is_capture, selected_piece: {row: row, col: col}})
     : this.setState({board: board, turn: this.next_player(this.state.turn), continued_move: false, selected_piece: null});
   }
 
   can_select_piece(row, col) {
     let s = this.state;
-    let cell = s.board.board[row][col];
-    if (cell !== null) return false;
+    let cell = s.board.board[row][col].who;
+    if (cell === null) return false;
     let player = s.board.pieces[cell].player;
     return player === s.turn;
   }
 
   set_piece(row, col) {
-      this.setState({selected_piece: {row: row, col: col}});
+    let board = this.state.board;
+    board.update_board();
+    this.state.board.get_moves(board.board[row][col].who);
+    this.setState({selected_piece: {row: row, col: col}});
+      //console.log("selected piece: " + this.state.board.board[row][col].who);
   }
 
   next_player() {
@@ -158,6 +163,7 @@ class GameBoard extends Component {
     let selected_row = this.props.selected_piece ? this.props.selected_piece.row : null;
     let rows = this.props.board.board.map((row, i) => {
       return <Row key={i}
+              board={this.props.board}
               row={row} //board[row]
               selected_piece={i === selected_row ? this.props.selected_piece : null}
               row_i={i}
@@ -170,12 +176,14 @@ class GameBoard extends Component {
 
 class Row extends Component {
   render() {
-    let selected_col = this.props.selected_piece ? this.props.selected_piece.column : null;
+    let selected_col = this.props.selected_piece ? this.props.selected_piece.col : null;
     let cells = this.props.row.map((cell, i) => {
       return <Cell key={i}
-              val={cell !== null ? this.props.pieces[cell] : null} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selected_col then this.board[row][col].highlight
+              val={cell.who} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selected_col then this.board[row][col].highlight
+              board={this.props.board}
               row={this.props.row_i}
               column={i}
+              highlight={cell.move ? true : false}
               selected={i === selected_col ? true : false}
               select_cell={this.props.select_cell} />
     });
@@ -184,25 +192,32 @@ class Row extends Component {
 }
 
 class Cell extends Component {
+
   render() {
     let color = CELL_COLORS[util.cell_type(this.props.row, this.props.column)];
 
-    let selection = this.props.selected ? " selected" : "";
-    let classes = "cell " + color + selection;
+    //let selection = this.props.selected ? " selected" : "";
+    let highlight = this.props.highlight ? " highlight" : "";
+    let classes = "cell " + color + highlight;
     return (
-      <div className={classes} onClick={() => this.props.select_cell(this.props.row, this.props.column)}>
-        {this.props.val !== null && <Piece piece={this.props.val} />}
+      <div className={classes} onClick={ () => this.props.select_cell(this.props.row, this.props.column) }>
+        {this.props.val !== null && <Piece piece={this.props.val} board={this.props.board} selected={this.props.selected ? true : false}/>}
       </div>
     )
   }
 }
 
 function Piece(props) {
-  console.log(props.piece);
+  //console.log(props.piece);
   let classes = "";
-  if (props.piece) {
-    classes += PLAYERS[props.piece.player].class;
-    if (props.piece.cloned) classes += " cloned";
+  let p = props.board.pieces[props.piece];
+  if (props.piece !== null) {
+    classes += PLAYERS[p.player].class;
+    if (p.cloned) classes += " cloned";
+    if (props.selected) {
+      classes += " selected";
+      //props.board.get_moves(props.piece);
+    }
   }
   return (<div className={classes}></div>)
 }

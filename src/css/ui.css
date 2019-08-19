@@ -92,3 +92,12 @@
   border: 2px ridge white;
   height: 100%;
 }
+
+.highlight {
+  background-color: #4444ee;
+  opacity: 0.8;
+}
+
+.selected {
+  background-color: #6666ee;
+}
