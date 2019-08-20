@@ -160,10 +160,9 @@ Board.prototype.is_clone_spawn = function (pi, row, col) {
 
 Board.prototype.get_clone_spawns = function (p, bypass_condition) {
 	let row = p.player === this.p1 ? 0 : 7;
-	let destination_cell;
 	let clone_spawns = [];
 	for(let col=1; col<7;col++) {
-		destination_cell = this.board[row][col];
+		let destination_cell = this.board[row][col];
 		if (destination_cell.who === null) {
 			if (bypass_condition%3) return true;
 			else destination_cell.move = true;
@@ -209,38 +208,30 @@ Board.prototype.get_moves = function (pi, bypass_condition, r, c) {
 //Performs move. returns true if caught piece in process, else false
 Board.prototype.do_move = function (pi, row, col) {
 	let p = this.pieces[pi];
-
+	//begin move
 	this.board[p.row][p.col].who = null;
 
 	let destination_cell = this.board[row][col];
 	let caught = typeof(destination_cell.move) === "number" ? destination_cell.move : false; //caught piece index
-	// move_direction is defined if and only if any of the following is true:
+	// move_direction is defined if and only if any of the following is true (for moving piece p):
 	let move_direction;
-	if (caught) {				// (1) We caught a piece
+		// (1) p caught a piece
+	if (caught) {
 		let c = this.pieces[caught];
 		c.alive = false;
 		this.board[c.row][c.col].who = null;
 		//return direction of move
 		move_direction = {row_incr: Math.sign(row-c.row), col_incr: Math.sign(col-c.col)};
-	}								// (2) We LAND on a phase. That is, we
-	//This move is a phase move if (1) and (2)
-	//(1) if move starts on a phase with no capture
-	else if (!caught && this.is_phase(p,1)) {
-		//(2) if move ends on the other side of the phase
-		if (this.same_phase(pi, destination_cell.who))
-	}
+	}	// (2) p LANDS on a phase. That is, this move is not a phase.
+	else if (!this.is_phase(p,1))	move_direction = {row_incr: 0, col_incr: 0};
 
+	//end move
 	this.board[row][col].who = pi;
 	p.row = row;
 	p.col = col;
-	//if piece p contains caught piece
 
-	//if caught is a number, then it is a piece index (pi), if caught is true, then it is either a clone, phase or adjacent
-	if (typeof(caught) === "number") {
-
-	} else if (caught && (this.can_clone(pi) || this.is_phase(p,1)) ) {
-		move_direction = {row_incr: 0, col_incr:0};
-	}
+		// (3) p is able to be cloned
+	if (this.can_clone(pi)) move_direction = {row_incr: 0, col_incr:0};
 
 	return move_direction;
 }

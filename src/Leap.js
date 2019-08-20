@@ -75,6 +75,7 @@ class Leap extends Component {
         //TODO: prompt "end turn?" option.
         //right now, let's just end the turn otherwise
         this.setState({board: board, turn: this.next_player(this.state.turn), continued_move: false, selected_piece: null});
+        board.update_board();
       }
     }
   }
