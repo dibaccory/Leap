@@ -138,7 +138,7 @@ Board.prototype.is_jump = function (p, row_incr, col_incr, cell_adj, bypass_cond
 	//if adj cell occupied, jump_cell in bounds, jump_cell clear, and jump_cell has enemy piece
 	if(util.in_bounds(p.row + row_incr*2, p.col + col_incr*2)) {
 		let destination_cell = this.board[p.row + row_incr*2][p.col + col_incr*2];
-		if (this.get_player(cell_adj.who) !== p.player && !destination_cell.who) {
+		if (this.get_player(cell_adj.who) !== p.player && destination_cell.who !== null) {
 			if(bypass_condition%3) return true;
 			else destination_cell.move = cell_adj.who;
 		}
