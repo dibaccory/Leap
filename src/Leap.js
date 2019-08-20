@@ -94,8 +94,14 @@ class Leap extends Component {
     //Check if move is a clone move; If it is, we need not call do_move
     if(board.is_clone_spawn(pi,row, col)) board.make_clone(pi, row, col);
     else move_direction = board.do_move(pi, row, col);
-    board.update_board();
+    //board.update_board(successful_clone);
     //all highlights gone
+
+    //If clone, we animate the original piece and newly created piece with cloning animation
+    //If phase, phase animation
+    //other is moving animation ()
+
+
 
     //If we can jump or leap, or phase (if move prior was not a phase)
     if (board.can_continue_move(pi, move_direction)) {

@@ -54,13 +54,24 @@ function Board(size, p1, p2) {
 // and when (2) set_piece is called
 //To make highlight function properly, I'll have to call this.get_moves() from here.
 //It follows that I will have to remove other calls to this.get_moves()
-Board.prototype.update_board = function () {
-	this.board = this.board.map(row => row.map((cell, j) =>
-		cell.who != null
-		? (this.pieces[cell.who].alive
-			? {who: cell.who, move:false}
-			: {who: null, move:false})
-		: {who: null, move: false} ));
+Board.prototype.update_board = function (new_piece) {
+	if (new_piece) {
+		this.board = this.board.map(row => row.map((cell, j) => {
+			if (cell.who != null) { //increment all pi in board after pieces_separator by one
+				if (cell.who >= this.pieces_separator) cell.who++;
+				//if piece alive, keep on board
+				return this.pieces[cell.who].alive ? {who: cell.who, move:false} : {who: null, move:false};
+			} else return {who: null, move: false};
+		}));
+	} else {
+		this.board = this.board.map(row => row.map((cell, j) =>
+			(cell.who != null)
+			? (this.pieces[cell.who].alive
+				? {who: cell.who, move:false}
+				: {who: null, move:false})
+			: {who: null, move: false}
+		));
+	}
 }
 
 Board.prototype.init_board = function (size) {
@@ -93,7 +104,7 @@ Board.prototype.init_pieces = function (size) {
 Board.prototype.insert_at_separation_index = function () {
 	for(let pi=this.pieces_separator; pi<this.pieces.length; pi++) {
 		//Finds index that separates p1 and p2 pieces
-		if(this.pieces[pi].player !== this.p1) {
+		if(this.pieces[pi].player !== this.p2) {
 			this.pieces_separator = pi; //update
 			return pi;
 		}
@@ -101,16 +112,22 @@ Board.prototype.insert_at_separation_index = function () {
 }
 
 Board.prototype.make_clone = function (pi, row, col) {
-	this.pieces[pi].cloned = true;
-	//row will only be 0 or 7, so we can use this to determine player and placement
-	let player = row ? this.p1 : this.p2;
-	let clone = {player: player, cloned: true, row: row, col: col, alive: true};
-	return this.pieces.splice(this.insert_at_separation_index(),0, clone);
+	let p = this.pieces[pi];
+	p.cloned = true;
+	let clone = {player: p.player, cloned: true, row: row, col: col, alive: true};
+	this.pieces.splice(this.insert_at_separation_index(),0, clone); //add clone to pieces Array
+	this.update_board(true);
+	this.board[row][col].who = this.pieces_separator;
+	return true;
 }
 
 Board.prototype.can_clone = function (pi) {
 	let p = this.pieces[pi];
 	return (!p.cloned && p.col < 7 && p.col > 0 && ( (p.player === this.p1 && !p.row) || (p.player === this.p2 && p.row === 7) ));
+}
+
+Board.prototype.is_clone_spawn = function (pi, row, col) {
+	return this.can_clone(pi) && this.board[row][col].who === null;
 }
 
 /*==========											MOVES															==========*/
@@ -138,7 +155,7 @@ Board.prototype.is_jump = function (p, row_incr, col_incr, cell_adj, bypass_cond
 	//if adj cell occupied, jump_cell in bounds, jump_cell clear, and jump_cell has enemy piece
 	if(util.in_bounds(p.row + row_incr*2, p.col + col_incr*2)) {
 		let destination_cell = this.board[p.row + row_incr*2][p.col + col_incr*2];
-		if (this.get_player(cell_adj.who) !== p.player && destination_cell.who !== null) {
+		if (this.get_player(cell_adj.who) !== p.player && destination_cell.who === null) {
 			if(bypass_condition%3) return true;
 			else destination_cell.move = cell_adj.who;
 		}
@@ -154,12 +171,8 @@ Board.prototype.is_phase = function (p, bypass_condition) {
 	}
 }
 
-Board.prototype.is_clone_spawn = function (pi, row, col) {
-	if (this.can_clone(pi)) return (this.board[row][col].who === null);
-}
-
 Board.prototype.get_clone_spawns = function (p, bypass_condition) {
-	let row = p.player === this.p1 ? 0 : 7;
+	let row = p.player === this.p1 ? 7 : 0;
 	let clone_spawns = [];
 	for(let col=1; col<7;col++) {
 		let destination_cell = this.board[row][col];
@@ -221,9 +234,18 @@ Board.prototype.do_move = function (pi, row, col) {
 		c.alive = false;
 		this.board[c.row][c.col].who = null;
 		//return direction of move
-		move_direction = {row_incr: Math.sign(row-c.row), col_incr: Math.sign(col-c.col)};
-	}	// (2) p LANDS on a phase. That is, this move is not a phase.
-	else if (!this.is_phase(p,1))	move_direction = {row_incr: 0, col_incr: 0};
+		//If leap, then c adjacent at start XOR c adjacent at end
+		//Check adjacency of moving piece to captured piece on starting position and ending position
+		let c_adj_start = Math.abs(c.row - p.row) < 2 && Math.abs(c.col - p.col) < 2;
+		let c_adj_end = Math.abs(row - c.row) < 2 && Math.abs(col - c.col) < 2;
+
+		move_direction = (c_adj_start && c_adj_end)
+			? {row_incr: Math.sign(row-c.row), col_incr: Math.sign(col-c.col)}	//jump
+			: (c_adj_start
+				? {row_incr: Math.sign(c.row-p.row), col_incr: Math.sign(c.col-p.row)}	//leap-> piece adj to capture on start
+				: {row_incr: Math.sign(row-c.row), col_incr: Math.sign(col-c.col)});
+	}	// (2) p LANDS on a phase cell. That is, this move is not a phase.
+	else if (!this.same_phase(p,{row: row, col: col}))	move_direction = {row_incr: 0, col_incr: 0};
 
 	//end move
 	this.board[row][col].who = pi;
@@ -232,14 +254,15 @@ Board.prototype.do_move = function (pi, row, col) {
 
 		// (3) p is able to be cloned
 	if (this.can_clone(pi)) move_direction = {row_incr: 0, col_incr:0};
-
+	this.update_board();
 	return move_direction;
 }
 
 /*==========											INTEGRITY													==========*/
 
-Board.prototype.same_phase = function (p, row, col) {
-
+Board.prototype.same_phase = function (from, to) {
+	let is_destination_phase = util.cell_type(to.row, to.col);
+	return is_destination_phase > 1 && is_destination_phase === util.cell_type(from.row, from.col);
 }
 
 Board.prototype.can_continue_move = function (pi, dir) {
