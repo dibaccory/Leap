@@ -62,33 +62,45 @@ class Leap extends Component {
     }
   }
 
-  select_cell(row, col, cell_highlighted) {
+  select_cell(row, col) {
     //If a move is not a continuation, default case,
     if (!this.state.continued_move) {
       if (this.can_select_piece(row, col)) this.set_piece(row, col);
       else if (this.state.selected_piece)  this.handle_move(row, col);
-    } else if (cell_highlighted) this.handle_move(row, col); //if continuation + selects valid move
+    } else { //if continuation
+      //check if move = true..
+      let board = this.state.board;
+      if (board.valid_move(row, col)) this.handle_move(row, col)
+      else {
+        //TODO: prompt "end turn?" option.
+        //right now, let's just end the turn otherwise
+        this.setState({board: board, turn: this.next_player(this.state.turn), continued_move: false, selected_piece: null});
+      }
+    }
   }
 
   handle_move(row, col) { //row, col of destination
-
-    console.log("handling move...");
     let board = this.state.board;
-    let sel = this.state.selected_piece;
-    let pi = board.board[sel.row][sel.col].who;
-    if (!board.valid_move(pi, row, col)) {
+    if (!board.valid_move(row, col)) {
       console.log("Invalid move!");
       return;
     }
-    let is_capture;
+    console.log("handling move...");
+    let sel = this.state.selected_piece;
+    let pi = board.board[sel.row][sel.col].who;
+
+    let move_direction;
     //Check if move is a clone move; If it is, we need not call do_move
     if(board.is_clone_spawn(pi,row, col)) board.make_clone(pi, row, col);
-    else is_capture = board.do_move(pi, row, col);
+    else move_direction = board.do_move(pi, row, col);
     board.update_board();
-    //if this move is a capturing move and there are more capturing moves
-    (is_capture && board.can_continue_move(pi, is_capture))
-    ? this.setState( {board: board, turn: this.state.turn, continued_move: is_capture, selected_piece: {row: row, col: col}})
-    : this.setState({board: board, turn: this.next_player(this.state.turn), continued_move: false, selected_piece: null});
+    //all highlights gone
+
+    //If we can jump or leap, or phase (if move prior was not a phase)
+    if (board.can_continue_move(pi, move_direction)) {
+      board.get_moves(pi, 3, move_direction.row_incr, move_direction.col_incr); //highlight continuable moves
+      this.setState( {board: board, turn: this.state.turn, continued_move: move_direction, selected_piece: {row: row, col: col}});
+    } else this.setState({board: board, turn: this.next_player(this.state.turn), continued_move: false, selected_piece: null});
   }
 
   can_select_piece(row, col) {
@@ -102,7 +114,7 @@ class Leap extends Component {
   set_piece(row, col) {
     let board = this.state.board;
     board.update_board();
-    this.state.board.get_moves(board.board[row][col].who);
+    board.get_moves(board.board[row][col].who);
     this.setState({selected_piece: {row: row, col: col}});
       //console.log("selected piece: " + this.state.board.board[row][col].who);
   }
@@ -125,14 +137,8 @@ class Leap extends Component {
         </div>
         { this.state.winner && <Winner player={this.state.winner} restart={this.restart.bind(this)} /> }
         <h3>Current turn: {PLAYERS[this.state.turn].name}<span className={PLAYERS[this.state.turn].class+"-token"}></span></h3>
-        <Countdown date={Date.now() + 10000}
-                   intervalDelay={0}
-                   precision={3}
-                   autoStart={this.state.continued_move}
-                   renderer={d => <div>
-                      <span className="countdown-s">{d.seconds}</span>
-                      <span className="countdown-ms">:{d.milliseconds}</span>
-                   </div>}/>
+
+
         <div className="game-container">
           <div className="game-options"></div>
           <GameBoard board={this.state.board}
@@ -144,6 +150,16 @@ class Leap extends Component {
     );
   }
 }
+/*
+<Countdown date={Date.now() + 10000}
+           intervalDelay={0}
+           precision={3}
+           autoStart={this.state.continued_move}
+           renderer={d => <div>
+              <span className="countdown-s">{d.seconds}</span>
+              <span className="countdown-ms">:{d.milliseconds}</span>
+           </div>}/>
+*/
 
 
 function Winner(props) {

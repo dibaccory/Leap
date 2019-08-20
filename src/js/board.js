@@ -136,10 +136,10 @@ Board.prototype.is_leap = function (p, row_incr, col_incr, is_phase, cell_adj, b
 
 Board.prototype.is_jump = function (p, row_incr, col_incr, cell_adj, bypass_condition) {
 	//if adj cell occupied, jump_cell in bounds, jump_cell clear, and jump_cell has enemy piece
-	let destination_cell = this.board[p.row + row_incr*2][p.col + col_incr*2];
 	if(util.in_bounds(p.row + row_incr*2, p.col + col_incr*2)) {
+		let destination_cell = this.board[p.row + row_incr*2][p.col + col_incr*2];
 		if (this.get_player(cell_adj.who) !== p.player && !destination_cell.who) {
-			if(bypass_condition) return true;
+			if(bypass_condition%3) return true;
 			else destination_cell.move = cell_adj.who;
 		}
 	}
@@ -148,14 +148,14 @@ Board.prototype.is_jump = function (p, row_incr, col_incr, cell_adj, bypass_cond
 Board.prototype.is_phase = function (p, bypass_condition) {
 	let is_phase = util.cell_type(p.row, p.col) > 1;
 	let destination_cell = this.board[7 - p.row][7 - p.col];
-	if(is_phase && destination_cell.who !== null) {
-		if (bypass_condition) return true;
+	if(is_phase && destination_cell.who === null) {
+		if (bypass_condition%3) return true;
 		else destination_cell.move = true;
 	}
 }
 
 Board.prototype.is_clone_spawn = function (pi, row, col) {
-	if (this.can_clone(pi)) return (this.board[row][col] === null);
+	if (this.can_clone(pi)) return (this.board[row][col].who === null);
 }
 
 Board.prototype.get_clone_spawns = function (p, bypass_condition) {
@@ -165,98 +165,99 @@ Board.prototype.get_clone_spawns = function (p, bypass_condition) {
 	for(let col=1; col<7;col++) {
 		destination_cell = this.board[row][col];
 		if (destination_cell.who === null) {
-			if (bypass_condition) return true;
+			if (bypass_condition%3) return true;
 			else destination_cell.move = true;
 		}
 	}
 }
 
-//bypass_condition (HIGHLIGHT BYPASS CONDITION): undefined - default (bypass none), 1 - bypass all, 2 - bypass non-capturing moves
+Board.prototype.get_moves_in_direction = function (p, bypass_condition, r, c) {
+	//check adjacent cells of piece p wrt the boundary
+	if(util.in_bounds(p.row + r, p.col + c) && (r || c)) {
+		let cell_adj = this.board[p.row + r][p.col + c];
+		let is_phase = util.cell_type(p.row + r, p.col + c) > 1;
+
+		if (this.is_leap(p, r, c, is_phase, cell_adj, bypass_condition)) return true;
+		if (cell_adj.who !== null) {
+			if (this.is_jump(p, r, c, cell_adj, bypass_condition)) return true;
+		}
+		else if (bypass_condition%3%2) return true;	//adjacent moves
+		else if (!bypass_condition) cell_adj.move = true;
+	}
+	return false;
+}
+
+//bypass_condition (HIGHLIGHT BYPASS CONDITION): undefined - default (Store all), 1 - bypass all, 2 - bypass continuable moves, 3 - store continuable moves
 Board.prototype.get_moves = function (pi, bypass_condition, r, c) {
 
 	let p = this.pieces[pi];
 	//TODO: ref this.board[p.row + r][p.col + r].who, and set highlight = true for every destination
+	if (this.is_phase(p, bypass_condition)) return true;
+	if (this.can_clone(pi) && this.get_clone_spawns(p, bypass_condition)) return true;
+
 	if (r != null && c != null) {
-		if(util.in_bounds(p.row + r, p.col + c) && (r || c)) {
-			let cell_adj = this.board[p.row + r][p.col + c];
-			let is_phase = util.cell_type(p.row + r, p.col + c) > 1;
-
-			if (this.is_leap(p, r, c, is_phase, cell_adj, bypass_condition)) return true;
-			if (cell_adj.who !== null) {
-				if (this.is_jump(p, r, c, cell_adj, bypass_condition)) return true;
-			}
-			else if (bypass_condition%2) return true;	//adjacent moves
-			else cell_adj.move = true;
-			//if (leap !== undefined) leaps.push(leap);
-			//if (jump !== undefined) jumps.push(jump);
-		}
+		if (this.get_moves_in_direction(p, bypass_condition, r, c)) return true;
 	} else {
-		for(r=-1;r<2;r++) {
-			for(c=-1;c<2; c++) {
-				//check adjacent cells of piece p wrt the boundary
-				if(util.in_bounds(p.row + r, p.col + c) && (r || c)) {
-					let cell_adj = this.board[p.row + r][p.col + c];
-					let is_phase = util.cell_type(p.row + r, p.col + c) > 1;
-
-					if (this.is_leap(p, r, c, is_phase, cell_adj, bypass_condition)) return true;
-					if (cell_adj.who !== null) {
-						if (this.is_jump(p, r, c, cell_adj, bypass_condition)) return true;
-					}
-					else if (bypass_condition%2) return true;	//adjacent moves
-					else {
-						console.log(this.board);
-						cell_adj.move = true;
-						console.log(this.board);
-					}
-					//if (leap !== undefined) leaps.push(leap);
-					//if (jump !== undefined) jumps.push(jump);
-				}
-			}
+		for(r=-1;r<2;r++) for(c=-1;c<2; c++) {
+			if (this.get_moves_in_direction(p, bypass_condition, r, c)) return true;
 		}
 	}
-
-	//add key clone_spawns if piece can be cloned
-	if (this.is_phase(p, bypass_condition)) return true;
-	if (this.get_clone_spawns(p, bypass_condition)) return true;
 
 	return false;
 }
 
-//Performs move. returns true if captured piece in process, else false
+//Performs move. returns true if caught piece in process, else false
 Board.prototype.do_move = function (pi, row, col) {
 	let p = this.pieces[pi];
-	//If piece (is on super cell) can phase, extend player turn to allow option
-	//if (this.is_phase(p))
+
 	this.board[p.row][p.col].who = null;
+
+	let destination_cell = this.board[row][col];
+	let caught = typeof(destination_cell.move) === "number" ? destination_cell.move : false; //caught piece index
+	// move_direction is defined if and only if any of the following is true:
+	let move_direction;
+	if (caught) {				// (1) We caught a piece
+		let c = this.pieces[caught];
+		c.alive = false;
+		this.board[c.row][c.col].who = null;
+		//return direction of move
+		move_direction = {row_incr: Math.sign(row-c.row), col_incr: Math.sign(col-c.col)};
+	}								// (2) We LAND on a phase. That is, we
+	//This move is a phase move if (1) and (2)
+	//(1) if move starts on a phase with no capture
+	else if (!caught && this.is_phase(p,1)) {
+		//(2) if move ends on the other side of the phase
+		if (this.same_phase(pi, destination_cell.who))
+	}
+
 	this.board[row][col].who = pi;
 	p.row = row;
 	p.col = col;
+	//if piece p contains caught piece
 
-	//if piece p contains captured piece
-	let c = p.captured_pi !== undefined ? this.pieces[p.captured_pi] : null;
-	if (c) {
-		c.alive = false;
-		this.board[c.row][c.col].who = null;
+	//if caught is a number, then it is a piece index (pi), if caught is true, then it is either a clone, phase or adjacent
+	if (typeof(caught) === "number") {
 
-		//return direction of move
-		return {row_incr: Math.sign(p.row-c.row), col_incr: Math.sign(p.col-c.col)};
+	} else if (caught && (this.can_clone(pi) || this.is_phase(p,1)) ) {
+		move_direction = {row_incr: 0, col_incr:0};
 	}
+
+	return move_direction;
 }
 
 /*==========											INTEGRITY													==========*/
 
+Board.prototype.same_phase = function (p, row, col) {
+
+}
+
 Board.prototype.can_continue_move = function (pi, dir) {
-	return this.get_moves(pi, 2, dir.row_incr, dir.col_incr);
-	//TODO: Only check moves in the same direction as the initial move
-	//moves.adjs = [];
-	//return !parseInt(Object.values(a).reduce( (j,i) => i.length !== undefined ? i.length + j: j));
-	//return !moves.every(t => t === [] || t === {} || t === null);
+
+	return dir ? this.get_moves(pi, 2, dir.row_incr, dir.col_incr) : false;
 }
 
 Board.prototype.has_moves = function (pi) {
 	return this.get_moves(pi, 1);
-	//return !parseInt(Object.values(a).reduce( (j,i) => i.length !== undefined ? i.length + j: j));
-	//return !Object.values(moves).every(t => t === [] || t === {} || t === null);
 }
 
 //Player has no more moves when (1): all player's pieces are dead (2): every piece has no moves
@@ -270,18 +271,8 @@ Board.prototype.moves_left = function (player) {
 	return false;
 }
 
-Board.prototype.valid_move = function (pi, row, col) {
-	//let m = this.get_moves(pi); //** this.board[row][col].highlight
+Board.prototype.valid_move = function (row, col) {
 	return this.board[row][col].move;
-	/*
-	let moves = [];
-	moves = moves.concat(m.phase, m.adjs, m.jumps, m.leaps, m.clone_spawns);
-	for (let move of moves) {
-		if (!move) continue;
-		if (move.row === row && move.col === col) return true;
-	}
-	return false;
-	*/
 }
 
 module.exports = Board;
