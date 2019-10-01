@@ -84,6 +84,7 @@
   border-radius: 50%;
   border: 2px ridge black;
   height: 100%;
+  transition: all ease-in-out 1s;
 }
 
 .player-two {

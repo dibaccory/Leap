@@ -14,13 +14,6 @@ Game description:
 "How to Play":
 -directions
 -tutorial?
-
-Check HTML integrity (if somebody is editing it, get mad lol)
-
-multiplayer
-
-
-
 */
 
 const BOARD_SIZE = 8;
@@ -38,6 +31,139 @@ const PLAYERS = {
 }
 
 const CELL_COLORS = [ "gray1", "gray2", "pink", "red", "orange", "yellow", "green", "blue"];
+
+/*
+TODO:
+- Make continue button (?)
+
+- AI player
+
+- Allow multiplayer
+    Random match making
+    invites (link or username (if integrated with Google Play))
+
+- Pieces are draggable and snap to grid
+    (if center of dragging piece is strictly within calc(cell-margin + cell-height/2) on drop, then select cell where piece dropped)
+    disable animations for all but phase and clone moves.
+
+- Make animations
+    If clone, we animate the original piece and newly created piece with cloning animation
+    If phase, piece fades in/out from center to edges on adj phase  and on far phase
+    if piece has caught:
+      If jump,
+        piece does a small hop to the destination_cell
+        captured bursts into little circles and fades away
+      If leap,
+        piece gets sucked into portal, (SVG points all transform to center of adj phase, timing ease-in-out), and pushed out (reverse animation)
+        if captured on adj phase:
+          captured shakes and does first part of phase animation while piece being sucked in, but then comes out as little circles on other side
+        else:
+          captured bursts into little circles and fades away
+    else:
+      piece does small hop to destination cell
+
+How can we handle animations?
+> Translate moving piece p, where p is a child of the destination cell component,
+> from ( starting_cell.center.x , starting_cell.center.y ) to ( destination_cell.x, destination_cell.y)
+
+
+ANIMATION PIPELINE:
+  In function Board.do_move:
+  - get move details
+      moving piece: p,
+      starting_cell = {who: board[p.row][p.col].who, move_type: ye, row: p.row, col: p.col}, -- defined first in do move
+      move_direction,
+      captured piece (if applicable)
+
+  Upon do_move or make_clone:
+  - Find Cell components of starting_cell and, if applicable, captured piece
+      (starting cell) get Cell component c such that: c.row === starting_cell.row && c.col === starting_cell.col
+      (captured piece) get
+
+  -
+
+
+*/
+
+function Piece(props) {
+  //
+
+  let classes = "";
+  let p = props.board.pieces[props.piece];
+  if (props.piece !== null) {
+    classes += PLAYERS[p.player].class;
+    if (p.cloned) classes += " cloned";
+    if (props.selected) {
+      classes += " selected";
+      //props.board.get_moves(props.piece);
+    }
+  }
+  return (<div className={classes}></div>)
+}
+
+class Cell extends Component {
+
+  render() {
+    let color = CELL_COLORS[util.cell_type(this.props.row, this.props.column)];
+
+    //let selection = this.props.selected ? " selected" : "";
+    let highlight = this.props.highlight ? " highlight" : "";
+    let classes = "cell " + color + highlight;
+    return (
+      <div className={classes} onClick={ () => this.props.select_cell(this.props.row, this.props.column) }>
+        {this.props.val !== null
+        && <Piece piece={this.props.val}
+                  board={this.props.board}
+                  selected={this.props.selected ? true : false}/>}
+      </div>
+    )
+  }
+}
+
+class Row extends Component {
+  render() {
+    let selected_col = this.props.selected_piece ? this.props.selected_piece.col : null;
+    let cells = this.props.row.map((cell, i) => {
+      return <Cell key={i}
+              val={cell.who} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selected_col then this.board[row][col].highlight
+              board={this.props.board}
+              row={this.props.row_i}
+              column={i}
+              highlight={cell.move !== false ? true : false}
+              selected={i === selected_col ? true : false}
+              select_cell={this.props.select_cell} />
+    });
+    return (<span className="row"> {cells} </span>)
+  }
+}
+
+class GameBoard extends Component {
+  render() {
+    let selected_row = this.props.selected_piece ? this.props.selected_piece.row : null;
+    let rows = this.props.board.board.map((row, i) => {
+      return <Row key={i}
+              board={this.props.board}
+              row={row} //board[row]
+              selected_piece={i === selected_row ? this.props.selected_piece : null}
+              row_i={i}
+              pieces={this.props.board.pieces}
+              select_cell={this.props.select_cell} />;
+    });
+    return (<div className="board"> {rows} </div>)
+  }
+}
+
+function Winner(props) {
+  let player = PLAYERS[props.player].name;
+  return (
+    <div id="winner">
+      <div>
+        <p>{player} has won the game!</p>
+        <button onClick={props.restart}>Play again?</button>
+      </div>
+    </div>
+  );
+}
 
 class Leap extends Component {
   constructor() {
@@ -57,8 +183,9 @@ class Leap extends Component {
         console.log("${this.state.turn} has no more moves!");
         this.setState({winner: this.next_player()});
       }
-    } else {
-      //if is a move continuation, start the timer
+    } else if (this.state.selected_piece){
+      //if is a move continuation and Counter hasn't started, start the timer
+      //if (this.state.contined_move) {}
     }
   }
 
@@ -94,14 +221,7 @@ class Leap extends Component {
     //Check if move is a clone move; If it is, we need not call do_move
     if(board.is_clone_spawn(pi,row, col)) board.make_clone(pi, row, col);
     else move_direction = board.do_move(pi, row, col);
-    //board.update_board(successful_clone);
     //all highlights gone
-
-    //If clone, we animate the original piece and newly created piece with cloning animation
-    //If phase, phase animation
-    //other is moving animation ()
-
-
 
     //If we can jump or leap, or phase (if move prior was not a phase)
     if (board.can_continue_move(pi, move_direction)) {
@@ -167,82 +287,5 @@ class Leap extends Component {
               <span className="countdown-ms">:{d.milliseconds}</span>
            </div>}/>
 */
-
-
-function Winner(props) {
-  let player = PLAYERS[props.player].name;
-  return (
-    <div id="winner">
-      <div>
-        <p>{player} has won the game!</p>
-        <button onClick={props.restart}>Play again?</button>
-      </div>
-    </div>
-  );
-}
-
-class GameBoard extends Component {
-  render() {
-    let selected_row = this.props.selected_piece ? this.props.selected_piece.row : null;
-    let rows = this.props.board.board.map((row, i) => {
-      return <Row key={i}
-              board={this.props.board}
-              row={row} //board[row]
-              selected_piece={i === selected_row ? this.props.selected_piece : null}
-              row_i={i}
-              pieces={this.props.board.pieces}
-              select_cell={this.props.select_cell} />;
-    });
-    return (<div className="board"> {rows} </div>)
-  }
-}
-
-class Row extends Component {
-  render() {
-    let selected_col = this.props.selected_piece ? this.props.selected_piece.col : null;
-    let cells = this.props.row.map((cell, i) => {
-      return <Cell key={i}
-              val={cell.who} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selected_col then this.board[row][col].highlight
-              board={this.props.board}
-              row={this.props.row_i}
-              column={i}
-              highlight={cell.move ? true : false}
-              selected={i === selected_col ? true : false}
-              select_cell={this.props.select_cell} />
-    });
-    return (<span className="row"> {cells} </span>)
-  }
-}
-
-class Cell extends Component {
-
-  render() {
-    let color = CELL_COLORS[util.cell_type(this.props.row, this.props.column)];
-
-    //let selection = this.props.selected ? " selected" : "";
-    let highlight = this.props.highlight ? " highlight" : "";
-    let classes = "cell " + color + highlight;
-    return (
-      <div className={classes} onClick={ () => this.props.select_cell(this.props.row, this.props.column) }>
-        {this.props.val !== null && <Piece piece={this.props.val} board={this.props.board} selected={this.props.selected ? true : false}/>}
-      </div>
-    )
-  }
-}
-
-function Piece(props) {
-  //console.log(props.piece);
-  let classes = "";
-  let p = props.board.pieces[props.piece];
-  if (props.piece !== null) {
-    classes += PLAYERS[p.player].class;
-    if (p.cloned) classes += " cloned";
-    if (props.selected) {
-      classes += " selected";
-      //props.board.get_moves(props.piece);
-    }
-  }
-  return (<div className={classes}></div>)
-}
 
 export default Leap;

@@ -173,7 +173,6 @@ Board.prototype.is_phase = function (p, bypass_condition) {
 
 Board.prototype.get_clone_spawns = function (p, bypass_condition) {
 	let row = p.player === this.p1 ? 7 : 0;
-	let clone_spawns = [];
 	for(let col=1; col<7;col++) {
 		let destination_cell = this.board[row][col];
 		if (destination_cell.who === null) {
