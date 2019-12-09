@@ -1,5 +1,5 @@
 
-module.exports.cell_type = function (row, col) {
+module.exports.cellType = function (row, col) {
 	let type;
 	switch (true) {
 		case (col === 1 && row === 2) || (col === 6 && row === 5):
@@ -27,6 +27,6 @@ module.exports.cell_type = function (row, col) {
 	return type;
 }
 
-module.exports.in_bounds = function (row, col) {
+module.exports.inBounds = function (row, col) {
 	return ((row > -1 && row < 8) && (col > -1 && col < 8));
 }

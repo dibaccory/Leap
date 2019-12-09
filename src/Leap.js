@@ -17,14 +17,14 @@ Game description:
 */
 
 const BOARD_SIZE = 8;
-const PLAYER_ONE = 1;
-const PLAYER_TWO = 2;
+const playerOne = 1;
+const playerTwo = 2;
 const PLAYERS = {
-  [PLAYER_ONE]: {
+  [playerOne]: {
     name: "Player One",
     class: "player-one"
   },
-  [PLAYER_TWO]: {
+  [playerTwo]: {
     name: "Player Two",
     class: "player-two"
   }
@@ -51,7 +51,7 @@ TODO:
     If phase, piece fades in/out from center to edges on adj phase  and on far phase
     if piece has caught:
       If jump,
-        piece does a small hop to the destination_cell
+        piece does a small hop to the destinationCell
         captured bursts into little circles and fades away
       If leap,
         piece gets sucked into portal, (SVG points all transform to center of adj phase, timing ease-in-out), and pushed out (reverse animation)
@@ -64,20 +64,20 @@ TODO:
 
 How can we handle animations?
 > Translate moving piece p, where p is a child of the destination cell component,
-> from ( starting_cell.center.x , starting_cell.center.y ) to ( destination_cell.x, destination_cell.y)
+> from ( startingCell.center.x , startingCell.center.y ) to ( destinationCell.x, destinationCell.y)
 
 
 ANIMATION PIPELINE:
-  In function Board.do_move:
+  In function Board.doMove:
   - get move details
       moving piece: p,
-      starting_cell = {who: board[p.row][p.col].who, move_type: ye, row: p.row, col: p.col}, -- defined first in do move
-      move_direction,
+      startingCell = {who: board[p.row][p.col].who, move_type: ye, row: p.row, col: p.col}, -- defined first in do move
+      moveDirection,
       captured piece (if applicable)
 
-  Upon do_move or make_clone:
-  - Find Cell components of starting_cell and, if applicable, captured piece
-      (starting cell) get Cell component c such that: c.row === starting_cell.row && c.col === starting_cell.col
+  Upon doMove or makeClone:
+  - Find Cell components of startingCell and, if applicable, captured piece
+      (starting cell) get Cell component c such that: c.row === startingCell.row && c.col === startingCell.col
       (captured piece) get
 
   -
@@ -95,7 +95,7 @@ function Piece(props) {
     if (p.cloned) classes += " cloned";
     if (props.selected) {
       classes += " selected";
-      //props.board.get_moves(props.piece);
+      //props.board.getMoves(props.piece);
     }
   }
   return (<div className={classes}></div>)
@@ -104,13 +104,13 @@ function Piece(props) {
 class Cell extends Component {
 
   render() {
-    let color = CELL_COLORS[util.cell_type(this.props.row, this.props.column)];
+    let color = CELL_COLORS[util.cellType(this.props.row, this.props.column)];
 
     //let selection = this.props.selected ? " selected" : "";
     let highlight = this.props.highlight ? " highlight" : "";
     let classes = "cell " + color + highlight;
     return (
-      <div className={classes} onClick={ () => this.props.select_cell(this.props.row, this.props.column) }>
+      <div className={classes} onClick={ () => this.props.selectCell(this.props.row, this.props.column) }>
         {this.props.val !== null
         && <Piece piece={this.props.val}
                   board={this.props.board}
@@ -122,16 +122,16 @@ class Cell extends Component {
 
 class Row extends Component {
   render() {
-    let selected_col = this.props.selected_piece ? this.props.selected_piece.col : null;
+    let selectedCol = this.props.selectedPiece ? this.props.selectedPiece.col : null;
     let cells = this.props.row.map((cell, i) => {
       return <Cell key={i}
-              val={cell.who} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selected_col then this.board[row][col].highlight
+              val={cell.who} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selectedCol then this.board[row][col].highlight
               board={this.props.board}
-              row={this.props.row_i}
+              row={this.props.ri}
               column={i}
               highlight={cell.move !== false ? true : false}
-              selected={i === selected_col ? true : false}
-              select_cell={this.props.select_cell} />
+              selected={i === selectedCol ? true : false}
+              selectCell={this.props.selectCell} />
     });
     return (<span className="row"> {cells} </span>)
   }
@@ -139,15 +139,15 @@ class Row extends Component {
 
 class GameBoard extends Component {
   render() {
-    let selected_row = this.props.selected_piece ? this.props.selected_piece.row : null;
+    let selectedRow = this.props.selectedPiece ? this.props.selectedPiece.row : null;
     let rows = this.props.board.board.map((row, i) => {
       return <Row key={i}
               board={this.props.board}
               row={row} //board[row]
-              selected_piece={i === selected_row ? this.props.selected_piece : null}
-              row_i={i}
+              selectedPiece={i === selectedRow ? this.props.selectedPiece : null}
+              ri={i}
               pieces={this.props.board.pieces}
-              select_cell={this.props.select_cell} />;
+              selectCell={this.props.selectCell} />;
     });
     return (<div className="board"> {rows} </div>)
   }
@@ -168,69 +168,69 @@ function Winner(props) {
 class Leap extends Component {
   constructor() {
     super();
-    this.state = { board: new Board(BOARD_SIZE, PLAYER_ONE, PLAYER_TWO),
-                  turn: PLAYER_ONE,
-                  continued_move: false,
-                  selected_piece: null, winner: null };
+    this.state = { board: new Board(BOARD_SIZE, playerOne, playerTwo),
+                  turn: playerOne,
+                  continuedMove: false,
+                  selectedPiece: null, winner: null };
   }
 
   //React update method
   componentDidUpdate(prevProps, prevState) {
-    //this.state.board.update_board();
+    //this.state.board.updateBoard();
     if (prevState.turn !== this.state.turn) {
       let board = this.state.board;
-      if (!board.moves_left(this.state.turn)) {
+      if (!board.movesLeft(this.state.turn)) {
         console.log("${this.state.turn} has no more moves!");
-        this.setState({winner: this.next_player()});
+        this.setState({winner: this.nextPlayer()});
       }
-    } else if (this.state.selected_piece){
+    } else if (this.state.selectedPiece){
       //if is a move continuation and Counter hasn't started, start the timer
       //if (this.state.contined_move) {}
     }
   }
 
-  select_cell(row, col) {
+  selectCell(row, col) {
     //If a move is not a continuation, default case,
-    if (!this.state.continued_move) {
-      if (this.can_select_piece(row, col)) this.set_piece(row, col);
-      else if (this.state.selected_piece)  this.handle_move(row, col);
+    if (!this.state.continuedMove) {
+      if (this.canSelectPiece(row, col)) this.setPiece(row, col);
+      else if (this.state.selectedPiece)  this.handleMove(row, col);
     } else { //if continuation
       //check if move = true..
       let board = this.state.board;
-      if (board.valid_move(row, col)) this.handle_move(row, col)
+      if (board.validMove(row, col)) this.handleMove(row, col)
       else {
         //TODO: prompt "end turn?" option.
         //right now, let's just end the turn otherwise
-        this.setState({board: board, turn: this.next_player(this.state.turn), continued_move: false, selected_piece: null});
-        board.update_board();
+        this.setState({board: board, turn: this.nextPlayer(this.state.turn), continuedMove: false, selectedPiece: null});
+        board.updateBoard();
       }
     }
   }
 
-  handle_move(row, col) { //row, col of destination
+  handleMove(row, col) { //row, col of destination
     let board = this.state.board;
-    if (!board.valid_move(row, col)) {
+    if (!board.validMove(row, col)) {
       console.log("Invalid move!");
       return;
     }
     console.log("handling move...");
-    let sel = this.state.selected_piece;
+    let sel = this.state.selectedPiece;
     let pi = board.board[sel.row][sel.col].who;
 
-    let move_direction;
-    //Check if move is a clone move; If it is, we need not call do_move
-    if(board.is_clone_spawn(pi,row, col)) board.make_clone(pi, row, col);
-    else move_direction = board.do_move(pi, row, col);
+    let moveDirection;
+    //Check if move is a clone move; If it is, we need not call doMove
+    if(board.isCloneSpawn(pi,row, col)) board.makeClone(pi, row, col);
+    else moveDirection = board.doMove(pi, row, col);
     //all highlights gone
 
     //If we can jump or leap, or phase (if move prior was not a phase)
-    if (board.can_continue_move(pi, move_direction)) {
-      board.get_moves(pi, 3, move_direction.row_incr, move_direction.col_incr); //highlight continuable moves
-      this.setState( {board: board, turn: this.state.turn, continued_move: move_direction, selected_piece: {row: row, col: col}});
-    } else this.setState({board: board, turn: this.next_player(this.state.turn), continued_move: false, selected_piece: null});
+    if (board.canContinueMove(pi, moveDirection)) {
+      board.getMoves(pi, 3, moveDirection.rowIncr, moveDirection.colIncr); //highlight continuable moves
+      this.setState( {board: board, turn: this.state.turn, continuedMove: moveDirection, selectedPiece: {row: row, col: col}});
+    } else this.setState({board: board, turn: this.nextPlayer(this.state.turn), continuedMove: false, selectedPiece: null});
   }
 
-  can_select_piece(row, col) {
+  canSelectPiece(row, col) {
     let s = this.state;
     let cell = s.board.board[row][col].who;
     if (cell === null) return false;
@@ -238,22 +238,22 @@ class Leap extends Component {
     return player === s.turn;
   }
 
-  set_piece(row, col) {
+  setPiece(row, col) {
     let board = this.state.board;
-    board.update_board();
-    board.get_moves(board.board[row][col].who);
-    this.setState({selected_piece: {row: row, col: col}});
+    board.updateBoard();
+    board.getMoves(board.board[row][col].who);
+    this.setState({selectedPiece: {row: row, col: col}});
       //console.log("selected piece: " + this.state.board.board[row][col].who);
   }
 
-  next_player() {
-    return (this.state.turn === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE);
+  nextPlayer() {
+    return (this.state.turn === playerOne ? playerTwo : playerOne);
   }
 
   restart() {
-    this.setState({ board: new Board(BOARD_SIZE, PLAYER_ONE, PLAYER_TWO),
-                    continued_move: false, turn: PLAYER_ONE,
-                    selected_piece: null, winner: null });
+    this.setState({ board: new Board(BOARD_SIZE, playerOne, playerTwo),
+                    continuedMove: false, turn: playerOne,
+                    selectedPiece: null, winner: null });
   }
 
   render() {
@@ -269,8 +269,8 @@ class Leap extends Component {
         <div className="game-container">
           <div className="game-options"></div>
           <GameBoard board={this.state.board}
-                     selected_piece={this.state.selected_piece}
-                     select_cell={this.select_cell.bind(this)} />
+                     selectedPiece={this.state.selectedPiece}
+                     selectCell={this.selectCell.bind(this)} />
           <div className="game-menu"></div>
         </div>
       </div>
@@ -281,7 +281,7 @@ class Leap extends Component {
 <Countdown date={Date.now() + 10000}
            intervalDelay={0}
            precision={3}
-           autoStart={this.state.continued_move}
+           autoStart={this.state.continuedMove}
            renderer={d => <div>
               <span className="countdown-s">{d.seconds}</span>
               <span className="countdown-ms">:{d.milliseconds}</span>

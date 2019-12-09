@@ -1,0 +1,16 @@
+class Menu extends React.Component {
+  render() {
+    return (<MenuContainer/>)
+  }
+}
+
+class MenuContainer extends React.Component {
+  constructor(props) {
+    super(props)
+
+    this.state = {
+      activeItem: '',
+      activeItem
+    }
+  }
+}
