@@ -1,19 +1,45 @@
+import React from 'react';
+import './css/menu.css';
+//import NavigationModal from './NavigationModal';
+
 class Menu extends React.Component {
+  constructor() {
+    super();
+
+    this.state = {
+      activeNavItem: '',
+    }
+
+    this.openNavigationModal = this.openNavigationModal.bind(this);
+    }
+
+    openNavigationModal(activeItem) {
+      return e => this.state.setState({activeNavItem: activeItem});
+    }
+
   render() {
     //Animate <Intro> on start up, fade in rest of Menu
-    return (<NavContainer/>)
+    /*<NavigationModal nav = { this.state.activeNavItem }/>*/
+    return (
+      <div class='menu-bg'>
+        <div class='menu-title'></div>
+        <SettingsContainer/>
+
+        <NavigationContainer openNavigationModal = {this.openNavigationModal}/>
+      </div>
+    )
   }
 }
 
 class SettingsContainer extends React.Component {
   constructor(props) {
-    super(props)
+    super(props);
 
     this.state = { activeItem: '' };
 
-    let settingsItems: {
-        'sfx'   :{text: 'SFX', type:'toggle', crossed: False},
-        'music' :{text: 'Music', type:'toggle', crossed: False},
+    this.settingsItems= {
+        'sfx'   :{text: 'SFX', type:'toggle', crossed: false},
+        'music' :{text: 'Music', type:'toggle', crossed: false},
         'ads'   :{text: 'Ads', type:'page'}
       };
 
@@ -24,14 +50,14 @@ class SettingsContainer extends React.Component {
     return e => {
       e.preventDefault();
       //this.setState({ activeItem });  //perform action in render (other than crossing icon or not)
-      if(settingsItems[activeItem].type == 'toggle') {
-        settingsItems[activeItem].crossed = !settingsItems[activeItem].crossed;
+      if(this.settingsItems[activeItem].type == 'toggle') {
+        this.settingsItems[activeItem].crossed = !this.settingsItems[activeItem].crossed;
       }
     }
   }
 
   render() {
-    const settingsItems = settingsItems.values().map(item => <ToggleItem item={ item } handleClick = { this.handleClick }/>)
+    const settingsItems = Object.values(this.settingsItems).map(item => <SettingsItem item={ item } handleClick = { this.handleClick }/>)
     return (
       <div className='settings-container'>
           { settingsItems }
@@ -40,7 +66,7 @@ class SettingsContainer extends React.Component {
   }
 }
 
-class NavContainer extends React.Component {
+class NavigationContainer extends React.Component {
   constructor(props) {
     super(props)
 
@@ -60,12 +86,15 @@ class NavContainer extends React.Component {
   handleClick(activeItem) {
     return e => {
       e.preventDefault();
-
+      /*
       this.setState({
         activeItem,
         activeItemPos: document.getElementById(activeItem).offsetLeft,
         activeItemColor: window.getComputedStyle(document.getElementById(activeItem)).getPropertyValue('background-color'),
-      })
+      });
+      */
+      this.props.openNavigationModal(activeItem);
+
     }
   }
 
@@ -97,3 +126,5 @@ function SettingsItem(props) {
                id={ id }
                onClick={ props.handleClick(id) }></div>)
 }
+
+export default Menu;
