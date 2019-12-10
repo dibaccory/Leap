@@ -1,6 +1,6 @@
 import React from 'react';
 import './css/menu.css';
-//import NavigationModal from './NavigationModal';
+import NavigationModal from './NavigationModal';
 
 class Menu extends React.Component {
   constructor() {
@@ -19,13 +19,13 @@ class Menu extends React.Component {
 
   render() {
     //Animate <Intro> on start up, fade in rest of Menu
-    /*<NavigationModal nav = { this.state.activeNavItem }/>*/
+
     return (
       <div class='menu-bg'>
-        <div class='menu-title'></div>
+        <div class='menu-title'>Leap</div>
         <SettingsContainer/>
-
-        <NavigationContainer openNavigationModal = {this.openNavigationModal}/>
+        <NavigationModal nav = { this.state.activeNavItem }/>
+        <NavigationContainer openNavigationModal = { this.openNavigationModal }/>
       </div>
     )
   }
