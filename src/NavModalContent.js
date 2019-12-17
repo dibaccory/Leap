@@ -23,15 +23,17 @@ function NavModalContent(props){
 
 function NewGame(props) {
   const [mode, setMode] = useState(true);
-
-  const readyGame = (mode) => {
-    mode ? props.begin(mode, {difficulty: botDifficulty})
-         : props.begin(mode, {color: 'orange'});
-  };
-
+  const [first, isFirst] = useState(true);
   let botDifficulty;
 
-        //render. active modes?
+  const readyGame = (mode) => {
+    /*
+    mpFirst: TRUE if in mp-new-online, FALSE if mp-room-invite
+    */
+    mode ? props.begin(mode, {difficulty: botDifficulty, first: first})
+         : props.begin(mode, {roomURL: 'HASH', first: ''});
+  };
+
   return (<div className='nav-modal-container'>
     <div className='playmode-btn-container'>
       <div className='playmode-sp-btn' onClick={ () => setMode(true) }>
@@ -57,7 +59,12 @@ function NewGame(props) {
         />
         <label>
           Player goes first
-          <input id='goFirst' type='checkbox' className='sp-player-goes-first'/>
+          <input
+            id='goFirst' type='checkbox'
+            className='sp-player-goes-first'
+            checked={first}
+            onChange= {() => isFirst(!first)}
+            />
         </label>
       </div>
     </CSSTransition>
@@ -68,13 +75,18 @@ function NewGame(props) {
     >
       <div className='playmode-config-mp'>
         <div className='mp-options'>
-          <div className='mp-new-game'> New Game
-            <div className='mp-new-game-desc'>
-              This will be selected first. blah blah blah lmao
+          <div className='mp-new-online'> New Game
+            <div className='mp-new-online-desc'>
+              Start a new game.
             </div>
           </div>
-          <div className='mp-invite'> Have a link? Join Game
-            <input type='text' className='mp-invite-link'/>
+          <div className='mp-new-local'> New Local Game
+            <div className='mp-new-local-desc'>
+              If you want to play on the same machine.
+            </div>
+          </div>
+          <div className='mp-join'> Have a link? Join Game
+            <input type='text' className='mp-room-invite'/>
           </div>
         </div>
       </div>

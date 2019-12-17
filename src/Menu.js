@@ -1,17 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './css/menu.css';
 import './lib/fa/css/all.min.css';
 import NavModalContent from './NavModalContent';
 import { CSSTransition } from 'react-transition-group';
-import { Container } from 'react-bootstrap';
 import Leap from './Leap';
 
+//This isn't really a Menu, it's a title screen. Please revisit
 class Menu extends React.Component {
   constructor() {
     super();
 
-    this.state = { activeNavItem: '', openGame: false};
+    this.state = { activeNavItem: '', openGame: false, gameConfig: {}};
+    /* gameConfig = {
+      difficulty: AI strength,
+      first: playerOne | playerTwo,
+      playerColor: ,
+      opponentColor: ,
 
+    }
+  */
     this.openNavModal = this.openNavModal.bind(this);
     this.begin = this.begin.bind(this);
     }
@@ -20,13 +27,9 @@ class Menu extends React.Component {
       if (activeItem !== this.state.activeNavItem) this.setState({activeNavItem: activeItem});
     }
 
-    componentDidUpdate(prevProps, prevState) {
-      console.log("hoollo");
-    }
-
     begin(playMode, config) {
       if(playMode) { //Singleplayer
-          this.setState({openGame: true});
+          this.setState({openGame: true, gameConfig: config});
       }
     }
 
@@ -34,7 +37,9 @@ class Menu extends React.Component {
     //Animate <Intro> on start up, fade in rest of Menu
 
     if (this.state.openGame) {
-      return <Leap />;
+      return <Leap
+        playMode={ this.state.openGame ? 'sp' : 'mp' }
+        config={ this.state.gameConfig }/>;
     }
 
     return (
@@ -57,7 +62,6 @@ function Settings() {
       'music' :{text: 'Music', icon: 'fas fa-music', type:'toggle', crossed: false},
       'ads'   :{text: 'Ads', icon: 'fas fa-ad', type:'page'}
     };
-  let containerToggle = false;
   const [container, showContainer] = useState(false);
   //useEffect(()=>containerToggle = !containerToggle);
   const settingsItems = Object.values(options).map( (item, i) =>

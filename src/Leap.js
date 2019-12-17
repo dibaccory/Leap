@@ -155,12 +155,17 @@ function Winner(props) {
 }
 
 class Leap extends Component {
-  constructor() {
-    super();
-    this.state = { board: new Board(BOARD_SIZE, playerOne, playerTwo),
-                  turn: playerOne,
-                  continuedMove: false,
-                  selectedPiece: null, winner: null };
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      ...props.config,
+      board: new Board(BOARD_SIZE, playerOne, playerTwo),
+      turn: props.config.first ? playerOne : playerTwo,
+      continuedMove: false,
+      selectedPiece: null,
+      winner: null
+    };
   }
 
   //React update method
@@ -254,9 +259,10 @@ class Leap extends Component {
     return (
       <div className="Leap">
         { this.state.winner && <Winner player={this.state.winner} restart={this.restart.bind(this)} /> }
-        <h3>Current turn: {PLAYERS[this.state.turn].name}<span className={PLAYERS[this.state.turn].class+"-token"}></span></h3>
-
-
+        <h3>
+          Current turn: {PLAYERS[this.state.turn].name}
+          <span className={PLAYERS[this.state.turn].class+"-token"}></span>
+        </h3>
         <div className="game-container">
           <div className="game-options"></div>
           <GameBoard board={this.state.board}
