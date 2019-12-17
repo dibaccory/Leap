@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './css/menu.css';
 import './lib/fa/css/all.min.css';
-import NavigationModal from './NavigationModal';
+import NavModalContent from './NavModalContent';
 import { CSSTransition } from 'react-transition-group';
 import { Container } from 'react-bootstrap';
 
@@ -29,7 +29,7 @@ class Menu extends React.Component {
       <div className='menu'>
         <div className='menu-title'>Leap</div>
         <Settings/>
-        <NavigationModal activeNavItem = { this.state.activeNavItem }/>
+        <NavModalContent type = { this.state.activeNavItem }/>
         <NavigationContainer openNavModal = { this.openNavModal }/>
       </div>
     )
@@ -93,7 +93,7 @@ function Settings() {
       <i className='fas fa-cog' onClick = { () => showContainer(!container) } />
       <CSSTransition
         in={container}
-        timeout={200}
+        timeout={0}
         classNames= 'settings-container'
       >
         <div className='setcon'>{settingsItems}</div>
