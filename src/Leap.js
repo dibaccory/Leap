@@ -86,8 +86,6 @@ ANIMATION PIPELINE:
 */
 
 function Piece(props) {
-  //
-
   let classes = "";
   let p = props.board.pieces[props.piece];
   if (props.piece !== null) {
@@ -101,56 +99,47 @@ function Piece(props) {
   return (<div className={classes}></div>)
 }
 
-class Cell extends Component {
-
-  render() {
-    let color = CELL_COLORS[util.cellType(this.props.row, this.props.column)];
-
-    //let selection = this.props.selected ? " selected" : "";
-    let highlight = this.props.highlight ? " highlight" : "";
-    let classes = "cell " + color + highlight;
-    return (
-      <div className={classes} onClick={ () => this.props.selectCell(this.props.row, this.props.column) }>
-        {this.props.val !== null
-        && <Piece piece={this.props.val}
-                  board={this.props.board}
-                  selected={this.props.selected ? true : false}/>}
-      </div>
-    )
-  }
+function Cell(props) {
+  let color = CELL_COLORS[util.cellType(props.row, props.column)];
+  let highlight = props.highlight ? " highlight" : "";
+  let classes = "cell " + color + highlight;
+  return (
+    <div className={classes} onClick={ () => props.selectCell(props.row, props.column) }>
+      {props.val !== null
+      && <Piece piece={props.val}
+                board={props.board}
+                selected={props.selected ? true : false}/>}
+    </div>
+  );
 }
 
-class Row extends Component {
-  render() {
-    let selectedCol = this.props.selectedPiece ? this.props.selectedPiece.col : null;
-    let cells = this.props.row.map((cell, i) => {
-      return <Cell key={i}
-              val={cell.who} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selectedCol then this.board[row][col].highlight
-              board={this.props.board}
-              row={this.props.ri}
-              column={i}
-              highlight={cell.move !== false ? true : false}
-              selected={i === selectedCol ? true : false}
-              selectCell={this.props.selectCell} />
-    });
-    return (<span className="row"> {cells} </span>)
-  }
+function Row(props) {
+  let selectedCol = props.selectedPiece ? props.selectedPiece.col : null;
+  let cells = props.row.map((cell, i) => {
+    return <Cell key={i}
+            val={cell.who} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selectedCol then this.board[row][col].highlight
+            board={props.board}
+            row={props.ri}
+            column={i}
+            highlight={cell.move !== false ? true : false}
+            selected={i === selectedCol ? true : false}
+            selectCell={props.selectCell} />
+  });
+  return (<span className="row"> {cells} </span>);
 }
 
-class GameBoard extends Component {
-  render() {
-    let selectedRow = this.props.selectedPiece ? this.props.selectedPiece.row : null;
-    let rows = this.props.board.board.map((row, i) => {
-      return <Row key={i}
-              board={this.props.board}
-              row={row} //board[row]
-              selectedPiece={i === selectedRow ? this.props.selectedPiece : null}
-              ri={i}
-              pieces={this.props.board.pieces}
-              selectCell={this.props.selectCell} />;
-    });
-    return (<div className="board"> {rows} </div>)
-  }
+function GameBoard(props) {
+  let selectedRow = props.selectedPiece ? props.selectedPiece.row : null;
+  let rows = props.board.board.map((row, i) => {
+    return <Row key={i}
+            board={props.board}
+            row={row} //board[row]
+            selectedPiece={i === selectedRow ? props.selectedPiece : null}
+            ri={i}
+            pieces={props.board.pieces}
+            selectCell={props.selectCell} />;
+  });
+  return (<div className="board"> {rows} </div>);
 }
 
 function Winner(props) {
@@ -201,7 +190,12 @@ class Leap extends Component {
       else {
         //TODO: prompt "end turn?" option.
         //right now, let's just end the turn otherwise
-        this.setState({board: board, turn: this.nextPlayer(this.state.turn), continuedMove: false, selectedPiece: null});
+        this.setState({
+          board: board,
+          turn: this.nextPlayer(this.state.turn),
+          continuedMove: false,
+          selectedPiece: null
+        });
         board.updateBoard();
       }
     }
