@@ -10,7 +10,6 @@
 }
 
 .game-container {
-  height: 60vh;
   display: flex;
   transition-duration: 0.8s;
   transition-property: transform;
@@ -38,13 +37,13 @@
 }
 
 .cell {
-  height: auto;
-  flex: 1 0 auto;
-  display: inline-block;
+  height: 50px;
   border: 1px solid #ddd;
   border-radius: 5px;
+  display: inline-block;
   margin: 2px;
-  padding: 1%;
+  padding: 5px;
+  width: 50px;
 }
 
 .gray1 {
@@ -82,7 +81,9 @@
 .player-one {
   background-color: white;
   border-radius: 50%;
-  border: 2px ridge black;
+  border: 1px solid #ccc;
+  box-shadow: 0px 0 3px 2px #eee, inset 0 0 6px 2px #ddd;
+  box-sizing: border-box;
   height: 100%;
   transition: all ease-in-out 1s;
 }
@@ -90,8 +91,11 @@
 .player-two {
   background-color: black;
   border-radius: 50%;
-  border: 2px ridge white;
+  border: 1px solid #444;
+  box-shadow: 0px 0 3px 2px #ccc, inset 0 0 6px 2px #666;
+  box-sizing: border-box;
   height: 100%;
+  transition: all ease-in-out 1s;
 }
 
 .highlight {
