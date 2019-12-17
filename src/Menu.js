@@ -4,14 +4,16 @@ import './lib/fa/css/all.min.css';
 import NavModalContent from './NavModalContent';
 import { CSSTransition } from 'react-transition-group';
 import { Container } from 'react-bootstrap';
+import Leap from './Leap';
 
 class Menu extends React.Component {
   constructor() {
     super();
 
-    this.state = { activeNavItem: '' };
+    this.state = { activeNavItem: '', openGame: false};
 
     this.openNavModal = this.openNavModal.bind(this);
+    this.begin = this.begin.bind(this);
     }
 
     openNavModal(activeItem) {
@@ -22,55 +24,30 @@ class Menu extends React.Component {
       console.log("hoollo");
     }
 
+    begin(playMode, config) {
+      if(playMode) { //Singleplayer
+          this.setState({openGame: true});
+      }
+    }
+
   render() {
     //Animate <Intro> on start up, fade in rest of Menu
+
+    if (this.state.openGame) {
+      return <Leap />;
+    }
 
     return (
       <div className='menu'>
         <div className='menu-title'>Leap</div>
         <Settings/>
-        <NavModalContent type = { this.state.activeNavItem }/>
+        <NavModalContent
+          type={this.state.activeNavItem}
+          begin={this.begin}
+        />
         <NavigationContainer openNavModal = { this.openNavModal }/>
       </div>
     )
-  }
-}
-
-class SettingsContainer extends React.Component {
-  constructor(props) {
-    super(props);
-
-    this.state = { activeItem: ''};
-
-
-
-    this.handleClick = this.handleClick.bind(this);
-    this.wrapperRef = React.createRef();
-
-  }
-  handleClick(activeItem) {
-      if(this.settingsItems[activeItem].type === 'toggle') {
-        this.settingsItems[activeItem].crossed = !this.settingsItems[activeItem].crossed;
-      }
-  }
-
-  toggleContainer() {
-    this.wrapperRef.current.classList.toggle('active');
-    //this.setState({condition: !this.state.condition});
-  }
-
-
-  render() {
-    const settingsItems = Object.values(this.settingsItems).map(
-      (item, i) => <SettingsItem key={ i }
-                                 item={ item }
-                                 handleClick = { this.handleClick }/> );
-    return ( <div className='settings'>
-        <i className='fas fa-cog' onClick = { () => this.toggleContainer() } />
-        <div className= 'settings-container' ref={ this.wrapperRef }>
-          { settingsItems }
-        </div>
-      </div> );
   }
 }
 

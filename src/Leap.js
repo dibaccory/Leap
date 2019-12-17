@@ -259,9 +259,6 @@ class Leap extends Component {
   render() {
     return (
       <div className="Leap">
-        <div className="Leap-header">
-          <h2>Leap</h2>
-        </div>
         { this.state.winner && <Winner player={this.state.winner} restart={this.restart.bind(this)} /> }
         <h3>Current turn: {PLAYERS[this.state.turn].name}<span className={PLAYERS[this.state.turn].class+"-token"}></span></h3>
 
