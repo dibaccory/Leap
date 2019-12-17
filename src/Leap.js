@@ -19,140 +19,9 @@ Game description:
 const BOARD_SIZE = 8;
 const playerOne = 1;
 const playerTwo = 2;
-const PLAYERS = {
-  [playerOne]: {
-    name: "Player One",
-    class: "player-one"
-  },
-  [playerTwo]: {
-    name: "Player Two",
-    class: "player-two"
-  }
-}
+var PLAYERS;
 
 const CELL_COLORS = [ "gray1", "gray2", "pink", "red", "orange", "yellow", "green", "blue"];
-
-/*
-TODO:
-- Make continue button (?)
-
-- AI player
-
-- Allow multiplayer
-    Random match making
-    invites (link or username (if integrated with Google Play))
-
-- Pieces are draggable and snap to grid
-    (if center of dragging piece is strictly within calc(cell-margin + cell-height/2) on drop, then select cell where piece dropped)
-    disable animations for all but phase and clone moves.
-
-- Make animations
-    If clone, we animate the original piece and newly created piece with cloning animation
-    If phase, piece fades in/out from center to edges on adj phase  and on far phase
-    if piece has caught:
-      If jump,
-        piece does a small hop to the destinationCell
-        captured bursts into little circles and fades away
-      If leap,
-        piece gets sucked into portal, (SVG points all transform to center of adj phase, timing ease-in-out), and pushed out (reverse animation)
-        if captured on adj phase:
-          captured shakes and does first part of phase animation while piece being sucked in, but then comes out as little circles on other side
-        else:
-          captured bursts into little circles and fades away
-    else:
-      piece does small hop to destination cell
-
-How can we handle animations?
-> Translate moving piece p, where p is a child of the destination cell component,
-> from ( startingCell.center.x , startingCell.center.y ) to ( destinationCell.x, destinationCell.y)
-
-
-ANIMATION PIPELINE:
-  In function Board.doMove:
-  - get move details
-      moving piece: p,
-      startingCell = {who: board[p.row][p.col].who, move_type: ye, row: p.row, col: p.col}, -- defined first in do move
-      moveDirection,
-      captured piece (if applicable)
-
-  Upon doMove or makeClone:
-  - Find Cell components of startingCell and, if applicable, captured piece
-      (starting cell) get Cell component c such that: c.row === startingCell.row && c.col === startingCell.col
-      (captured piece) get
-
-  -
-
-
-*/
-
-function Piece(props) {
-  let classes = "";
-  let p = props.board.pieces[props.piece];
-  if (props.piece !== null) {
-    classes += PLAYERS[p.player].class;
-    if (p.cloned) classes += " cloned";
-    if (props.selected) {
-      classes += " selected";
-      //props.board.getMoves(props.piece);
-    }
-  }
-  return (<div className={classes}></div>)
-}
-
-function Cell(props) {
-  let color = CELL_COLORS[util.cellType(props.row, props.column)];
-  let highlight = props.highlight ? " highlight" : "";
-  let classes = "cell " + color + highlight;
-  return (
-    <div className={classes} onClick={ () => props.selectCell(props.row, props.column) }>
-      {props.val !== null
-      && <Piece piece={props.val}
-                board={props.board}
-                selected={props.selected ? true : false}/>}
-    </div>
-  );
-}
-
-function Row(props) {
-  let selectedCol = props.selectedPiece ? props.selectedPiece.col : null;
-  let cells = props.row.map((cell, i) => {
-    return <Cell key={i}
-            val={cell.who} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selectedCol then this.board[row][col].highlight
-            board={props.board}
-            row={props.ri}
-            column={i}
-            highlight={cell.move !== false ? true : false}
-            selected={i === selectedCol ? true : false}
-            selectCell={props.selectCell} />
-  });
-  return (<span className="row"> {cells} </span>);
-}
-
-function GameBoard(props) {
-  let selectedRow = props.selectedPiece ? props.selectedPiece.row : null;
-  let rows = props.board.board.map((row, i) => {
-    return <Row key={i}
-            board={props.board}
-            row={row} //board[row]
-            selectedPiece={i === selectedRow ? props.selectedPiece : null}
-            ri={i}
-            pieces={props.board.pieces}
-            selectCell={props.selectCell} />;
-  });
-  return (<div className="board"> {rows} </div>);
-}
-
-function Winner(props) {
-  let player = PLAYERS[props.player].name;
-  return (
-    <div id="winner">
-      <div>
-        <p>{player} has won the game!</p>
-        <button onClick={props.restart}>Play again?</button>
-      </div>
-    </div>
-  );
-}
 
 class Leap extends Component {
   constructor(props) {
@@ -161,11 +30,28 @@ class Leap extends Component {
     this.state = {
       ...props.config,
       board: new Board(BOARD_SIZE, playerOne, playerTwo),
-      turn: props.config.first ? playerOne : playerTwo,
+      turn: props.config.players[0].first ? playerOne : playerTwo,
       continuedMove: false,
       selectedPiece: null,
       winner: null
     };
+
+    /*
+    When we implement colyseus,
+      name: 'Player X' default, change in 'more' section or something
+      class: 'piece '+ chosen color
+      bot: true | false
+    */
+    PLAYERS = {
+      [playerOne]: {
+        ...props.config.players[0],
+        class: "player-one"
+      },
+      [playerTwo]: {
+        ...props.config.players[1],
+        class: "player-two"
+      }
+    }
   }
 
   //React update method
@@ -225,8 +111,18 @@ class Leap extends Component {
     //If we can jump or leap, or phase (if move prior was not a phase)
     if (board.canContinueMove(pi, moveDirection)) {
       board.getMoves(pi, 3, moveDirection.rowIncr, moveDirection.colIncr); //highlight continuable moves
-      this.setState( {board: board, turn: this.state.turn, continuedMove: moveDirection, selectedPiece: {row: row, col: col}});
-    } else this.setState({board: board, turn: this.nextPlayer(this.state.turn), continuedMove: false, selectedPiece: null});
+      this.setState({
+        board: board,
+        turn: this.state.turn,
+        continuedMove: moveDirection,
+        selectedPiece: {row: row, col: col}
+      });
+    } else this.setState({
+        board: board,
+        turn: this.nextPlayer(this.state.turn),
+        continuedMove: false,
+        selectedPiece: null
+      });
   }
 
   canSelectPiece(row, col) {
@@ -274,6 +170,7 @@ class Leap extends Component {
     );
   }
 }
+
 /*
 <Countdown date={Date.now() + 10000}
            intervalDelay={0}
@@ -283,6 +180,131 @@ class Leap extends Component {
               <span className="countdown-s">{d.seconds}</span>
               <span className="countdown-ms">:{d.milliseconds}</span>
            </div>}/>
+*/
+
+function Winner(props) {
+  let player = PLAYERS[props.player].name;
+  return (
+    <div id="winner">
+      <div>
+        <p>{player} has won the game!</p>
+        <button onClick={props.restart}>Play again?</button>
+      </div>
+    </div>
+  );
+}
+
+
+function GameBoard(props) {
+  let selectedRow = props.selectedPiece ? props.selectedPiece.row : null;
+  let rows = props.board.board.map((row, i) => {
+    return <Row key={i}
+            board={props.board}
+            row={row} //board[row]
+            selectedPiece={i === selectedRow ? props.selectedPiece : null}
+            ri={i}
+            pieces={props.board.pieces}
+            selectCell={props.selectCell} />;
+  });
+  return (<div className="board"> {rows} </div>);
+}
+
+function Row(props) {
+  let selectedCol = props.selectedPiece ? props.selectedPiece.col : null;
+  let cells = props.row.map((cell, i) => {
+    return <Cell key={i}
+            val={cell.who} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selectedCol then this.board[row][col].highlight
+            board={props.board}
+            row={props.ri}
+            column={i}
+            highlight={cell.move !== false ? true : false}
+            selected={i === selectedCol ? true : false}
+            selectCell={props.selectCell} />
+  });
+  return (<span className="row"> {cells} </span>);
+}
+
+function Cell(props) {
+  let color = CELL_COLORS[util.cellType(props.row, props.column)];
+  let highlight = props.highlight ? " highlight" : "";
+  let classes = "cell " + color + highlight;
+  return (
+    <div className={classes} onClick={ () => props.selectCell(props.row, props.column) }>
+      {props.val !== null
+      && <Piece piece={props.val}
+                board={props.board}
+                selected={props.selected ? true : false}/>}
+    </div>
+  );
+}
+
+function Piece(props) {
+  let classes = "";
+  let p = props.board.pieces[props.piece];
+  if (props.piece !== null) {
+    classes += PLAYERS[p.player].class;
+    if (p.cloned) classes += " cloned";
+    if (props.selected) {
+      classes += " selected";
+      //props.board.getMoves(props.piece);
+    }
+  }
+  return (<div className={classes}></div>)
+}
+
+
+
+/*
+TODO:
+- Make continue button (?)
+
+- AI player
+
+- Allow multiplayer
+    Random match making
+    invites (link or username (if integrated with Google Play))
+
+- Pieces are draggable and snap to grid
+    (if center of dragging piece is strictly within calc(cell-margin + cell-height/2) on drop, then select cell where piece dropped)
+    disable animations for all but phase and clone moves.
+
+- Make animations
+    If clone, we animate the original piece and newly created piece with cloning animation
+    If phase, piece fades in/out from center to edges on adj phase  and on far phase
+    if piece has caught:
+      If jump,
+        piece does a small hop to the destinationCell
+        captured bursts into little circles and fades away
+      If leap,
+        piece gets sucked into portal, (SVG points all transform to center of adj phase, timing ease-in-out), and pushed out (reverse animation)
+        if captured on adj phase:
+          captured shakes and does first part of phase animation while piece being sucked in, but then comes out as little circles on other side
+        else:
+          captured bursts into little circles and fades away
+    else:
+      piece does small hop to destination cell
+
+How can we handle animations?
+> Translate moving piece p, where p is a child of the destination cell component,
+> from ( startingCell.center.x , startingCell.center.y ) to ( destinationCell.x, destinationCell.y)
+
+
+ANIMATION PIPELINE:
+  In function Board.doMove:
+  - get move details
+      moving piece: p,
+      startingCell = {who: board[p.row][p.col].who, move_type: ye, row: p.row, col: p.col}, -- defined first in do move
+      moveDirection,
+      captured piece (if applicable)
+
+  Upon doMove or makeClone:
+  - Find Cell components of startingCell and, if applicable, captured piece
+      (starting cell) get Cell component c such that: c.row === startingCell.row && c.col === startingCell.col
+      (captured piece) get
+
+  -
+
+
 */
 
 export default Leap;

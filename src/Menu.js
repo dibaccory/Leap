@@ -37,9 +37,7 @@ class Menu extends React.Component {
     //Animate <Intro> on start up, fade in rest of Menu
 
     if (this.state.openGame) {
-      return <Leap
-        playMode={ this.state.openGame ? 'sp' : 'mp' }
-        config={ this.state.gameConfig }/>;
+      return <Leap config={ this.state.gameConfig }/>;
     }
 
     return (

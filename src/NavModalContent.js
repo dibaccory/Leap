@@ -24,13 +24,34 @@ function NavModalContent(props){
 function NewGame(props) {
   const [mode, setMode] = useState(true);
   const [first, isFirst] = useState(true);
-  let botDifficulty;
+  let botDifficulty = 3;
 
   const readyGame = (mode) => {
     /*
     mpFirst: TRUE if in mp-new-online, FALSE if mp-room-invite
+
+    singleplayer -> localPlay
+    multiplayer -> webPlay
+
+    for this vvvvv
+    This is an instance where localPlay is chosen,
+      one player is a bot, other is user
     */
-    mode ? props.begin(mode, {difficulty: botDifficulty, first: first})
+    mode ? props.begin(mode, {
+      difficulty: botDifficulty,
+      first: first,
+      players: [{
+        name: 'User Guy',
+        color: 'white',
+        bot: false,
+        first: true,
+      },{
+        name: 'Bot Dude',
+        color: 'black',
+        bot: true,
+        first: false,
+      }]
+    })
          : props.begin(mode, {roomURL: 'HASH', first: ''});
   };
 
@@ -53,9 +74,9 @@ function NewGame(props) {
       <div className='playmode-config'>
         Difficulty
         <Slider
-          step={10}
-          defaultValue={50}
-          onAfterChange={(e) => botDifficulty = e/10}
+          max={10}
+          defaultValue={botDifficulty}
+          onAfterChange={(e) => botDifficulty = e}
         />
         <label>
           Player goes first
@@ -78,11 +99,6 @@ function NewGame(props) {
           <div className='mp-new-online'> New Game
             <div className='mp-new-online-desc'>
               Start a new game.
-            </div>
-          </div>
-          <div className='mp-new-local'> New Local Game
-            <div className='mp-new-local-desc'>
-              If you want to play on the same machine.
             </div>
           </div>
           <div className='mp-join'> Have a link? Join Game
