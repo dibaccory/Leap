@@ -7,54 +7,98 @@ leap: capture piece while jumping through a portal
 jitch: jump, then phase
 swump: switch, then jump
 }
-*/
-/*
-LEGEND
-pi = piece index in Board.pieces
-p = piece Board.pieces[pi]
-*/
 
-/*
-Previously, I assumed that if a uncloned piece reaches the end of the other player's side,
-then that piece must duplicate before continuing the game. However, my assumption fails
-if the player's spawn row is full and hence I will give the player the option to choose.
-
-This realization got me thinking about adding different game modes that
-modify things like the board size, and side-wrapping.
-
-board size: If board were 9x9, we can put a clone phaser in the center
-that duplicates any non-clone pieces at most once.
-
-side wrapping: columns are cyclic: make board[row] = cyclic linked List?
+REFACTOR CHANGES:
+Leap.js -> Game.js
+	<Leap> -> <GameController>
+board.js -> leap.js
 
 
+BITWISE:
 
-Speaking of linked lists... Why am I not using them now?
-Maybe this is what I needed to store highlight;
- represent each of this.state.selectedPiece's moves as a boolean for 'highlight' in
- this.board[row][col] = {who: p.player | null, highlight: true | false :: added in Board.getMoves(pi)}
- for some row,col,  and p = this.piece[pi]
- to Leap.setPiece(), add this.state.board.updateBoard()
+BOARD:
+bit				item
+0					cellType	{regular, phase}
+1-2				cellState		{00: empty, 10: SPECIAL, 01: p1, 11: p2, }   NOTE, if '10' for bits 1 and 2, then it should be a SPECIAL THING???  lmao what if a piece can be moved by either player for a few turns?
+3					isCloned
+4-8				key
+
+board[i] = (key << 4 | isCloned << 3 | cellState << 1 | cellType);
+for i = row * SIZE + col 		where row, col wtr a given piece
+
+PIECE INDEX:
+bit 			item
+0-2				col
+3-(5,6)		row
+
+board[i] = (row << 3 | col);
+for i = SIZE*SIZE + key			wher
 
 */
 
 
-function Board(size, p1, p2) {
-	this.p1 = p1;
-	this.p2 = p2;
-	this.board = this.initBoard(size);
-	this.piecesSeparator = 8;
-	this.pieces = this.initPieces(size, p1, p2);
-	this.updateBoard(); //add pieces to board
+	/*TODO: 17, 19, 22 are based on the default layout,
+		This function assumes the phases are symmetric on both axes
+		Need to have a function that checks if only symmetric on at least one			//7x9 (row x col) relative origin = (4,5)
+			-calculates offsets
+					17
+					17 + (len-1-bufferSize)/nRowPartitions x len
+					17 + (len-1-bufferSize)/nColPartitions
+					17 + (len-1-bufferSize)/nRowPartitions + (len-1-bufferSize)/nColPartitions x len
+					board[i + j*len] = 1^(
+						(i + j*len)^17 & (i + j*len)^19 & (i + j*len)^26
+					&	(i + j*len)^41 & (i + j*len)^34 & (i + j*len)^43
+					&	(i + j*len)^20 & (i + j*len)^29 & (i + j*len)^22
+					&	(i + j*len)^44 & (i + j*len)^37 & (i + j*len)^46 );
+				}
+	*/
+//can I generate layouts on seeds? lmao
+
+
+function Board(len, phaseLayout) {
+	this.p1 = 1;
+	this.p2 = 3;
+	this.len = len;
+	this.area = len*len;
+	(this.board = []).length = this.area + 4*len;
+	this.board.fill(0);
+	this.bufferSize = 1;
+	this.init(phaseLayout);
+	//this.update();
 }
 
-//TODO:
-//this.board[row][col] = {who: p.player | null, highlight: {row: some_row, col: some_col} | null:: added in Board.getMoves(pi)}
-//update occurs when (1) piece is cloned (pieces index may change)
-// and when (2) setPiece is called
-//To make highlight function properly, I'll have to call this.getMoves() from here.
-//It follows that I will have to remove other calls to this.getMoves()
-Board.prototype.updateBoard = function (newPiece) {
+
+
+Board.prototype.init = function (layout) {
+    let key=0;
+		const len = this.len;
+
+		const calcPhases = (index) => {
+			let acc = 128 + 64 + 32 + 16 + 8 + 4 + 2 + 1;
+			for(let k; k<util.phaseLayouts[layout].length; k++) {
+				acc &= index^util.phaseLayouts[layout][k];
+			}
+			return 1^acc;
+		};
+
+		for(let i=0; i<len; i++) {
+			this.board[i] = (key << 4 | this.p1 << 1); //000000 0 01 0
+			this.initPiece(this.area + key, 0, i);
+			this.board[i + (len-1)*len] = ((key + 2*len) << 4 | this.p2 << 1); //100000 0 11 0
+			this.initPiece(this.area + key, (len-1)*len, i);
+			key++;
+
+			for(let j=1+this.bufferSize; j<len-1-this.bufferSize; j++) {
+				this.board[i + j*len] = calcPhases(i+j*len);
+			}
+		}
+}
+
+Board.prototype.initPiece = function (i, row, col) {
+	this.board[i] = row << 3 | col;
+}
+
+Board.prototype.update = function (newPiece) {
 	if (newPiece) {
 		this.board = this.board.map(row => row.map((cell, j) => {
 			if (cell.who != null) { //increment all pi in board after piecesSeparator by one
@@ -74,29 +118,7 @@ Board.prototype.updateBoard = function (newPiece) {
 	}
 }
 
-Board.prototype.initBoard = function (size) {
-    let board = [], playerTwo = [], playerOne = [];
-		//TODO: fill as {who: pi (this.pieces index), highlight: null}
-		for (let i = 0; i < size; i++) {
-			playerTwo.push({who: i, move: false});
-			playerOne.push({who: i+8, move: false});
-		}
-		board.push(playerTwo);
-		for (let i = 1; i < size-1; i++) board.push(Array(size).fill({who: null, move: false}));
-		board.push(playerOne);
 
-    return board;
-}
-
-Board.prototype.initPieces = function (size) {
-	let whitePieces = [];
-	let blackPieces = [];
-	for (let c = 0; c < size; c++) {
-		whitePieces.push({player: this.p1, cloned: false, row: 7, col: c, alive: true});
-		blackPieces.push({player: this.p2, cloned: false, row: 0, col: c, alive: true});
-	}
-    return blackPieces.concat(whitePieces);
-}
 
 /*==========											CLONE															==========*/
 
@@ -123,7 +145,9 @@ Board.prototype.makeClone = function (pi, row, col) {
 
 Board.prototype.canClone = function (pi) {
 	let p = this.pieces[pi];
-	return (!p.cloned && p.col < 7 && p.col > 0 && ( (p.player === this.p1 && !p.row) || (p.player === this.p2 && p.row === 7) ));
+	return (!p.cloned && p.col < 7 && p.col > 0
+		&& ( (p.player === this.p1 && !p.row)
+		|| (p.player === this.p2 && p.row === 7) ));
 }
 
 Board.prototype.isCloneSpawn = function (pi, row, col) {

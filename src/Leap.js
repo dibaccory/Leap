@@ -17,6 +17,7 @@ Game description:
 */
 
 const BOARD_SIZE = 8;
+const BOARD_AREA = BOARD_SIZE*BOARD_SIZE;
 const playerOne = 1;
 const playerTwo = 2;
 var PLAYERS;
@@ -28,8 +29,8 @@ class Leap extends Component {
     super(props);
 
     this.state = {
-      ...props.config,
-      board: new Board(BOARD_SIZE, playerOne, playerTwo),
+      /*...props.config,*/
+      board: new Board(BOARD_SIZE, 0), // 0 is phaseLayout
       turn: props.config.players[0].first ? playerOne : playerTwo,
       continuedMove: false,
       selectedPiece: null,
@@ -51,6 +52,23 @@ class Leap extends Component {
         ...props.config.players[1],
         class: "player-two"
       }
+    }
+  }
+
+  componentDidMount() {
+    //Check if first player is bot
+    if(PLAYERS[this.state.turn].bot) {
+      console.log('tete');
+    }
+  }
+
+//GOOD PLACE FOR NETWORK REQUEST
+  componentDidUpdate(prevProps, prevState, snapshot) {
+
+    //check if current player is bot
+    if(PLAYERS[this.state.turn].bot) {
+      console.log('BOT TIME: ');
+
     }
   }
 
@@ -130,7 +148,7 @@ class Leap extends Component {
     let cell = s.board.board[row][col].who;
     if (cell === null) return false;
     let player = s.board.pieces[cell].player;
-    return player === s.turn;
+    return player === s.turn && !PLAYERS[s.turn].bot;
   }
 
   setPiece(row, col) {
@@ -197,29 +215,33 @@ function Winner(props) {
 
 function GameBoard(props) {
   let selectedRow = props.selectedPiece ? props.selectedPiece.row : null;
-  let rows = props.board.board.map((row, i) => {
-    return <Row key={i}
-            board={props.board}
-            row={row} //board[row]
-            selectedPiece={i === selectedRow ? props.selectedPiece : null}
-            ri={i}
-            pieces={props.board.pieces}
-            selectCell={props.selectCell} />;
-  });
+
+  let rows = [];
+  for(let r=0; r<BOARD_SIZE; r++) {
+    rows.push(<Row
+      key={r}
+      board={props.board}
+      selectedPiece={r === selectedRow ? props.selectedPiece : null}
+      selectCell={props.selectCell} />);
+  }
   return (<div className="board"> {rows} </div>);
 }
 
 function Row(props) {
   let selectedCol = props.selectedPiece ? props.selectedPiece.col : null;
-  let cells = props.row.map((cell, i) => {
-    return <Cell key={i}
-            val={cell.who} //so this.board[row][col] = {who: p.player | null, highlight: true | false -> if selectedCol then this.board[row][col].highlight
-            board={props.board}
-            row={props.ri}
-            column={i}
-            highlight={cell.move !== false ? true : false}
-            selected={i === selectedCol ? true : false}
-            selectCell={props.selectCell} />
+  let cells = [], index, pKey;
+  for(let c=0; c< BOARD_SIZE; c++) {
+    index = (props.key*BOARD_SIZE << 4) | c;
+    pKey = rops.board[index] >> 4;
+    cells.push(<Cell
+      key={index}
+      val={pKey} //piece index key
+      board={props.board}
+      row={props.board[props.board.area]}
+      column={i}
+      highlight={cell.move !== false ? true : false}
+      selected={i === selectedCol ? true : false}
+      selectCell={props.selectCell} />
   });
   return (<span className="row"> {cells} </span>);
 }

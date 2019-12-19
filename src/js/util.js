@@ -1,3 +1,7 @@
+module.exports.phaseLayouts = {
+	[0]: [ 17, 41,	26, 34,		19, 43,		20, 44,		29, 37, 	22, 46] // spaced by column for some reason?
+};
+
 
 module.exports.cellType = function (row, col) {
 	let type;
