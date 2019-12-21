@@ -19,7 +19,7 @@ Game description:
 const BOARD_SIZE = 8;
 const BOARD_AREA = BOARD_SIZE*BOARD_SIZE;
 const playerOne = 1;
-const playerTwo = 2;
+const playerTwo = 3;
 var PLAYERS;
 
 const CELL_COLORS = [ "gray1", "gray2", "pink", "red", "orange", "yellow", "green", "blue"];
@@ -87,10 +87,10 @@ class Leap extends Component {
     }
   }
 
-  selectCell(row, col) {
+  selectCell(index, row, col) {
     //If a move is not a continuation, default case,
     if (!this.state.continuedMove) {
-      if (this.canSelectPiece(row, col)) this.setPiece(row, col);
+      if (this.canSelectPiece(index)) this.setPiece(index);
       else if (this.state.selectedPiece)  this.handleMove(row, col);
     } else { //if continuation
       //check if move = true..
@@ -143,29 +143,28 @@ class Leap extends Component {
       });
   }
 
-  canSelectPiece(row, col) {
-    let s = this.state;
-    let cell = s.board.board[row][col].who;
-    if (cell === null) return false;
-    let player = s.board.pieces[cell].player;
-    return player === s.turn && !PLAYERS[s.turn].bot;
+  //bot need not use this; they get the move from ai.js, pass it on directly to doMove
+  canSelectPiece(index) {
+    let p = this.state.board.board[index];
+    if(p & 4) return false; //bit 2 indicates a player piece
+    return ( (p << 2) & 3 == this.state.turn ) && !PLAYERS[this.state.turn].bot;
   }
 
-  setPiece(row, col) {
+  setPiece(index) {
     let board = this.state.board;
     board.updateBoard();
-    board.getMoves(board.board[row][col].who);
-    this.setState({selectedPiece: {row: row, col: col}});
+    board.getMoves(index);
+    this.setState({selectedPiece: board[index] >> 5});
       //console.log("selected piece: " + this.state.board.board[row][col].who);
   }
 
   nextPlayer() {
-    return (this.state.turn === playerOne ? playerTwo : playerOne);
+    return this.state.turn ^ 2;
   }
 
   restart() {
     this.setState({ board: new Board(BOARD_SIZE, playerOne, playerTwo),
-                    continuedMove: false, turn: playerOne,
+                    continuedMove: false, turn: playerOne, //TODO
                     selectedPiece: null, winner: null });
   }
 
@@ -214,62 +213,59 @@ function Winner(props) {
 
 
 function GameBoard(props) {
-  let selectedRow = props.selectedPiece ? props.selectedPiece.row : null;
+  //let selectedRow = props.selectedPiece ? props.selectedPiece.row : null;
 
   let rows = [];
   for(let r=0; r<BOARD_SIZE; r++) {
     rows.push(<Row
       key={r}
+      row={r}
       board={props.board}
-      selectedPiece={r === selectedRow ? props.selectedPiece : null}
+      selectedPiece={props.selectedPiece}
       selectCell={props.selectCell} />);
   }
   return (<div className="board"> {rows} </div>);
 }
 
 function Row(props) {
-  let selectedCol = props.selectedPiece ? props.selectedPiece.col : null;
-  let cells = [], index, pKey;
+  let cells = [], index, cell;
   for(let c=0; c< BOARD_SIZE; c++) {
-    index = (props.key*BOARD_SIZE << 4) | c;
-    pKey = rops.board[index] >> 4;
+    index = props.row*BOARD_SIZE + c;
+    cell = props.board.board[index];
     cells.push(<Cell
-      key={index}
-      val={pKey} //piece index key
+      key={index} //board index
+      val={cell} //piece index key
       board={props.board}
-      row={props.board[props.board.area]}
-      column={i}
-      highlight={cell.move !== false ? true : false}
-      selected={i === selectedCol ? true : false}
-      selectCell={props.selectCell} />
-  });
+      row={props.row}
+      col={c}
+      highlight={props.board[index] & 2}
+      selected={cell >> 5 === props.selectedPiece}
+      selectCell={props.selectCell} />);
+  }
   return (<span className="row"> {cells} </span>);
 }
 
 function Cell(props) {
-  let color = CELL_COLORS[util.cellType(props.row, props.column)];
+  let color = CELL_COLORS[util.cellType(props.row, props.col)];
   let highlight = props.highlight ? " highlight" : "";
   let classes = "cell " + color + highlight;
   return (
-    <div className={classes} onClick={ () => props.selectCell(props.row, props.column) }>
-      {props.val !== null
-      && <Piece piece={props.val}
-                board={props.board}
-                selected={props.selected ? true : false}/>}
+    <div className={classes} onClick={ () => props.selectCell(props.val, props.row, props.col) }>
+      {props.val && <Piece
+        key={props.val >> 5}
+        player={props.val & 12}
+        cloned={(props.val >> 4) & 16}
+        selected={props.selected} />}
     </div>
   );
 }
 
-function Piece(props) {
+function Piece(p) {
   let classes = "";
-  let p = props.board.pieces[props.piece];
-  if (props.piece !== null) {
-    classes += PLAYERS[p.player].class;
-    if (p.cloned) classes += " cloned";
-    if (props.selected) {
-      classes += " selected";
-      //props.board.getMoves(props.piece);
-    }
+  classes += PLAYERS[p.player].class;
+  if (p.cloned) classes += " cloned";
+  if (p.selected) {
+    classes += " selected";
   }
   return (<div className={classes}></div>)
 }

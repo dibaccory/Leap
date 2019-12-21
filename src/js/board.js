@@ -18,10 +18,10 @@ BITWISE:
 
 BOARD:
 bit				item
-0					cellType	{regular, phase}
-1-2				cellState		{00: empty, 10: SPECIAL, 01: p1, 11: p2, }   NOTE, if '10' for bits 1 and 2, then it should be a SPECIAL THING???  lmao what if a piece can be moved by either player for a few turns?
-3					isCloned
-4-8				key
+0-1				cellType	{regular, phase} x {highlight, no highlight}
+2-3			cellState		{00: empty, 10: SPECIAL, 01: p1, 11: p2, }   NOTE, if '10' for bits 1 and 2, then it should be a SPECIAL THING???  lmao what if a piece can be moved by either player for a few turns?
+4					isCloned
+5-9				key				If piece on cell, this is index to reach it
 
 board[i] = (key << 4 | isCloned << 3 | cellState << 1 | cellType);
 for i = row * SIZE + col 		where row, col wtr a given piece
@@ -31,7 +31,7 @@ bit 			item
 0-2				col
 3-(5,6)		row
 
-board[i] = (row << 3 | col);
+board[i] = (row << 4 | col);
 for i = SIZE*SIZE + key			wher
 
 */
@@ -56,8 +56,8 @@ for i = SIZE*SIZE + key			wher
 
 
 function Board(len, phaseLayout) {
-	this.p1 = 1;
-	this.p2 = 3;
+	this.p1 = 4;
+	this.p2 = 12;
 	this.len = len;
 	this.area = len*len;
 	(this.board = []).length = this.area + 4*len;
@@ -74,32 +74,38 @@ Board.prototype.init = function (layout) {
 		const len = this.len;
 
 		const calcPhases = (index) => {
-			let acc = 128 + 64 + 32 + 16 + 8 + 4 + 2 + 1;
-			for(let k; k<util.phaseLayouts[layout].length; k++) {
-				acc &= index^util.phaseLayouts[layout][k];
+			let k = 0;
+			while(k<util.phaseLayouts[layout].length) {
+				if ( (index^util.phaseLayouts[layout][k]) === 0 ) return 1;
+				k++;
 			}
-			return 1^acc;
+			return 0;
 		};
 
 		for(let i=0; i<len; i++) {
-			this.board[i] = (key << 4 | this.p1 << 1); //000000 0 01 0
+			this.board[i] = ( (key << 5) | this.p1); //00000 0 01 00
 			this.initPiece(this.area + key, 0, i);
-			this.board[i + (len-1)*len] = ((key + 2*len) << 4 | this.p2 << 1); //100000 0 11 0
-			this.initPiece(this.area + key, (len-1)*len, i);
+			this.board[i + (len-1)*len] = ( (key + 2*len << 5) | this.p2); //10000 0 11 00
+			this.initPiece(this.area + (key + 2*len), (len-1)*len, i);
 			key++;
 
 			for(let j=1+this.bufferSize; j<len-1-this.bufferSize; j++) {
-				this.board[i + j*len] = calcPhases(i+j*len);
+				this.board[i + j*len] |= calcPhases(i+j*len);
 			}
 		}
 }
 
 Board.prototype.initPiece = function (i, row, col) {
-	this.board[i] = row << 3 | col;
+	this.board[i] = (row << 4) | col;
+}
+
+Board.prototype.getPlayer = function (row, col) {
+	return this.board[row*this.len + col];
 }
 
 Board.prototype.update = function (newPiece) {
 	if (newPiece) {
+		//find out which player this piece belongs to then add it within that player's key range (00000)
 		this.board = this.board.map(row => row.map((cell, j) => {
 			if (cell.who != null) { //increment all pi in board after piecesSeparator by one
 				if (cell.who >= this.piecesSeparator) cell.who++;
@@ -134,10 +140,10 @@ Board.prototype.insertAtSeparationIndex = function () {
 }
 
 Board.prototype.makeClone = function (pi, row, col) {
-	let p = this.pieces[pi];
-	p.cloned = true;
-	let clone = {player: p.player, cloned: true, row: row, col: col, alive: true};
-	this.pieces.splice(this.insertAtSeparationIndex(),0, clone); //add clone to pieces Array
+	/*
+	getPlayer bit
+	*/
+	this.board[row*this.len + col] |= this.getPlayer(row, col)
 	this.updateBoard(true);
 	this.board[row][col].who = this.piecesSeparator;
 	return true;
@@ -156,9 +162,9 @@ Board.prototype.isCloneSpawn = function (pi, row, col) {
 
 /*==========											MOVES															==========*/
 
-Board.prototype.getPlayer = function (pi) {
-	return this.pieces[pi].player;
-}
+// Board.prototype.getPlayer = function (pi) {
+// 	return this.pieces[pi].player;
+// }
 
 Board.prototype.isLeap = function (p, rowIncr, colIncr, isPhase, cellAdj, bypassCondition) {
 	//if neighbor cell is a phase, leap_cell clear, and (enemy piece on phaseAdj XOR enemy piece on phaseFar)
@@ -222,7 +228,12 @@ Board.prototype.getMovesInDirection = function (p, bypassCondition, r, c) {
 	return false;
 }
 
-//bypassCondition (HIGHLIGHT BYPASS CONDITION): undefined - default (Store all), 1 - bypass all, 2 - bypass continuable moves, 3 - store continuable moves
+/* bypassCondition (HIGHLIGHT BYPASS CONDITION):
+		undefined - default (Store all),
+		1 - bypass all,
+		2 - bypass continuable moves,
+		3 - store continuable moves
+*/
 Board.prototype.getMoves = function (pi, bypassCondition, r, c) {
 
 	let p = this.pieces[pi];
