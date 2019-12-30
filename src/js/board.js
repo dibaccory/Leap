@@ -60,7 +60,8 @@ function Board(len, phaseLayout) {
 	this.len = len;
 	this.area = len*len;
 	this.BIT_SHIFT = getBitShift(len-1);
-	this.BIT_LENGTH = 2**this.BIT_SHIFT - 1;
+	this.BIT_LENGTH = 2**this.BIT_SHIFT;
+	this.BIT_AREA = 2**(this.BIT_SHIFT*2);
 
 	(this.board = []).length = this.area;
 	(this.moves = []).length = 4*len;
@@ -89,7 +90,7 @@ Board.prototype.init = function (layout) {
 		for(let i=0; i<len; i++) {
 			this.board[i] = ( (pi << 5) | this.p1); //00000 0 01 00
 			this.initPiece(pi);
-			this.board[i + (len-1)*len] = ( (pi + 2*len << 5) | this.p2); //10000 0 11 00
+			this.board[i + (len-1)*len] = ( (pi + 2*this.BIT_LENGTH << 5) | this.p2); //100000 0 11 00
 			this.initPiece(pi + 2*len);
 			pi++;
 
@@ -103,8 +104,15 @@ Board.prototype.initPiece = function (pi) {
 	this.moves[pi] = [];
 }
 
-Board.prototype.getPlayer = function (row, col) {
-	return this.board[row*this.len + col];
+Board.prototype.getPlayer = function (index) {
+	return ( (this.board[index] >> 5) < 2*this.BIT_LENGTH ) ? this.p1 : this.p2;
+}
+
+// moves[pi] = [0000000 0000000] --> [board index of captured piece + board index of destination cell]
+Board.prototype.addMove = function (to, from, captured) {
+	captured = captured || 0;
+	let pi = (this.board[to] >> 5);
+	this.moves[pi].push( (captured << 2*this.BIT_SHIFT) + from );
 }
 
 Board.prototype.update = function (newPiece) {
@@ -199,12 +207,12 @@ Board.prototype.isJump = function (p, rowIncr, colIncr, cellAdj, bypassCondition
 Board.prototype.canPhase = function (i, bypassCondition) {
 	let len= this.len - 1;
 	//j = 7-row_index + 7-col_index
-	let j = ( (len - (i >> this.BIT_SHIFT)) << this.BIT_SHIFT ) + ( len - (i & this.BIT_LENGTH) );
+	let j = ( (len - (i >> this.BIT_SHIFT)) << this.BIT_SHIFT ) + ( len - (i & (this.BIT_LENGTH-1) ) );
 	let isPhase = (this.board[i] & 1);
 	let isDestinationEmpty = (this.board[j] & 3); //1 if player piece
 	if(isPhase && isDestinationEmpty) {
 		if (bypassCondition%3) return true;
-		else ;
+		else this.addMove(i, j);
 	}
 }
 
@@ -301,7 +309,7 @@ Board.prototype.doMove = function (pi, row, col) {
 Board.prototype.highlightMoves = function (pi) {
 	let nMoves = this.moves[pi].length;
 	for(let i=0; i<nMoves; i++) {
-		let destinationIndex = this.moves[pi][i] & ( 2**(this.BIT_SHIFT*2) - 1 );
+		let destinationIndex = ( this.moves[pi][i] & (this.BIT_AREA - 1) );
 		this.board[destinationIndex] |= 2;
 	}
 }
