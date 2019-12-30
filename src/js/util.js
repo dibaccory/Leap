@@ -1,8 +1,11 @@
+
+
+
 module.exports.phaseLayouts = {
 	[0]: [ 17, 41,	26, 34,		19, 43,		20, 44,		29, 37, 	22, 46] // spaced by column for some reason?
 };
 
-
+//Instead of by coordinates, turn into stack
 module.exports.cellType = function (row, col) {
 	let type;
 	switch (true) {

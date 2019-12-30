@@ -18,8 +18,8 @@ Game description:
 
 const BOARD_SIZE = 8;
 const BOARD_AREA = BOARD_SIZE*BOARD_SIZE;
-const playerOne = 1;
-const playerTwo = 3;
+const playerOne = 4;
+const playerTwo = 12;
 var PLAYERS;
 
 const CELL_COLORS = [ "gray1", "gray2", "pink", "red", "orange", "yellow", "green", "blue"];
@@ -63,6 +63,7 @@ class Leap extends Component {
   }
 
 //GOOD PLACE FOR NETWORK REQUEST
+/*
   componentDidUpdate(prevProps, prevState, snapshot) {
 
     //check if current player is bot
@@ -71,10 +72,11 @@ class Leap extends Component {
 
     }
   }
+  */
 
   //React update method
   componentDidUpdate(prevProps, prevState) {
-    //this.state.board.updateBoard();
+    //this.state.board.highlightPieceMoves();
     if (prevState.turn !== this.state.turn) {
       let board = this.state.board;
       if (!board.movesLeft(this.state.turn)) {
@@ -87,15 +89,15 @@ class Leap extends Component {
     }
   }
 
-  selectCell(index, row, col) {
+  selectCell(index) {
     //If a move is not a continuation, default case,
     if (!this.state.continuedMove) {
       if (this.canSelectPiece(index)) this.setPiece(index);
-      else if (this.state.selectedPiece)  this.handleMove(row, col);
+      else if (this.state.selectedPiece)  this.handleMove(index);
     } else { //if continuation
       //check if move = true..
       let board = this.state.board;
-      if (board.validMove(row, col)) this.handleMove(row, col)
+      if (board.validMove(index)) this.handleMove(index)
       else {
         //TODO: prompt "end turn?" option.
         //right now, let's just end the turn otherwise
@@ -105,12 +107,12 @@ class Leap extends Component {
           continuedMove: false,
           selectedPiece: null
         });
-        board.updateBoard();
+        board.highlightPieceMoves(/*KEYKEYLMAO*/);
       }
     }
   }
 
-  handleMove(row, col) { //row, col of destination
+  handleMove(index, row, col) { //row, col of destination
     let board = this.state.board;
     if (!board.validMove(row, col)) {
       console.log("Invalid move!");
@@ -133,7 +135,7 @@ class Leap extends Component {
         board: board,
         turn: this.state.turn,
         continuedMove: moveDirection,
-        selectedPiece: {row: row, col: col}
+        selectedPiece: (board[index] >> 5)
       });
     } else this.setState({
         board: board,
@@ -145,16 +147,16 @@ class Leap extends Component {
 
   //bot need not use this; they get the move from ai.js, pass it on directly to doMove
   canSelectPiece(index) {
-    let p = this.state.board.board[index];
-    if(p & 4) return false; //bit 2 indicates a player piece
-    return ( (p << 2) & 3 == this.state.turn ) && !PLAYERS[this.state.turn].bot;
+    //let p = this.state.board.board[index];
+    //bit 2 indicates a player piece
+    return (index & 4) && ( ((index >> 2) & 3) === (this.state.turn >> 2) ) && !PLAYERS[this.state.turn].bot;
   }
 
   setPiece(index) {
-    let board = this.state.board;
-    board.updateBoard();
+    let board = this.state.board, pi = (board[index] >> 5);
     board.getMoves(index);
-    this.setState({selectedPiece: board[index] >> 5});
+    board.highlightMoves(pi);
+    this.setState({selectedPiece: pi});
       //console.log("selected piece: " + this.state.board.board[row][col].who);
   }
 
@@ -234,12 +236,11 @@ function Row(props) {
     cell = props.board.board[index];
     cells.push(<Cell
       key={index} //board index
-      val={cell} //piece index key
-      board={props.board}
+      val={cell} //cell info
       row={props.row}
       col={c}
       highlight={props.board[index] & 2}
-      selected={cell >> 5 === props.selectedPiece}
+      selected={(cell >> 5) === props.selectedPiece}
       selectCell={props.selectCell} />);
   }
   return (<span className="row"> {cells} </span>);
@@ -250,8 +251,8 @@ function Cell(props) {
   let highlight = props.highlight ? " highlight" : "";
   let classes = "cell " + color + highlight;
   return (
-    <div className={classes} onClick={ () => props.selectCell(props.val, props.row, props.col) }>
-      {props.val && <Piece
+    <div className={classes} onClick={ () => props.selectCell(props.val) }>
+      { ((props.val & 12) > 0) && <Piece
         key={props.val >> 5}
         player={props.val & 12}
         cloned={(props.val >> 4) & 16}
