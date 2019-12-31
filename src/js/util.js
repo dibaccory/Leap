@@ -1,12 +1,18 @@
 
 
 
-module.exports.phaseLayouts = {
+export const phaseLayouts = {
 	[0]: [ 17, 41,	26, 34,		19, 43,		20, 44,		29, 37, 	22, 46] // spaced by column for some reason?
 };
 
+export const toIndex = (row, col) => (row << this.BIT_SHIFT) + col;
+
+export const getRow = (index) => (index >> this.BIT_SHIFT);
+export const getCol = (index) => (index & (this.BIT_LENGTH-1));
+
+
 //Instead of by coordinates, turn into stack
-module.exports.cellType = function (row, col) {
+export const cellType = function (row, col) {
 	let type;
 	switch (true) {
 		case (col === 1 && row === 2) || (col === 6 && row === 5):
@@ -33,7 +39,7 @@ module.exports.cellType = function (row, col) {
 	}
 	return type;
 }
-
-module.exports.inBounds = function (row, col) {
-	return ((row > -1 && row < 8) && (col > -1 && col < 8));
-}
+//
+// module.exports.inBounds = function (row, col) {
+// 	return ((row > -1 && row < 8) && (col > -1 && col < 8));
+// }

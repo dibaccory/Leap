@@ -1,4 +1,4 @@
-var util = require('./util.js');
+import {toIndex, getRow, getCol, cellType, phaseLayouts} from './util';
 //single, phase, jump, super-jump
 /*
 adj: adjacent
@@ -80,8 +80,8 @@ Board.prototype.init = function (layout) {
 
 		const calcPhases = (index) => {
 			let k = 0;
-			while(k<util.phaseLayouts[layout].length) {
-				if ( (index^util.phaseLayouts[layout][k]) === 0 ) return 1;
+			while(k<phaseLayouts[layout].length) {
+				if ( (index^phaseLayouts[layout][k]) === 0 ) return 1;
 				k++;
 			}
 			return 0;
@@ -200,7 +200,7 @@ Board.prototype.isLeap = function (p, rowIncr, colIncr, isPhase, cellAdj, bypass
 
 Board.prototype.isJump = function (p, rowIncr, colIncr, cellAdj, bypassCondition) {
 	//if adj cell occupied, jumpCell in bounds, jumpCell clear, and jumpCell has enemy piece
-	if(util.inBounds(p.row + rowIncr*2, p.col + colIncr*2)) {
+	if(this.inBounds(p.row + rowIncr*2, p.col + colIncr*2)) {
 		let destinationCell = this.board[p.row + rowIncr*2][p.col + colIncr*2];
 		if (this.getPlayer(cellAdj.who) !== p.player && destinationCell.who === null) {
 			if(bypassCondition%3) return true;
@@ -209,10 +209,10 @@ Board.prototype.isJump = function (p, rowIncr, colIncr, cellAdj, bypassCondition
 	}
 }
 
-Board.prototype.canPhase = function (from, bypassCondition) {
+Board.prototype.canPhase = function (from, row, col, bypassCondition) {
 	let len= this.len - 1;
 	//j = 7-row_index + 7-col_index
-	let to = ( (len - (from >> this.BIT_SHIFT)) << this.BIT_SHIFT ) + ( len - (from & (this.BIT_LENGTH-1) ) );
+	let to = ( (len - row) << this.BIT_SHIFT ) + (len - col);
 	let isPhase = (this.board[to] & 1);
 	let isDestinationEmpty = (this.board[from] & 3); //1 if player piece
 	if(isPhase && isDestinationEmpty) {
@@ -234,11 +234,12 @@ Board.prototype.getCloneSpawnCells = function (from, bypassCondition) {
 	}
 }
 
-Board.prototype.getMovesInDirection = function (p, bypassCondition, r, c) {
+Board.prototype.getMovesInDirection = function (from, to, bypassCondition, r, c) {
 	//check adjacent cells of piece p wrt the boundary
-	if(util.inBounds(p.row + r, p.col + c) && (r || c)) {
-		let cellAdj = this.board[p.row + r][p.col + c];
-		let isPhase = util.cellType(p.row + r, p.col + c) > 1;
+
+	if(this.inBounds(to) && (r || c)) {
+		let cellAdj = this.board[to];
+		let isPhase = cellType( to >> this.BIT_SHIFT, to & (this.BIT_LENGTH-1) ) > 1;
 
 		if (this.isLeap(p, r, c, isPhase, cellAdj, bypassCondition)) return true;
 		if (cellAdj.who !== null) {
@@ -256,16 +257,16 @@ Board.prototype.getMovesInDirection = function (p, bypassCondition, r, c) {
 		2 - bypass continuable moves,
 		3 - store continuable moves
 */
-Board.prototype.getMoves = function (index, bypassCondition, r, c) {
-
-	if (this.canPhase(index, bypassCondition)) return true;
-	if (this.canClone(index)) if(this.getCloneSpawnCells(index, bypassCondition)) return true;
+Board.prototype.getMoves = function (from, bypassCondition, r, c) {
+	let row = (from >> this.BIT_SHIFT), col = (from & (this.BIT_LENGTH-1));
+	if (this.canPhase(from, row, col, bypassCondition)) return true;
+	if (this.canClone(from)) if(this.getCloneSpawnCells(from, bypassCondition)) return true;
 
 	if (r != null && c != null) { //if move continuation
-		if (this.getMovesInDirection(index, bypassCondition, r, c)) return true;
+		if (this.getMovesInDirection(from, (row + r) << this.BIT_SHIFT + (col + c), bypassCondition, r, c)) return true;
 	} else {
 		for(r=-1;r<2;r++) for(c=-1;c<2; c++) { //initial moves
-			if (this.getMovesInDirection(index, bypassCondition, r, c)) return true;
+			if (this.getMovesInDirection(from, row, col, bypassCondition, r, c)) return true;
 		}
 	}
 
@@ -329,9 +330,14 @@ Board.prototype.removeHighlight = function () {
 
 /*==========											INTEGRITY													==========*/
 
+//Don't need -> can use dest cell shit
 Board.prototype.samePhase = function (from, to) {
-	let isDestinationPhase = util.cellType(to.row, to.col);
-	return isDestinationPhase > 1 && isDestinationPhase === util.cellType(from.row, from.col);
+	let isDestinationPhase = cellType(to.row, to.col);
+	return isDestinationPhase > 1 && isDestinationPhase === cellType(from.row, from.col);
+}
+
+Board.prototype.inBounds = function (index) {
+	return 0 <= index && index < this.BIT_AREA;
 }
 
 Board.prototype.canContinueMove = function (pi, dir) {
@@ -358,4 +364,4 @@ Board.prototype.validMove = function (row, col) {
 	return this.board[row][col].move;
 }
 
-module.exports = Board;
+export default Board;

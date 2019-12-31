@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import './css/ui.css';
 import Board from './js/board.js';
 import Countdown from 'react-countdown-now';
-var util = require('./js/util.js');
+import {cellType} from './js/util.js';
 
 /*
 TODO:
@@ -236,6 +236,7 @@ function Row(props) {
     cell = props.board.board[index];
     cells.push(<Cell
       key={index} //board index
+      index={index}
       val={cell} //cell info
       row={props.row}
       col={c}
@@ -247,7 +248,7 @@ function Row(props) {
 }
 
 function Cell(props) {
-  let color = CELL_COLORS[util.cellType(props.row, props.col)];
+  let color = CELL_COLORS[cellType(props.row, props.col)];
   let highlight = props.highlight ? " highlight" : "";
   let classes = "cell " + color + highlight;
   return (
