@@ -105,7 +105,7 @@ Board.prototype.initPiece = function (pi) {
 }
 
 Board.prototype.getPlayer = function (index) {
-	return ( (this.board[index] >> 5) < 2*this.BIT_LENGTH ) ? this.p1 : this.p2;
+	return ( (this.board[index] & 12) < 12 ) ? this.p1 : this.p2;
 }
 
 // moves[pi] = [0000000 0000000] --> [board index of captured piece + board index of destination cell]
@@ -139,7 +139,7 @@ Board.prototype.update = function (newPiece) {
 
 
 /*==========											CLONE															==========*/
-
+/* DEPRECIATED: we use bit shifts now
 //Calls every time a clone is made
 Board.prototype.insertAtSeparationIndex = function () {
 	for(let pi=this.piecesSeparator; pi<this.pieces.length; pi++) {
@@ -150,7 +150,7 @@ Board.prototype.insertAtSeparationIndex = function () {
 		}
 	}
 }
-
+*/
 Board.prototype.makeClone = function (pi, row, col) {
 	/*
 	getPlayer bit
@@ -161,17 +161,22 @@ Board.prototype.makeClone = function (pi, row, col) {
 	return true;
 }
 
-Board.prototype.canClone = function (pi) {
-	let p = this.pieces[pi];
-	return (!p.cloned && p.col < 7 && p.col > 0
-		&& ( (p.player === this.p1 && !p.row)
-		|| (p.player === this.p2 && p.row === 7) ));
+Board.prototype.canClone = function (i) {
+	let row = i/this.BIT_LENGTH, piece = this.board[i];
+	let onBoundingColumn = (i+1)%this.BIT_LENGTH < 2;
+	let onBoundingRow = (row + 1)%this.BIT_LENGTH < 2;
+
+	if(onBoundingColumn || !onBoundingRow || (piece & 16) ) return false;
+
+	let spawnRow = (( (piece >> 5) & 2*this.BIT_LENGTH ) - 1) / 2;
+	return (row ^ spawnRow);
 }
 
+/* DEPRECIATED: not used
 Board.prototype.isCloneSpawn = function (pi, row, col) {
 	return this.canClone(pi) && this.board[row][col].who === null;
 }
-
+*/
 /*==========											MOVES															==========*/
 
 // Board.prototype.getPlayer = function (pi) {
