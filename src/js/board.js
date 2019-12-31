@@ -109,10 +109,10 @@ Board.prototype.getPlayer = function (index) {
 }
 
 // moves[pi] = [0000000 0000000] --> [board index of captured piece + board index of destination cell]
-Board.prototype.addMove = function (to, from, captured) {
+Board.prototype.addMove = function (from, to, captured) {
 	captured = captured || 0;
-	let pi = (this.board[to] >> 5);
-	this.moves[pi].push( (captured << 2*this.BIT_SHIFT) + from );
+	let pi = (this.board[from] >> 5);
+	this.moves[pi].push( (captured << 2*this.BIT_SHIFT) + to );
 }
 
 Board.prototype.update = function (newPiece) {
@@ -209,25 +209,27 @@ Board.prototype.isJump = function (p, rowIncr, colIncr, cellAdj, bypassCondition
 	}
 }
 
-Board.prototype.canPhase = function (i, bypassCondition) {
+Board.prototype.canPhase = function (from, bypassCondition) {
 	let len= this.len - 1;
 	//j = 7-row_index + 7-col_index
-	let j = ( (len - (i >> this.BIT_SHIFT)) << this.BIT_SHIFT ) + ( len - (i & (this.BIT_LENGTH-1) ) );
-	let isPhase = (this.board[i] & 1);
-	let isDestinationEmpty = (this.board[j] & 3); //1 if player piece
+	let to = ( (len - (from >> this.BIT_SHIFT)) << this.BIT_SHIFT ) + ( len - (from & (this.BIT_LENGTH-1) ) );
+	let isPhase = (this.board[to] & 1);
+	let isDestinationEmpty = (this.board[from] & 3); //1 if player piece
 	if(isPhase && isDestinationEmpty) {
 		if (bypassCondition%3) return true;
-		else this.addMove(i, j);
+		else this.addMove(from, to);
 	}
 }
 
-Board.prototype.getCloneSpawns = function (p, bypassCondition) {
-	let row = p.player === this.p1 ? 7 : 0;
+//reaching this function implies selected piece can be cloned, so piece is on an bounding row
+Board.prototype.getCloneSpawnCells = function (from, bypassCondition) {
+	let spawnRow = ( from/this.BIT_LENGTH ^ (this.BIT_LENGTH - 1) );
 	for(let col=1; col<7;col++) {
-		let destinationCell = this.board[row][col];
-		if (destinationCell.who === null) {
+		let to = spawnRow + col;
+		let spawnCell = this.board[to];
+		if ( !(spawnCell & 4) ) {
 			if (bypassCondition%3) return true;
-			else destinationCell.move = true;
+			else this.addMove(from, to);
 		}
 	}
 }
@@ -257,7 +259,7 @@ Board.prototype.getMovesInDirection = function (p, bypassCondition, r, c) {
 Board.prototype.getMoves = function (index, bypassCondition, r, c) {
 
 	if (this.canPhase(index, bypassCondition)) return true;
-	if (this.canClone(index) && this.getCloneSpawns(index, bypassCondition)) return true;
+	if (this.canClone(index)) if(this.getCloneSpawnCells(index, bypassCondition)) return true;
 
 	if (r != null && c != null) { //if move continuation
 		if (this.getMovesInDirection(index, bypassCondition, r, c)) return true;
