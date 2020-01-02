@@ -3,6 +3,7 @@ import './css/ui.css';
 import Board from './js/board.js';
 import Countdown from 'react-countdown-now';
 import {cellType} from './js/util.js';
+import { CONFIG } from './Menu.js'
 
 /*
 TODO:
@@ -15,9 +16,16 @@ Game description:
 -directions
 -tutorial?
 */
+function getBitShift(b) {
+  return (b >> 1) ? (1 + getBitShift(b >> 1)) : 0;
+}
 
-const BOARD_SIZE = 8;
-const BOARD_AREA = BOARD_SIZE*BOARD_SIZE;
+export const BOARD_SIZE = CONFIG.size;
+export const BOARD_AREA = 2**BOARD_SIZE;
+export const BIT_SHIFT = getBitShift(BOARD_SIZE);
+export const BIT_LENGTH = 2**BIT_SHIFT;
+export const BIT_AREA = 2**BIT_LENGTH;
+//const BOARD_AREA = BOARD_SIZE*BOARD_SIZE;
 const playerOne = 4;
 const playerTwo = 12;
 var PLAYERS;

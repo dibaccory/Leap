@@ -41,18 +41,20 @@ function NewGame(props) {
       difficulty: botDifficulty,
       first: first,
       players: [{
-        name: 'User Guy',
+        name: 'Player 1',
         color: 'white',
         bot: false,
         first: true,
       },{
-        name: 'Bot Dude',
+        name: 'Botto',
         color: 'black',
-        bot: true,
+        bot: false,
         first: false,
-      }]
+      }],
+      size: 8,
+
     })
-         : props.begin(mode, {roomURL: 'HASH', first: ''});
+         : props.begin(mode, {roomURL: 'HASH', first: ''}); //wifi multiplayer
   };
 
   return (<div className='nav-modal-container'>

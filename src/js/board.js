@@ -1,4 +1,5 @@
 import {toIndex, getRow, getCol, cellType, phaseLayouts} from './util';
+import {BIT_SHIFT, BIT_LENGTH, BIT_AREA, BOARD_SIZE, BOARD_AREA} from './Leap.js'
 //single, phase, jump, super-jump
 /*
 adj: adjacent
@@ -51,19 +52,14 @@ key = piece index
 
 
 function Board(len, phaseLayout) {
-	function getBitShift(b) {
-		return (b >> 1) ? (1 + getBitShift(b >> 1)) : 0;
-	}
+
 	this.p1 = 4;
 	this.p2 = 12;
 
-	this.len = len;
-	this.area = len*len;
-	this.BIT_SHIFT = getBitShift(len-1);
-	this.BIT_LENGTH = 2**this.BIT_SHIFT;
-	this.BIT_AREA = 2**(this.BIT_SHIFT*2);
+	//BOARD_SIZE = len;
+	///BOARD_AREA = len*len;
 
-	(this.board = []).length = this.area;
+	(this.board = []).length = BOARD_AREA;
 	(this.moves = []).length = 4*len;
 
 	this.board.fill(0);
@@ -76,7 +72,7 @@ function Board(len, phaseLayout) {
 
 Board.prototype.init = function (layout) {
     let pi=0; //piece Index (ID)
-		const len = this.len;
+		const len = BOARD_SIZE;
 
 		const calcPhases = (index) => {
 			let k = 0;
@@ -90,7 +86,7 @@ Board.prototype.init = function (layout) {
 		for(let i=0; i<len; i++) {
 			this.board[i] = ( (pi << 5) | this.p1); //00000 0 01 00
 			this.initPiece(pi);
-			this.board[i + (len-1)*len] = ( (pi + 2*this.BIT_LENGTH << 5) | this.p2); //100000 0 11 00
+			this.board[i + (len-1)*len] = ( (pi + 2*BIT_LENGTH << 5) | this.p2); //100000 0 11 00
 			this.initPiece(pi + 2*len);
 			pi++;
 
@@ -112,7 +108,7 @@ Board.prototype.getPlayer = function (index) {
 Board.prototype.addMove = function (from, to, captured) {
 	captured = captured || 0;
 	let pi = (this.board[from] >> 5);
-	this.moves[pi].push( (captured << 2*this.BIT_SHIFT) + to );
+	this.moves[pi].push( (captured << 2*BIT_SHIFT) + to );
 }
 
 Board.prototype.update = function (newPiece) {
@@ -155,20 +151,20 @@ Board.prototype.makeClone = function (pi, row, col) {
 	/*
 	getPlayer bit
 	*/
-	this.board[row*this.len + col] |= this.getPlayer(row, col)
+	this.board[row*BOARD_SIZE + col] |= this.getPlayer(row, col)
 	this.updateBoard(true);
 	this.board[row][col].who = this.piecesSeparator;
 	return true;
 }
 
 Board.prototype.canClone = function (i) {
-	let row = i/this.BIT_LENGTH, piece = this.board[i];
-	let onBoundingColumn = (i+1)%this.BIT_LENGTH < 2;
-	let onBoundingRow = (row + 1)%this.BIT_LENGTH < 2;
+	let row = i/BIT_LENGTH, piece = this.board[i];
+	let onBoundingColumn = (i+1)%BIT_LENGTH < 2;
+	let onBoundingRow = (row + 1)%BIT_LENGTH < 2;
 
 	if(onBoundingColumn || !onBoundingRow || (piece & 16) ) return false;
 
-	let spawnRow = (( (piece >> 5) & 2*this.BIT_LENGTH ) - 1) / 2;
+	let spawnRow = (( (piece >> 5) & 2*BIT_LENGTH ) - 1) / 2;
 	return (row ^ spawnRow);
 }
 
@@ -210,9 +206,9 @@ Board.prototype.isJump = function (p, rowIncr, colIncr, cellAdj, bypassCondition
 }
 
 Board.prototype.canPhase = function (from, row, col, bypassCondition) {
-	let len= this.len - 1;
+	let len= BOARD_SIZE - 1;
 	//j = 7-row_index + 7-col_index
-	let to = ( (len - row) << this.BIT_SHIFT ) + (len - col);
+	let to = ( (len - row) << BIT_SHIFT ) + (len - col);
 	let isPhase = (this.board[to] & 1);
 	let isDestinationEmpty = (this.board[from] & 3); //1 if player piece
 	if(isPhase && isDestinationEmpty) {
@@ -223,7 +219,7 @@ Board.prototype.canPhase = function (from, row, col, bypassCondition) {
 
 //reaching this function implies selected piece can be cloned, so piece is on an bounding row
 Board.prototype.getCloneSpawnCells = function (from, bypassCondition) {
-	let spawnRow = ( from/this.BIT_LENGTH ^ (this.BIT_LENGTH - 1) );
+	let spawnRow = ( from/BIT_LENGTH ^ (BIT_LENGTH - 1) );
 	for(let col=1; col<7;col++) {
 		let to = spawnRow + col;
 		let spawnCell = this.board[to];
@@ -239,7 +235,7 @@ Board.prototype.getMovesInDirection = function (from, to, bypassCondition, r, c)
 
 	if(this.inBounds(to) && (r || c)) {
 		let cellAdj = this.board[to];
-		let isPhase = cellType( to >> this.BIT_SHIFT, to & (this.BIT_LENGTH-1) ) > 1;
+		let isPhase = cellType( to >> BIT_SHIFT, to & (BIT_LENGTH-1) ) > 1;
 
 		if (this.isLeap(p, r, c, isPhase, cellAdj, bypassCondition)) return true;
 		if (cellAdj.who !== null) {
@@ -258,12 +254,12 @@ Board.prototype.getMovesInDirection = function (from, to, bypassCondition, r, c)
 		3 - store continuable moves
 */
 Board.prototype.getMoves = function (from, bypassCondition, r, c) {
-	let row = (from >> this.BIT_SHIFT), col = (from & (this.BIT_LENGTH-1));
+	let row = (from >> BIT_SHIFT), col = (from & (BIT_LENGTH-1));
 	if (this.canPhase(from, row, col, bypassCondition)) return true;
 	if (this.canClone(from)) if(this.getCloneSpawnCells(from, bypassCondition)) return true;
 
 	if (r != null && c != null) { //if move continuation
-		if (this.getMovesInDirection(from, (row + r) << this.BIT_SHIFT + (col + c), bypassCondition, r, c)) return true;
+		if (this.getMovesInDirection(from, (row + r) << BIT_SHIFT + (col + c), bypassCondition, r, c)) return true;
 	} else {
 		for(r=-1;r<2;r++) for(c=-1;c<2; c++) { //initial moves
 			if (this.getMovesInDirection(from, row, col, bypassCondition, r, c)) return true;
@@ -317,13 +313,13 @@ Board.prototype.doMove = function (pi, row, col) {
 Board.prototype.highlightMoves = function (pi) {
 	let nMoves = this.moves[pi].length;
 	for(let i=0; i<nMoves; i++) {
-		let destinationIndex = ( this.moves[pi][i] & (this.BIT_AREA - 1) );
+		let destinationIndex = ( this.moves[pi][i] & (BIT_AREA - 1) );
 		this.board[destinationIndex] |= 2;
 	}
 }
 
 Board.prototype.removeHighlight = function () {
-	for(let i=0; i<this.area; i++) {
+	for(let i=0; i<BOARD_AREA; i++) {
 		if(this.board[i] & 2) (this.board[i] = this.board[i] ^ 2);
 	}
 }
@@ -337,7 +333,7 @@ Board.prototype.samePhase = function (from, to) {
 }
 
 Board.prototype.inBounds = function (index) {
-	return 0 <= index && index < this.BIT_AREA;
+	return 0 <= index && index < BIT_AREA;
 }
 
 Board.prototype.canContinueMove = function (pi, dir) {
