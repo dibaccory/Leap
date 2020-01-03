@@ -1,13 +1,5 @@
-import {toIndex, getRow, getCol, cellType, phaseLayouts} from './util';
-import {BIT_SHIFT, BIT_LENGTH, BIT_AREA, BOARD_SIZE, BOARD_AREA} from './Leap.js'
-//single, phase, jump, super-jump
+import {cellType, phaseLayouts} from './util';
 /*
-adj: adjacent
-phase: change portal side
-leap: capture piece while jumping through a portal
-jitch: jump, then phase
-swump: switch, then jump
-}
 
 REFACTOR CHANGES:
 Leap.js -> Game.js
@@ -41,25 +33,33 @@ moves[i] = [ 0 <= board_index < SIZE*SIZE, ... , ... ] all possible moves for as
 for i = SIZE*SIZE
 
 
-
 index = cell number
 key = piece index
 
 */
+const toIndex = (row, col) => (row << BIT_SHIFT) + col;
 
+const getRow = (index) => (index >> BIT_SHIFT);
+const getCol = (index) => (index & (BIT_LENGTH-1));
 
-//can I generate layouts on seeds? lmao
-
+function getBitShift(b) {
+  return (b >> 1) ? (1 + getBitShift(b >> 1)) : 0;
+}
+var BOARD_SIZE, BOARD_AREA, BIT_SHIFT, BIT_LENGTH, BIT_AREA;
 
 function Board(len, phaseLayout) {
 
 	this.p1 = 4;
 	this.p2 = 12;
 
-	//BOARD_SIZE = len;
-	///BOARD_AREA = len*len;
+	BOARD_SIZE = len;
+	BOARD_AREA = 2**BOARD_SIZE;
+	BIT_SHIFT = getBitShift(BOARD_SIZE);
+	BIT_LENGTH = 2**BIT_SHIFT;
+	BIT_AREA = 2**BIT_LENGTH;
 
-	(this.board = []).length = BOARD_AREA;
+
+	(this.board = []).length = len;
 	(this.moves = []).length = 4*len;
 
 	this.board.fill(0);
@@ -107,7 +107,7 @@ Board.prototype.getPlayer = function (index) {
 			return this.p2;
 		case 4:
 			return this.p1;
-		default
+		default:
 			return 0;
 	}
 	//return ( (this.board[index] & 12) < 12 ) ? this.p1 : this.p2;
@@ -190,10 +190,10 @@ Board.prototype.isCloneSpawn = function (pi, row, col) {
 
 Board.prototype.canLeap = function (from, adj, isPhase, bypassCondition) {
 	let to = this.getInverseIndex(from);
-	if( isPhase && !(getPlayer(to)) ) {
+	if( isPhase && !(this.getPlayer(to)) ) {
 		let inv = this.getInverseIndex(adj);
-		let phaseAdj = getPlayer(adj) & 8;
-		let phaseFar = getPlayer(inv) & 8;
+		let phaseAdj = this.getPlayer(adj) & 8;
+		let phaseFar = this.getPlayer(inv) & 8;
 
 		if( (phaseAdj ^ phaseFar) ) {
 			if (bypassCondition) return true;
@@ -215,10 +215,9 @@ Board.prototype.isJump = function (from, adj, direction, bypassCondition) {
 	}
 }
 
-Board.prototype.canPhase = function (from, row, col, bypassCondition) {
-	let len= BOARD_SIZE - 1;
+Board.prototype.canPhase = function (from, to, bypassCondition) {
 	//j = 7-row_index + 7-col_index
-	let to = ( (len - row) << BIT_SHIFT ) + (len - col);
+	//let to = ( (len - row) << BIT_SHIFT ) + (len - col);
 	let isPhase = (this.board[to] & 1);
 	let isDestinationEmpty = (this.board[from] & 3); //1 if player piece
 	if(isPhase && isDestinationEmpty) {
@@ -233,6 +232,7 @@ Board.prototype.getCloneSpawnCells = function (from, bypassCondition) {
 	for(let col=1; col<7;col++) {
 		let to = spawnRow + col;
 		let spawnCell = this.board[to];
+		//if spawnCell doesn't have a player on it
 		if ( !(spawnCell & 4) ) {
 			if (bypassCondition%3) return true;
 			else this.addMove(from, to);
@@ -240,19 +240,18 @@ Board.prototype.getCloneSpawnCells = function (from, bypassCondition) {
 	}
 }
 
-Board.prototype.getMovesInDirection = function (from, adj, bypassCondition, r, c) {
+Board.prototype.getMovesInDirection = function (from, adj, bypassCondition) {
 	//check adjacent cells of piece p wrt the boundary
-
-	if(this.inBounds(adj) && (r || c)) {
+	let direction = adj - from;
+	if (this.inBounds(adj) && (direction)) {
 		let isPhase = this.board[adj] & 1;
-		let direction = adj - from;
 
+		if (  this.getPlayer(adj) ^ this.getPlayer(from) )
 		if (this.canLeap(from, adj, isPhase, bypassCondition)) return true;
-		if (cellAdj.who !== null) {
-			if (this.isJump(from, adj, direction, bypassCondition)) return true;
-		}
+		if (this.isJump(from, adj, direction, bypassCondition)) return true;
+
 		else if (bypassCondition%3%2) return true;	//adjacent moves
-		else if (!bypassCondition) cellAdj.move = true;
+		else if (!bypassCondition) this.addMove(from, adj);
 	}
 	return false;
 }
@@ -264,18 +263,18 @@ Board.prototype.getMovesInDirection = function (from, adj, bypassCondition, r, c
 		3 - store continuable moves
 */
 Board.prototype.getMoves = function (from, bypassCondition, r, c) {
-	let row = (from >> BIT_SHIFT), col = (from & (BIT_LENGTH-1));
-	if (this.canPhase(from, row, col, bypassCondition)) return true;
-	if (this.canClone(from)) if(this.getCloneSpawnCells(from, bypassCondition)) return true;
-
-	if (r != null && c != null) { //if move continuation
-		if (this.getMovesInDirection(from, (row + r) << BIT_SHIFT + (col + c), bypassCondition, r, c)) return true;
-	} else {
-		for(r=-1;r<2;r++) for(c=-1;c<2; c++) { //initial moves
-			if (this.getMovesInDirection(from, (row + r) << BIT_SHIFT + (col + c), bypassCondition, r, c)) return true;
-		}
+	let row = getRow(from), col = getCol(from);
+	// move continuation AND has a move in specified direction
+	if (bypassCondition === 2 && this.getMovesInDirection(from, toIndex(row + r, col + c), bypassCondition) ) return true;
+	// on a phase
+	if (this.canPhase(from, this.getInverseIndex(from), bypassCondition)) return true;
+	// able to clone
+	if (this.canClone(from) && this.getCloneSpawnCells(from, bypassCondition)) return true;
+	//adjacent
+	for(r=-1;r<2;r++) for(c=-1;c<2; c++) {
+		let adj = (row + r) << BIT_SHIFT + (col + c);
+		if (this.getMovesInDirection(from, adj, bypassCondition)) return true;
 	}
-
 	return false;
 }
 
@@ -353,7 +352,6 @@ Board.prototype.inBounds = function (index) {
 }
 
 Board.prototype.canContinueMove = function (pi, dir) {
-
 	return dir ? this.getMoves(pi, 2, dir.rowIncr, dir.colIncr) : false;
 }
 

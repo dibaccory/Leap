@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 import './css/ui.css';
-import Board from './js/board.js';
 import Countdown from 'react-countdown-now';
 import {cellType} from './js/util.js';
-import { CONFIG } from './Menu.js'
+import Board from './js/board.js';
 
 /*
 TODO:
@@ -16,15 +15,8 @@ Game description:
 -directions
 -tutorial?
 */
-function getBitShift(b) {
-  return (b >> 1) ? (1 + getBitShift(b >> 1)) : 0;
-}
 
-export const BOARD_SIZE = CONFIG.size;
-export const BOARD_AREA = 2**BOARD_SIZE;
-export const BIT_SHIFT = getBitShift(BOARD_SIZE);
-export const BIT_LENGTH = 2**BIT_SHIFT;
-export const BIT_AREA = 2**BIT_LENGTH;
+export var BOARD_SIZE;
 //const BOARD_AREA = BOARD_SIZE*BOARD_SIZE;
 const playerOne = 4;
 const playerTwo = 12;
@@ -35,7 +27,7 @@ const CELL_COLORS = [ "gray1", "gray2", "pink", "red", "orange", "yellow", "gree
 class Leap extends Component {
   constructor(props) {
     super(props);
-
+    BOARD_SIZE = props.config.size;
     this.state = {
       /*...props.config,*/
       board: new Board(BOARD_SIZE, 0), // 0 is phaseLayout
@@ -97,10 +89,10 @@ class Leap extends Component {
     }
   }
 
-  selectCell(index) {
+  selectCell(cell, index) {
     //If a move is not a continuation, default case,
     if (!this.state.continuedMove) {
-      if (this.canSelectPiece(index)) this.setPiece(index);
+      if (this.canSelectPiece(cell)) this.setPiece(cell, index);
       else if (this.state.selectedPiece)  this.handleMove(index);
     } else { //if continuation
       //check if move = true..
@@ -154,14 +146,14 @@ class Leap extends Component {
   }
 
   //bot need not use this; they get the move from ai.js, pass it on directly to doMove
-  canSelectPiece(index) {
+  canSelectPiece(cell) {
     //let p = this.state.board.board[index];
     //bit 2 indicates a player piece
-    return (index & 4) && ( ((index >> 2) & 3) === (this.state.turn >> 2) ) && !PLAYERS[this.state.turn].bot;
+    return (cell & 4) && ( ((cell >> 2) & 3) === (this.state.turn >> 2) ) && !PLAYERS[this.state.turn].bot;
   }
 
-  setPiece(index) {
-    let board = this.state.board, pi = (board[index] >> 5);
+  setPiece(cell, index) {
+    let board = this.state.board, pi = cell >> 5;
     board.getMoves(index);
     board.highlightMoves(pi);
     this.setState({selectedPiece: pi});
@@ -260,7 +252,7 @@ function Cell(props) {
   let highlight = props.highlight ? " highlight" : "";
   let classes = "cell " + color + highlight;
   return (
-    <div className={classes} onClick={ () => props.selectCell(props.val) }>
+    <div className={classes} onClick={ () => props.selectCell(props.val, props.index) }>
       { ((props.val & 12) > 0) && <Piece
         key={props.val >> 5}
         player={props.val & 12}
@@ -334,5 +326,4 @@ ANIMATION PIPELINE:
 
 
 */
-
 export default Leap;

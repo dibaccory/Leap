@@ -5,12 +5,6 @@ export const phaseLayouts = {
 	[0]: [ 17, 41,	26, 34,		19, 43,		20, 44,		29, 37, 	22, 46] // spaced by column for some reason?
 };
 
-export const toIndex = (row, col) => (row << this.BIT_SHIFT) + col;
-
-export const getRow = (index) => (index >> this.BIT_SHIFT);
-export const getCol = (index) => (index & (this.BIT_LENGTH-1));
-
-
 //Instead of by coordinates, turn into stack
 export const cellType = function (row, col) {
 	let type;

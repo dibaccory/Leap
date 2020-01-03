@@ -5,7 +5,21 @@ import NavModalContent from './NavModalContent';
 import { CSSTransition } from 'react-transition-group';
 import Leap from './Leap';
 
-export var CONFIG;
+export var CONFIG = {
+  difficulty: 0,
+  players: [{
+    name: 'Player 1',
+    color: 'white',
+    bot: false,
+    first: true,
+  },{
+    name: 'Botto',
+    color: 'black',
+    bot: false,
+    first: false,
+  }],
+  size: 8,
+};
 
 //This isn't really a Menu, it's a title screen. Please revisit
 class Menu extends React.Component {
@@ -31,8 +45,9 @@ class Menu extends React.Component {
 
     begin(playMode, config) {
       if(playMode) { //Singleplayer
-          this.setState({openGame: true, gameConfig: config});
-          CONFIG = config;
+        CONFIG = config;
+        this.setState({openGame: true, gameConfig: config});
+
       }
     }
 
