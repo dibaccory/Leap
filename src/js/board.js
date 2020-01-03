@@ -38,7 +38,7 @@ for i = SIZE*SIZE + key			where
 
 how to store moves
 moves[i] = [ 0 <= board_index < SIZE*SIZE, ... , ... ] all possible moves for associated piece.
-for i = SIZE*SIZE + key
+for i = SIZE*SIZE
 
 
 
@@ -101,7 +101,16 @@ Board.prototype.initPiece = function (pi) {
 }
 
 Board.prototype.getPlayer = function (index) {
-	return ( (this.board[index] & 12) < 12 ) ? this.p1 : this.p2;
+	let pid = (this.board[index] & 12);
+	switch (pid) {
+		case 12:
+			return this.p2;
+		case 4:
+			return this.p1;
+		default
+			return 0;
+	}
+	//return ( (this.board[index] & 12) < 12 ) ? this.p1 : this.p2;
 }
 
 // moves[pi] = [0000000 0000000] --> [board index of captured piece + board index of destination cell]
@@ -179,28 +188,29 @@ Board.prototype.isCloneSpawn = function (pi, row, col) {
 // 	return this.pieces[pi].player;
 // }
 
-Board.prototype.isLeap = function (p, rowIncr, colIncr, isPhase, cellAdj, bypassCondition) {
-	//if neighbor cell is a phase, leap_cell clear, and (enemy piece on phaseAdj XOR enemy piece on phaseFar)
-	let destinationCell = this.board[7 - p.row][7 - p.col];
-	if(isPhase && !destinationCell.who) {
-		let phaseAdj = cellAdj.who;
-		let phaseFar = this.board[7 - (p.row + rowIncr)][7 - (p.col + colIncr)].who;
-		if((phaseAdj || phaseFar) && !(phaseAdj && phaseFar)) { //xor filter. Only one may be true
-			let capt = phaseAdj ? phaseAdj : phaseFar;
-			//if 0, add to destinationCell.move, if 1,
+Board.prototype.canLeap = function (from, adj, isPhase, bypassCondition) {
+	let to = this.getInverseIndex(from);
+	if( isPhase && !(getPlayer(to)) ) {
+		let inv = this.getInverseIndex(adj);
+		let phaseAdj = getPlayer(adj) & 8;
+		let phaseFar = getPlayer(inv) & 8;
+
+		if( (phaseAdj ^ phaseFar) ) {
 			if (bypassCondition) return true;
-			else destinationCell.move = capt;
+			let captured = phaseAdj ? adj : inv;
+			this.addMove(from, to, captured);
 		}
 	}
+	//if neighbor cell is a phase, leap_cell clear, and (enemy piece on phaseAdj XOR enemy piece on phaseFar)
 }
 
-Board.prototype.isJump = function (p, rowIncr, colIncr, cellAdj, bypassCondition) {
+Board.prototype.isJump = function (from, adj, direction, bypassCondition) {
 	//if adj cell occupied, jumpCell in bounds, jumpCell clear, and jumpCell has enemy piece
-	if(this.inBounds(p.row + rowIncr*2, p.col + colIncr*2)) {
-		let destinationCell = this.board[p.row + rowIncr*2][p.col + colIncr*2];
-		if (this.getPlayer(cellAdj.who) !== p.player && destinationCell.who === null) {
+	let to = adj+direction;
+	if(this.inBounds(to)) {
+		if (this.getPlayer(adj) !== this.getPlayer(from) && !this.getPlayer(to)) {
 			if(bypassCondition%3) return true;
-			else destinationCell.move = cellAdj.who;
+			else this.addMove(from, to, adj);
 		}
 	}
 }
@@ -230,16 +240,16 @@ Board.prototype.getCloneSpawnCells = function (from, bypassCondition) {
 	}
 }
 
-Board.prototype.getMovesInDirection = function (from, to, bypassCondition, r, c) {
+Board.prototype.getMovesInDirection = function (from, adj, bypassCondition, r, c) {
 	//check adjacent cells of piece p wrt the boundary
 
-	if(this.inBounds(to) && (r || c)) {
-		let cellAdj = this.board[to];
-		let isPhase = cellType( to >> BIT_SHIFT, to & (BIT_LENGTH-1) ) > 1;
+	if(this.inBounds(adj) && (r || c)) {
+		let isPhase = this.board[adj] & 1;
+		let direction = adj - from;
 
-		if (this.isLeap(p, r, c, isPhase, cellAdj, bypassCondition)) return true;
+		if (this.canLeap(from, adj, isPhase, bypassCondition)) return true;
 		if (cellAdj.who !== null) {
-			if (this.isJump(p, r, c, cellAdj, bypassCondition)) return true;
+			if (this.isJump(from, adj, direction, bypassCondition)) return true;
 		}
 		else if (bypassCondition%3%2) return true;	//adjacent moves
 		else if (!bypassCondition) cellAdj.move = true;
@@ -262,7 +272,7 @@ Board.prototype.getMoves = function (from, bypassCondition, r, c) {
 		if (this.getMovesInDirection(from, (row + r) << BIT_SHIFT + (col + c), bypassCondition, r, c)) return true;
 	} else {
 		for(r=-1;r<2;r++) for(c=-1;c<2; c++) { //initial moves
-			if (this.getMovesInDirection(from, row, col, bypassCondition, r, c)) return true;
+			if (this.getMovesInDirection(from, (row + r) << BIT_SHIFT + (col + c), bypassCondition, r, c)) return true;
 		}
 	}
 
@@ -325,6 +335,12 @@ Board.prototype.removeHighlight = function () {
 }
 
 /*==========											INTEGRITY													==========*/
+
+Board.prototype.getInverseIndex = function (index) {
+	let len = BOARD_SIZE - 1;
+	let row = (index >> BIT_SHIFT), col = (index & (BIT_LENGTH-1));
+	return ( (len - row) << BIT_SHIFT ) + (len - col);
+}
 
 //Don't need -> can use dest cell shit
 Board.prototype.samePhase = function (from, to) {
