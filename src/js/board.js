@@ -53,15 +53,14 @@ function Board(len, phaseLayout) {
 	this.p2 = 12;
 
 	BOARD_SIZE = len;
-	BOARD_AREA = 2**BOARD_SIZE;
+	BOARD_AREA = BOARD_SIZE**2;
 	BIT_SHIFT = getBitShift(BOARD_SIZE);
 	BIT_LENGTH = 2**BIT_SHIFT;
 	BIT_AREA = 2**BIT_LENGTH;
 
 
-	(this.board = []).length = len;
+	(this.board = []).length = BOARD_AREA;
 	(this.moves = []).length = 4*len;
-
 	this.board.fill(0);
 	this.bufferSize = 1;	//how many rows between the pieces' starting location and the nearest phases
 	this.init(phaseLayout);
@@ -144,18 +143,7 @@ Board.prototype.update = function (newPiece) {
 
 
 /*==========											CLONE															==========*/
-/* DEPRECIATED: we use bit shifts now
-//Calls every time a clone is made
-Board.prototype.insertAtSeparationIndex = function () {
-	for(let pi=this.piecesSeparator; pi<this.pieces.length; pi++) {
-		//Finds index that separates p1 and p2 pieces
-		if(this.pieces[pi].player !== this.p2) {
-			this.piecesSeparator = pi; //update
-			return pi;
-		}
-	}
-}
-*/
+
 Board.prototype.makeClone = function (pi, row, col) {
 	/*
 	getPlayer bit
@@ -208,7 +196,7 @@ Board.prototype.isJump = function (from, adj, direction, bypassCondition) {
 	//if adj cell occupied, jumpCell in bounds, jumpCell clear, and jumpCell has enemy piece
 	let to = adj+direction;
 	if(this.inBounds(to)) {
-		if (this.getPlayer(adj) !== this.getPlayer(from) && !this.getPlayer(to)) {
+		if (!this.getPlayer(to)) {
 			if(bypassCondition%3) return true;
 			else this.addMove(from, to, adj);
 		}
@@ -243,16 +231,15 @@ Board.prototype.getCloneSpawnCells = function (from, bypassCondition) {
 Board.prototype.getMovesInDirection = function (from, adj, bypassCondition) {
 	//check adjacent cells of piece p wrt the boundary
 	let direction = adj - from;
-	if (this.inBounds(adj) && (direction)) {
-		let isPhase = this.board[adj] & 1;
+	let isPhase = this.board[adj] & 1;
 
-		if (  this.getPlayer(adj) ^ this.getPlayer(from) )
-		if (this.canLeap(from, adj, isPhase, bypassCondition)) return true;
+	if (this.canLeap(from, adj, isPhase, bypassCondition)) return true;
+
+	if( this.getPlayer(adj) ) {
 		if (this.isJump(from, adj, direction, bypassCondition)) return true;
-
-		else if (bypassCondition%3%2) return true;	//adjacent moves
-		else if (!bypassCondition) this.addMove(from, adj);
 	}
+	else if (bypassCondition%3%2) return true;	//adjacent moves
+	else if (!bypassCondition) this.addMove(from, adj);
 	return false;
 }
 
@@ -270,10 +257,12 @@ Board.prototype.getMoves = function (from, bypassCondition, r, c) {
 	if (this.canPhase(from, this.getInverseIndex(from), bypassCondition)) return true;
 	// able to clone
 	if (this.canClone(from) && this.getCloneSpawnCells(from, bypassCondition)) return true;
-	//adjacent
+	//step, jump, leap
 	for(r=-1;r<2;r++) for(c=-1;c<2; c++) {
-		let adj = (row + r) << BIT_SHIFT + (col + c);
-		if (this.getMovesInDirection(from, adj, bypassCondition)) return true;
+		let adj = toIndex(row + r, col + c);
+		let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) //enemy or empty cell
+			&& this.inBounds(adj) && (adj-from);
+		if (validDirection && this.getMovesInDirection(from, adj, bypassCondition)) return true;
 	}
 	return false;
 }
@@ -319,10 +308,10 @@ Board.prototype.doMove = function (pi, row, col) {
 	return moveDirection;
 }
 
-Board.prototype.highlightMoves = function (pi) {
-	let nMoves = this.moves[pi].length;
+Board.prototype.highlightMoves = function (piece) {
+	let nMoves = this.moves[piece].length;
 	for(let i=0; i<nMoves; i++) {
-		let destinationIndex = ( this.moves[pi][i] & (BIT_AREA - 1) );
+		let destinationIndex = ( this.moves[piece][i] & (BIT_AREA - 1) );
 		this.board[destinationIndex] |= 2;
 	}
 }

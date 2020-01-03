@@ -107,7 +107,7 @@ class Leap extends Component {
           continuedMove: false,
           selectedPiece: null
         });
-        board.highlightPieceMoves(/*KEYKEYLMAO*/);
+        board.highlightPieceMoves(cell >> 5);
       }
     }
   }
@@ -154,6 +154,7 @@ class Leap extends Component {
 
   setPiece(cell, index) {
     let board = this.state.board, pi = cell >> 5;
+    board.removeHighlight();
     board.getMoves(index);
     board.highlightMoves(pi);
     this.setState({selectedPiece: pi});
@@ -240,7 +241,7 @@ function Row(props) {
       val={cell} //cell info
       row={props.row}
       col={c}
-      highlight={props.board[index] & 2}
+      highlight={props.board.board[index] & 2}
       selected={(cell >> 5) === props.selectedPiece}
       selectCell={props.selectCell} />);
   }
