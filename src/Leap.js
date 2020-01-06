@@ -96,8 +96,8 @@ class Leap extends Component {
       else if (this.state.selectedPiece)  this.handleMove(index);
     } else { //if continuation
       //check if move = true..
-      let board = this.state.board;
-      if (board.validMove(index)) this.handleMove(index)
+
+      if (board.validMove(index)) this.handleMove(cell, index)
       else {
         //TODO: prompt "end turn?" option.
         //right now, let's just end the turn otherwise
@@ -112,20 +112,25 @@ class Leap extends Component {
     }
   }
 
-  handleMove(index, row, col) { //row, col of destination
+  handleMove(cell, index) {
     let board = this.state.board;
-    if (!board.validMove(row, col)) {
+    let pi = cell >> 5;
+
+    //Have shake animation effect on piece.
+    if (!board.validMove(pi, index)) {
       console.log("Invalid move!");
       return;
     }
     console.log("handling move...");
     let sel = this.state.selectedPiece;
-    let pi = board.board[sel.row][sel.col].who;
+
 
     let moveDirection;
+
+    //SHOULD BE DONE in DoMove!!
     //Check if move is a clone move; If it is, we need not call doMove
-    if(board.isCloneSpawn(pi,row, col)) board.makeClone(pi, row, col);
-    else moveDirection = board.doMove(pi, row, col);
+    //if(board.isCloneMove(sel, index)) board.makeClone(pi, row, col);
+    moveDirection = board.doMove(pi, row, col);
     //all highlights gone
 
     //If we can jump or leap, or phase (if move prior was not a phase)
@@ -135,7 +140,7 @@ class Leap extends Component {
         board: board,
         turn: this.state.turn,
         continuedMove: moveDirection,
-        selectedPiece: (board[index] >> 5)
+        selectedPiece: index
       });
     } else this.setState({
         board: board,
@@ -157,7 +162,7 @@ class Leap extends Component {
     board.removeHighlight();
     board.getMoves(index);
     board.highlightMoves(pi);
-    this.setState({selectedPiece: pi});
+    this.setState({selectedPiece: index});
       //console.log("selected piece: " + this.state.board.board[row][col].who);
   }
 

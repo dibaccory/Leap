@@ -154,22 +154,26 @@ Board.prototype.makeClone = function (pi, row, col) {
 	return true;
 }
 
-Board.prototype.canClone = function (i) {
-	let row = i/BIT_LENGTH, piece = this.board[i];
-	let onBoundingColumn = (i+1)%BIT_LENGTH < 2;
-	let onBoundingRow = (row + 1)%BIT_LENGTH < 2;
 
-	if(onBoundingColumn || !onBoundingRow || (piece & 16) ) return false;
+Board.prototype.canClone = function (from) {
+	let onRow = from/BIT_LENGTH, piece = this.board[from];
+	let onBoundaryColumn = (from+1)%BIT_LENGTH < 2;
+	let onBoundaryRow = (onRow + 1)%BIT_LENGTH < 2;
+
+	//To clone: NOT be on boundary column, BE on boundary row, NOT be cloned yet
+	if(onBoundaryColumn || !onBoundaryRow || (piece ^ 16) ) return false;
 
 	let spawnRow = (( (piece >> 5) & 2*BIT_LENGTH ) - 1) / 2;
-	return (row ^ spawnRow);
+	return (onRow ^ spawnRow);
 }
 
-/* DEPRECIATED: not used
-Board.prototype.isCloneSpawn = function (pi, row, col) {
-	return this.canClone(pi) && this.board[row][col].who === null;
+//Assumes valid move
+Board.prototype.isCloneMove = function (to, from) {
+	//suffice to show if to and from are on opposing boundary rows
+	let toRow = to/BIT_LENGTH, fromRow = from/BIT_LENGTH;
+	return this.canClone(from) && (toRow ^ fromRow);
 }
-*/
+
 /*==========											MOVES															==========*/
 
 // Board.prototype.getPlayer = function (pi) {
@@ -221,7 +225,7 @@ Board.prototype.getCloneSpawnCells = function (from, bypassCondition) {
 		let to = spawnRow + col;
 		let spawnCell = this.board[to];
 		//if spawnCell doesn't have a player on it
-		if ( !(spawnCell & 4) ) {
+		if ( spawnCell ^ 4 ) {
 			if (bypassCondition%3) return true;
 			else this.addMove(from, to);
 		}
@@ -326,8 +330,8 @@ Board.prototype.removeHighlight = function () {
 
 Board.prototype.getInverseIndex = function (index) {
 	let len = BOARD_SIZE - 1;
-	let row = (index >> BIT_SHIFT), col = (index & (BIT_LENGTH-1));
-	return ( (len - row) << BIT_SHIFT ) + (len - col);
+	let row = getRow(index), col = getCol(index);
+	return toIndex(len - row, len - col);
 }
 
 //Don't need -> can use dest cell shit
@@ -359,8 +363,13 @@ Board.prototype.movesLeft = function (player) {
 	return false;
 }
 
-Board.prototype.validMove = function (row, col) {
-	return this.board[row][col].move;
+Board.prototype.validMove = function (piece, index) {
+	let n = this.moves[piece].length;
+	let isAvailableMove = 0;
+	for(let i=0; i<n; i++) {
+		if ( (this.moves[piece][i] & (BIT_AREA - 1)) === index ) isAvailableMove++;
+	}
+	return !!(isAvailableMove);
 }
 
 export default Board;
