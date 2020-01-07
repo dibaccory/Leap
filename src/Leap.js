@@ -115,7 +115,7 @@ class Leap extends Component {
 
   handleMove(cell, to) {
     let board = this.state.board;
-    let pi = cell >> 5;
+    let pi = board.board[this.state.selectedPiece] >> 5;
 
     //Have shake animation effect on piece.
     if (!board.validMove(pi, to)) {
@@ -126,21 +126,19 @@ class Leap extends Component {
     let from = this.state.selectedPiece;
 
 
-    let moveDirection;
-
     //SHOULD BE DONE in DoMove!!
     //Check if move is a clone move; If it is, we need not call doMove
     //if(board.isCloneMove(sel, index)) board.makeClone(pi, row, col);
-    moveDirection = board.doMove(from, to);
+    let continuedDirection = board.doMove(from, to);
     //all highlights gone
 
     //If we can jump or leap, or phase (if move prior was not a phase)
-    if (board.canContinueMove(pi, moveDirection)) {
-      board.getMoves(pi, 3, moveDirection.rowIncr, moveDirection.colIncr); //highlight continuable moves
+    if (board.canContinueMove(pi, continuedDirection)) {
+      board.getMoves(pi, 3, continuedDirection.rowIncr, continuedDirection.colIncr); //highlight continuable moves
       this.setState({
         board: board,
         turn: this.state.turn,
-        continuedMove: moveDirection,
+        continuedMove: continuedDirection,
         selectedPiece: to
       });
     } else this.setState({
@@ -161,6 +159,7 @@ class Leap extends Component {
   setPiece(cell, index) {
     let board = this.state.board, pi = cell >> 5;
     board.removeHighlight();
+    board.clearMoves(pi);
     board.getMoves(index);
     board.highlightMoves(pi);
     this.setState({selectedPiece: index});
@@ -168,7 +167,7 @@ class Leap extends Component {
   }
 
   nextPlayer() {
-    return this.state.turn ^ 2;
+    return this.state.turn ^ 8;
   }
 
   restart() {
@@ -322,7 +321,7 @@ ANIMATION PIPELINE:
   - get move details
       moving piece: p,
       startingCell = {who: board[p.row][p.col].who, move_type: ye, row: p.row, col: p.col}, -- defined first in do move
-      moveDirection,
+      continuedDirection,
       captured piece (if applicable)
 
   Upon doMove or makeClone:

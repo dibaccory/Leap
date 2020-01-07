@@ -62,7 +62,7 @@ function Board(len, phaseLayout) {
 	BIT_AREA = 2**BIT_INDEX_SHIFT;
 
 
-	(this.board = []).length = BOARD_AREA;
+	(this.board = []).length = BOARD_AREA + 4*len;
 	(this.moves = []).length = 4*len;
 	this.board.fill(0);
 	this.bufferSize = 1;	//how many rows between the pieces' starting location and the nearest phases
@@ -87,7 +87,12 @@ Board.prototype.init = function (layout) {
 		this.clearMoves();
 		for(let i=0; i<len; i++) {
 			this.board[i] = ( (pi << 5) | this.p1); //00000 0 01 00
+			this.initPiece(pi, i);
+
 			this.board[i + (len-1)*len] = ( (pi + 2*BIT_LENGTH << 5) | this.p2); //100000 0 11 00
+			this.initPiece(pi + 2*BIT_LENGTH, i + (len-1)*len);
+
+
 			pi++;
 
 			for(let j=1+this.bufferSize; j<len-1-this.bufferSize; j++) {
@@ -96,7 +101,15 @@ Board.prototype.init = function (layout) {
 		}
 }
 
-Board.prototype.clearMoves = function () {
+Board.prototype.initPiece = function (pi, index) {
+	this.board[BOARD_AREA + pi] = index;
+}
+
+Board.prototype.clearMoves = function (pi) {
+	if(pi !== undefined) {
+		this.moves[pi] = [];
+		return;
+	}
 	for(let i=0; i<4*BOARD_SIZE; i++) this.moves[i] = [];
 }
 
@@ -128,31 +141,6 @@ Board.prototype.getCapturedPiece = function (pid, to) {
 	}
 	return false;
 }
-
-
-
-Board.prototype.update = function (newPiece) {
-	if (newPiece) {
-		//find out which player this piece belongs to then add it within that player's key range (00000)
-		this.board = this.board.map(row => row.map((cell, j) => {
-			if (cell.who != null) { //increment all pi in board after piecesSeparator by one
-				if (cell.who >= this.piecesSeparator) cell.who++;
-				//if piece alive, keep on board
-				return this.pieces[cell.who].alive ? {who: cell.who, move:false} : {who: null, move:false};
-			} else return {who: null, move: false};
-		}));
-	} else {
-		this.board = this.board.map(row => row.map((cell, j) =>
-			(cell.who != null)
-			? (this.pieces[cell.who].alive
-				? {who: cell.who, move:false}
-				: {who: null, move:false})
-			: {who: null, move: false}
-		));
-	}
-}
-
-
 
 /*==========											CLONE															==========*/
 
@@ -295,17 +283,18 @@ Board.prototype.doMove = function (from, to) {
 		return false;
 	}
 
-	let pi = this.board[from] >> 5;
-	this.board[from] = this.board[from] & 31; //31 is constant -> 00000 ( 0 00 00 )
+	const pi = this.board[from] >> 5;
 
-	if( (this.board[to] & 12) == 8 ) {
+	if( (this.board[to] & 12) === 8 ) {
 		//SPECIAL PIECE *any player can move.... but how is TODO*
 		this.board[to] |= (pi << 5);
 	} else {
-		this.board[to] |= (pi << 5) | this.getPlayer(from);
+		//We can assume this cell is empty
+		this.board[to] |= ( (pi << 5) | this.getPlayer(from) );
 	}
+	this.board[from] &= 3; //keep only cell data
 
-	let capturedPiece = this.getCapturedPiece(pi, to);
+	const capturedPiece = this.getCapturedPiece(pi, to);
 	let direction;
 	if(capturedPiece) {
 		this.board[capturedPiece] = this.board[capturedPiece] & 31;
@@ -315,19 +304,19 @@ Board.prototype.doMove = function (from, to) {
 		}
 	}
 	//If can clone or is on different phase than starting position
-	if ( direction !== undefined && (this.canClone(pi) || !this.samePhase(from, to))) direction = 0;
+	if ( direction !== undefined && (this.canClone(to) || !this.samePhase(from, to))) direction = 0;
 
 	this.removeHighlight();
 	this.clearMoves();
-	
+
 	return direction;
 }
 
 Board.prototype.highlightMoves = function (piece) {
-	let nMoves = this.moves[piece].length;
+	const nMoves = this.moves[piece].length;
 	for(let i=0; i<nMoves; i++) {
-		let destinationIndex = ( this.moves[piece][i] & (BIT_AREA - 1) );
-		this.board[destinationIndex] |= 2;
+		let to = ( this.moves[piece][i] & (BIT_AREA - 1) );
+		this.board[to] |= 2;
 	}
 }
 
@@ -340,14 +329,14 @@ Board.prototype.removeHighlight = function () {
 /*==========											INTEGRITY													==========*/
 
 Board.prototype.getInverseIndex = function (index) {
-	let len = BOARD_SIZE - 1;
-	let row = getRow(index), col = getCol(index);
+	const len = BOARD_SIZE - 1;
+	const row = getRow(index), col = getCol(index);
 	return toIndex(len - row, len - col);
 }
 
 
 Board.prototype.samePhase = function (from, to) {
-	let isPhase = this.board[from] & 1;
+	const isPhase = this.board[from] & 1;
 	return isPhase && this.getInverseIndex(from) === to;
 }
 
@@ -359,23 +348,21 @@ Board.prototype.canContinueMove = function (from, direction) {
 	return direction !== undefined ? this.getMoves(from, 2, from+direction) : false;
 }
 
-Board.prototype.hasMoves = function (pi) {
-	return this.getMoves(pi, 1);
+Board.prototype.hasMoves = function (piece) {
+	return this.getMoves(piece, 1);
 }
 
 //Player has no more moves when (1): all player's pieces are dead (2): every piece has no moves
 Board.prototype.movesLeft = function (player) {
-	for(let pi=0; pi < this.pieces.length; pi++) {
-		let p = this.pieces[pi];
-		if(p.alive && p.player === player) {
-			if(this.hasMoves(pi)) return true;
-		}
+	const c = (player === 12) ? 2*BIT_LENGTH : 0;
+	for(let pi=c; pi < 2*BOARD_SIZE + c; pi++) {
+		if (this.getMoves(this.board[BOARD_AREA + pi], 1)) return true;
 	}
 	return false;
 }
 
 Board.prototype.validMove = function (piece, index) {
-	let n = this.moves[piece].length;
+	const n = this.moves[piece].length;
 	let isAvailableMove = 0;
 	for(let i=0; i<n; i++) {
 		if ( (this.moves[piece][i] & (BIT_AREA - 1)) === index ) isAvailableMove++;
