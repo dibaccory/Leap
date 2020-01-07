@@ -116,12 +116,21 @@ Board.prototype.clearMoves = function (pi) {
 // moves[pi] = [0000000 0000000] --> [board index of captured piece + board index of destination cell]
 Board.prototype.addMove = function (from, to, captured) {
 	captured = captured || 0;
-	let pi = (this.board[from] >> 5);
+	const pi = (this.board[from] >> 5);
 	this.moves[pi].push( (captured << (BIT_INDEX_SHIFT) ) + to );
 }
 
+Board.prototype.isRedundantMove = function (from, to) {
+	const pi = (this.board[from] >> 5);
+	const n = this.moves[pi].length;
+	for(let i=0; i<n; i++) {
+		if ( (this.moves[pi][i] & (BIT_AREA-1)) === to ) return true;
+	}
+	return false;
+}
+
 Board.prototype.getPlayer = function (index) {
-	let pid = (this.board[index] & 12);
+	const pid = (this.board[index] & 12);
 	switch (pid) {
 		case 12:
 			return this.p2;
@@ -184,8 +193,8 @@ Board.prototype.canLeap = function (from, adj, isPhase, bypassCondition) {
 	let to = this.getInverseIndex(from);
 	if( !(this.getPlayer(to)) ) {
 		let inv = this.getInverseIndex(adj);
-		let phaseAdj = this.getPlayer(adj) & 8;
-		let phaseFar = this.getPlayer(inv) & 8;
+		let phaseAdj = this.getPlayer(adj) & 4;
+		let phaseFar = this.getPlayer(inv) & 4;
 
 		if( (phaseAdj ^ phaseFar) ) {
 			if (bypassCondition%3) return true;
@@ -267,7 +276,8 @@ Board.prototype.getMoves = function (from, bypassCondition, direction) {
 		}
 	}
 	// on a phase
-	if (this.canPhase(from, this.getInverseIndex(from), bypassCondition)) return true;
+	if (!this.isRedundantMove(from, this.getInverseIndex(from))
+	&& this.canPhase(from, this.getInverseIndex(from), bypassCondition)) return true;
 	// able to clone
 	if (this.canClone(from) && this.getCloneSpawnCells(from, bypassCondition)) return true;
 
@@ -280,7 +290,7 @@ Board.prototype.doMove = function (from, to) {
 
 	if(this.isCloneMove(from, to)) {
 		this.makeClone(to);
-		return false;
+		return;
 	}
 
 	const pi = this.board[from] >> 5;
@@ -293,11 +303,14 @@ Board.prototype.doMove = function (from, to) {
 		this.board[to] |= ( (pi << 5) | this.getPlayer(from) );
 	}
 	this.board[from] &= 3; //keep only cell data
+	this.board[BOARD_AREA + pi] = to;
 
 	const capturedPiece = this.getCapturedPiece(pi, to);
 	let direction;
 	if(capturedPiece) {
 		this.board[capturedPiece] &= 3;
+		const ci = this.board[capturedPiece] >> 5;
+		this.board[BOARD_AREA + ci] = ~this.board[BOARD_AREA + ci]; //He DED
 		//if can continue move in direction
 		if( this.inBounds(to - capturedPiece) && this.getMovesInDirection(to, to - capturedPiece, 2) ) {
 			direction = to - capturedPiece;
@@ -356,7 +369,8 @@ Board.prototype.hasMoves = function (piece) {
 Board.prototype.movesLeft = function (player) {
 	const c = (player === 12) ? 2*BIT_LENGTH : 0;
 	for(let pi=c; pi < 2*BOARD_SIZE + c; pi++) {
-		if (this.getMoves(this.board[BOARD_AREA + pi], 1)) return true;
+		const piece = this.board[BOARD_AREA + pi];
+		if ( !(piece < 0) && this.getMoves(piece, 1)) return true;
 	}
 	return false;
 }
