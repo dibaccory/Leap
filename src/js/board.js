@@ -37,15 +37,17 @@ index = cell number
 key = piece index
 
 */
+var BOARD_SIZE, BOARD_AREA, BIT_SHIFT, BIT_LENGTH, BIT_INDEX_SHIFT, BIT_AREA;
+
 const toIndex = (row, col) => (row << BIT_SHIFT) + col;
 
 const getRow = (index) => (index >> BIT_SHIFT);
 const getCol = (index) => (index & (BIT_LENGTH-1));
 
 function getBitShift(b) {
-  return (b >> 1) ? (1 + getBitShift(b >> 1)) : 0;
+  return (b >> 1) ? (1 + getBitShift(b >> 1)) : 1;
 }
-var BOARD_SIZE, BOARD_AREA, BIT_SHIFT, BIT_LENGTH, BIT_AREA;
+
 
 function Board(len, phaseLayout) {
 
@@ -54,9 +56,10 @@ function Board(len, phaseLayout) {
 
 	BOARD_SIZE = len;
 	BOARD_AREA = BOARD_SIZE**2;
-	BIT_SHIFT = getBitShift(BOARD_SIZE);
+	BIT_SHIFT = getBitShift(BOARD_SIZE-1);
 	BIT_LENGTH = 2**BIT_SHIFT;
-	BIT_AREA = 2**BIT_LENGTH;
+	BIT_INDEX_SHIFT = getBitShift(BOARD_AREA-1);
+	BIT_AREA = 2**BIT_INDEX_SHIFT;
 
 
 	(this.board = []).length = BOARD_AREA;
@@ -81,12 +84,10 @@ Board.prototype.init = function (layout) {
 			}
 			return 0;
 		};
-
+		this.clearMoves();
 		for(let i=0; i<len; i++) {
 			this.board[i] = ( (pi << 5) | this.p1); //00000 0 01 00
-			this.initPiece(pi);
 			this.board[i + (len-1)*len] = ( (pi + 2*BIT_LENGTH << 5) | this.p2); //100000 0 11 00
-			this.initPiece(pi + 2*len);
 			pi++;
 
 			for(let j=1+this.bufferSize; j<len-1-this.bufferSize; j++) {
@@ -95,8 +96,15 @@ Board.prototype.init = function (layout) {
 		}
 }
 
-Board.prototype.initPiece = function (pi) {
-	this.moves[pi] = [];
+Board.prototype.clearMoves = function () {
+	for(let i=0; i<4*BOARD_SIZE; i++) this.moves[i] = [];
+}
+
+// moves[pi] = [0000000 0000000] --> [board index of captured piece + board index of destination cell]
+Board.prototype.addMove = function (from, to, captured) {
+	captured = captured || 0;
+	let pi = (this.board[from] >> 5);
+	this.moves[pi].push( (captured << (BIT_INDEX_SHIFT) ) + to );
 }
 
 Board.prototype.getPlayer = function (index) {
@@ -112,12 +120,16 @@ Board.prototype.getPlayer = function (index) {
 	//return ( (this.board[index] & 12) < 12 ) ? this.p1 : this.p2;
 }
 
-// moves[pi] = [0000000 0000000] --> [board index of captured piece + board index of destination cell]
-Board.prototype.addMove = function (from, to, captured) {
-	captured = captured || 0;
-	let pi = (this.board[from] >> 5);
-	this.moves[pi].push( (captured << 2*BIT_SHIFT) + to );
+Board.prototype.getCapturedPiece = function (pid, to) {
+	let nMoves = this.moves[pid].length;
+	for(let i=0; i< nMoves; i++) {
+		let move = this.moves[pid][i];
+		if( (move & (BIT_AREA - 1)) === to ) return move >> (BIT_INDEX_SHIFT);
+	}
+	return false;
 }
+
+
 
 Board.prototype.update = function (newPiece) {
 	if (newPiece) {
@@ -156,9 +168,9 @@ Board.prototype.makeClone = function (pi, row, col) {
 
 
 Board.prototype.canClone = function (from) {
-	let onRow = from/BIT_LENGTH, piece = this.board[from];
-	let onBoundaryColumn = (from+1)%BIT_LENGTH < 2;
-	let onBoundaryRow = (onRow + 1)%BIT_LENGTH < 2;
+	let onRow = from/BOARD_SIZE, piece = this.board[from];
+	let onBoundaryColumn = (from+1)%BOARD_SIZE < 2;
+	let onBoundaryRow = (onRow + 1)%BOARD_SIZE < 2;
 
 	//To clone: NOT be on boundary column, BE on boundary row, NOT be cloned yet
 	if(onBoundaryColumn || !onBoundaryRow || (piece ^ 16) ) return false;
@@ -170,7 +182,7 @@ Board.prototype.canClone = function (from) {
 //Assumes valid move
 Board.prototype.isCloneMove = function (to, from) {
 	//suffice to show if to and from are on opposing boundary rows
-	let toRow = to/BIT_LENGTH, fromRow = from/BIT_LENGTH;
+	let toRow = to/BOARD_SIZE, fromRow = from/BOARD_SIZE;
 	return this.canClone(from) && (toRow ^ fromRow);
 }
 
@@ -188,7 +200,7 @@ Board.prototype.canLeap = function (from, adj, isPhase, bypassCondition) {
 		let phaseFar = this.getPlayer(inv) & 8;
 
 		if( (phaseAdj ^ phaseFar) ) {
-			if (bypassCondition) return true;
+			if (bypassCondition%3) return true;
 			let captured = phaseAdj ? adj : inv;
 			this.addMove(from, to, captured);
 		}
@@ -208,8 +220,6 @@ Board.prototype.isJump = function (from, adj, direction, bypassCondition) {
 }
 
 Board.prototype.canPhase = function (from, to, bypassCondition) {
-	//j = 7-row_index + 7-col_index
-	//let to = ( (len - row) << BIT_SHIFT ) + (len - col);
 	let isPhase = (this.board[to] & 1);
 	let isDestinationEmpty = (this.board[from] & 3); //1 if player piece
 	if(isPhase && isDestinationEmpty) {
@@ -220,8 +230,8 @@ Board.prototype.canPhase = function (from, to, bypassCondition) {
 
 //reaching this function implies selected piece can be cloned, so piece is on an bounding row
 Board.prototype.getCloneSpawnCells = function (from, bypassCondition) {
-	let spawnRow = ( from/BIT_LENGTH ^ (BIT_LENGTH - 1) );
-	for(let col=1; col<7;col++) {
+	let spawnRow = ( from/BOARD_SIZE ^ (BOARD_SIZE-1) );
+	for(let col=1; col<BOARD_SIZE-1;col++) {
 		let to = spawnRow + col;
 		let spawnCell = this.board[to];
 		//if spawnCell doesn't have a player on it
@@ -242,7 +252,7 @@ Board.prototype.getMovesInDirection = function (from, adj, bypassCondition) {
 	if( this.getPlayer(adj) ) {
 		if (this.isJump(from, adj, direction, bypassCondition)) return true;
 	}
-	else if (bypassCondition%3%2) return true;	//adjacent moves
+	else if (bypassCondition%3%2) return bypassCondition%2;	//adjacent moves
 	else if (!bypassCondition) this.addMove(from, adj);
 	return false;
 }
@@ -253,63 +263,64 @@ Board.prototype.getMovesInDirection = function (from, adj, bypassCondition) {
 		2 - bypass continuable moves,
 		3 - store continuable moves
 */
-Board.prototype.getMoves = function (from, bypassCondition, r, c) {
+Board.prototype.getMoves = function (from, bypassCondition, direction) {
 	let row = getRow(from), col = getCol(from);
-	// move continuation AND has a move in specified direction
-	if (bypassCondition === 2 && this.getMovesInDirection(from, toIndex(row + r, col + c), bypassCondition) ) return true;
+
 	// on a phase
 	if (this.canPhase(from, this.getInverseIndex(from), bypassCondition)) return true;
 	// able to clone
 	if (this.canClone(from) && this.getCloneSpawnCells(from, bypassCondition)) return true;
-	//step, jump, leap
-	for(r=-1;r<2;r++) for(c=-1;c<2; c++) {
-		let adj = toIndex(row + r, col + c);
-		let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) //enemy or empty cell
-			&& this.inBounds(adj) && (adj-from);
-		if (validDirection && this.getMovesInDirection(from, adj, bypassCondition)) return true;
+
+	// move continuation AND has a move in specified direction
+	if (direction !== undefined && this.inBounds(from+direction)) {
+		if( this.getMovesInDirection(from, from+direction, bypassCondition) ) return true;
+	} else {
+		//step, jump, leap
+		for(let r=-1;r<2;r++) for(let c=-1;c<2; c++) {
+			let adj = toIndex(row + r, col + c);
+			let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) //enemy or empty cell
+				&& this.inBounds(adj) && (adj-from);
+			if (validDirection && this.getMovesInDirection(from, adj, bypassCondition)) return true;
+		}
 	}
 	return false;
 }
 
 //Performs move. returns true if caught piece in process, else false
 //NOTE: it is impossible to capture a piece at board index 0
-Board.prototype.doMove = function (pi, row, col) {
-	let p = this.pieces[pi];
-	//begin move
-	this.board[p.row][p.col].who = null;
+Board.prototype.doMove = function (from, to) {
 
-	let destinationCell = this.board[row][col];
-	let caught = typeof(destinationCell.move) === "number" ? destinationCell.move : false; //caught piece index
-	// moveDirection is defined if and only if any of the following is true (for moving piece p):
-	let moveDirection;
-		// (1) p caught a piece
-	if (caught) {
-		let c = this.pieces[caught];
-		c.alive = false;
-		this.board[c.row][c.col].who = null;
-		//return direction of move
-		//If leap, then c adjacent at start XOR c adjacent at end
-		//Check adjacency of moving piece to captured piece on starting position and ending position
-		let cellAdjStartPos = Math.abs(c.row - p.row) < 2 && Math.abs(c.col - p.col) < 2;
-		let cellAdjEndPos = Math.abs(row - c.row) < 2 && Math.abs(col - c.col) < 2;
+	if(this.isCloneMove(from, to)) {
+		this.makeClone(to);
+		return false;
+	}
 
-		moveDirection = (cellAdjStartPos && cellAdjEndPos)
-			? {rowIncr: Math.sign(row-c.row), colIncr: Math.sign(col-c.col)}	//jump
-			: (cellAdjStartPos
-				? {rowIncr: Math.sign(c.row-p.row), colIncr: Math.sign(c.col-p.row)}	//leap-> piece adj to capture on start
-				: {rowIncr: Math.sign(row-c.row), colIncr: Math.sign(col-c.col)});
-	}	// (2) p LANDS on a phase cell. That is, this move is not a phase.
-	else if (!this.samePhase(p,{row: row, col: col}))	moveDirection = {rowIncr: 0, colIncr: 0};
+	let pi = this.board[from] >> 5;
+	this.board[from] = this.board[from] & 31; //31 is constant -> 00000 ( 0 00 00 )
 
-	//end move
-	this.board[row][col].who = pi;
-	p.row = row;
-	p.col = col;
+	if( (this.board[to] & 12) == 8 ) {
+		//SPECIAL PIECE *any player can move.... but how is TODO*
+		this.board[to] |= (pi << 5);
+	} else {
+		this.board[to] |= (pi << 5) | this.getPlayer(from);
+	}
 
-		// (3) p is able to be cloned
-	if (this.canClone(pi)) moveDirection = {rowIncr: 0, colIncr:0};
-	this.updateBoard();
-	return moveDirection;
+	let capturedPiece = this.getCapturedPiece(pi, to);
+	let direction;
+	if(capturedPiece) {
+		this.board[capturedPiece] = this.board[capturedPiece] & 31;
+		//if can continue move in direction
+		if( this.inBounds(to - capturedPiece) && this.getMovesInDirection(to, to - capturedPiece, 2) ) {
+			direction = to - capturedPiece;
+		}
+	}
+	//If can clone or is on different phase than starting position
+	if ( direction !== undefined && (this.canClone(pi) || !this.samePhase(from, to))) direction = 0;
+
+	this.removeHighlight();
+	this.clearMoves();
+	
+	return direction;
 }
 
 Board.prototype.highlightMoves = function (piece) {
@@ -334,18 +345,18 @@ Board.prototype.getInverseIndex = function (index) {
 	return toIndex(len - row, len - col);
 }
 
-//Don't need -> can use dest cell shit
+
 Board.prototype.samePhase = function (from, to) {
-	let isDestinationPhase = cellType(to.row, to.col);
-	return isDestinationPhase > 1 && isDestinationPhase === cellType(from.row, from.col);
+	let isPhase = this.board[from] & 1;
+	return isPhase && this.getInverseIndex(from) === to;
 }
 
 Board.prototype.inBounds = function (index) {
-	return 0 <= index && index < BIT_AREA;
+	return 0 <= index && index < BOARD_AREA;
 }
 
-Board.prototype.canContinueMove = function (pi, dir) {
-	return dir ? this.getMoves(pi, 2, dir.rowIncr, dir.colIncr) : false;
+Board.prototype.canContinueMove = function (from, direction) {
+	return direction !== undefined ? this.getMoves(from, 2, from+direction) : false;
 }
 
 Board.prototype.hasMoves = function (pi) {

@@ -84,6 +84,7 @@ class Leap extends Component {
         this.setState({winner: this.nextPlayer()});
       }
     } else if (this.state.selectedPiece){
+      //HIGHLIGHT MOVES
       //if is a move continuation and Counter hasn't started, start the timer
       //if (this.state.contined_move) {}
     }
@@ -93,10 +94,10 @@ class Leap extends Component {
     //If a move is not a continuation, default case,
     if (!this.state.continuedMove) {
       if (this.canSelectPiece(cell)) this.setPiece(cell, index);
-      else if (this.state.selectedPiece)  this.handleMove(index);
+      else if (this.state.selectedPiece)  this.handleMove(cell, index);
     } else { //if continuation
       //check if move = true..
-
+      let board = this.state.board;
       if (board.validMove(index)) this.handleMove(cell, index)
       else {
         //TODO: prompt "end turn?" option.
@@ -112,17 +113,17 @@ class Leap extends Component {
     }
   }
 
-  handleMove(cell, index) {
+  handleMove(cell, to) {
     let board = this.state.board;
     let pi = cell >> 5;
 
     //Have shake animation effect on piece.
-    if (!board.validMove(pi, index)) {
+    if (!board.validMove(pi, to)) {
       console.log("Invalid move!");
       return;
     }
     console.log("handling move...");
-    let sel = this.state.selectedPiece;
+    let from = this.state.selectedPiece;
 
 
     let moveDirection;
@@ -130,7 +131,7 @@ class Leap extends Component {
     //SHOULD BE DONE in DoMove!!
     //Check if move is a clone move; If it is, we need not call doMove
     //if(board.isCloneMove(sel, index)) board.makeClone(pi, row, col);
-    moveDirection = board.doMove(pi, row, col);
+    moveDirection = board.doMove(from, to);
     //all highlights gone
 
     //If we can jump or leap, or phase (if move prior was not a phase)
@@ -140,7 +141,7 @@ class Leap extends Component {
         board: board,
         turn: this.state.turn,
         continuedMove: moveDirection,
-        selectedPiece: index
+        selectedPiece: to
       });
     } else this.setState({
         board: board,
@@ -257,6 +258,7 @@ function Cell(props) {
   let color = CELL_COLORS[cellType(props.row, props.col)];
   let highlight = props.highlight ? " highlight" : "";
   let classes = "cell " + color + highlight;
+  //TODO: (props.val & 12) > 0) also counts for "special cell" replace this in future
   return (
     <div className={classes} onClick={ () => props.selectCell(props.val, props.index) }>
       { ((props.val & 12) > 0) && <Piece
