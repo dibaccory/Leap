@@ -247,7 +247,7 @@ function Row(props) {
       row={props.row}
       col={c}
       highlight={props.board.board[index] & 2}
-      selected={(cell >> 5) === props.selectedPiece}
+      selected={index === props.selectedPiece}
       selectCell={props.selectCell} />);
   }
   return (<span className="row"> {cells} </span>);

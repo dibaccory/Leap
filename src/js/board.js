@@ -182,7 +182,7 @@ Board.prototype.isCloneMove = function (to, from) {
 
 Board.prototype.canLeap = function (from, adj, isPhase, bypassCondition) {
 	let to = this.getInverseIndex(from);
-	if( isPhase && !(this.getPlayer(to)) ) {
+	if( !(this.getPlayer(to)) ) {
 		let inv = this.getInverseIndex(adj);
 		let phaseAdj = this.getPlayer(adj) & 8;
 		let phaseFar = this.getPlayer(inv) & 8;
@@ -235,7 +235,7 @@ Board.prototype.getMovesInDirection = function (from, adj, bypassCondition) {
 	let direction = adj - from;
 	let isPhase = this.board[adj] & 1;
 
-	if (this.canLeap(from, adj, isPhase, bypassCondition)) return true;
+	if (isPhase && this.canLeap(from, adj, isPhase, bypassCondition)) return true;
 
 	if( this.getPlayer(adj) ) {
 		if (this.isJump(from, adj, direction, bypassCondition)) return true;
@@ -254,11 +254,6 @@ Board.prototype.getMovesInDirection = function (from, adj, bypassCondition) {
 Board.prototype.getMoves = function (from, bypassCondition, direction) {
 	let row = getRow(from), col = getCol(from);
 
-	// on a phase
-	if (this.canPhase(from, this.getInverseIndex(from), bypassCondition)) return true;
-	// able to clone
-	if (this.canClone(from) && this.getCloneSpawnCells(from, bypassCondition)) return true;
-
 	// move continuation AND has a move in specified direction
 	if (direction !== undefined && this.inBounds(from+direction)) {
 		if( this.getMovesInDirection(from, from+direction, bypassCondition) ) return true;
@@ -271,6 +266,11 @@ Board.prototype.getMoves = function (from, bypassCondition, direction) {
 			if (validDirection && this.getMovesInDirection(from, adj, bypassCondition)) return true;
 		}
 	}
+	// on a phase
+	if (this.canPhase(from, this.getInverseIndex(from), bypassCondition)) return true;
+	// able to clone
+	if (this.canClone(from) && this.getCloneSpawnCells(from, bypassCondition)) return true;
+
 	return false;
 }
 
@@ -297,7 +297,7 @@ Board.prototype.doMove = function (from, to) {
 	const capturedPiece = this.getCapturedPiece(pi, to);
 	let direction;
 	if(capturedPiece) {
-		this.board[capturedPiece] = this.board[capturedPiece] & 31;
+		this.board[capturedPiece] &= 3;
 		//if can continue move in direction
 		if( this.inBounds(to - capturedPiece) && this.getMovesInDirection(to, to - capturedPiece, 2) ) {
 			direction = to - capturedPiece;
