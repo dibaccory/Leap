@@ -39,11 +39,6 @@ key = piece index
 */
 var BOARD_SIZE, BOARD_AREA, BIT_SHIFT, BIT_LENGTH, BIT_INDEX_SHIFT, BIT_AREA;
 
-const toIndex = (row, col) => (row << BIT_SHIFT) + col;
-
-const getRow = (index) => (index >> BIT_SHIFT);
-const getCol = (index) => (index & (BIT_LENGTH-1));
-
 function getBitShift(b) {
   return (b >> 1) ? (1 + getBitShift(b >> 1)) : 1;
 }
@@ -60,6 +55,7 @@ function Board(len, phaseLayout) {
 	BIT_LENGTH = 2**BIT_SHIFT;
 	BIT_INDEX_SHIFT = getBitShift(BOARD_AREA-1);
 	BIT_AREA = 2**BIT_INDEX_SHIFT;
+
 
 
 	(this.board = []).length = BOARD_AREA + 4*len;
@@ -153,10 +149,8 @@ Board.prototype.getCapturedPiece = function (pid, to) {
 
 /*==========											CLONE															==========*/
 
-Board.prototype.makeClone = function (pi, row, col) {
-	/*
-	getPlayer bit
-	*/
+Board.prototype.makeClone = function (from, to) {
+	this.board[to] &= this.getPlayer(from) | 16;
 	this.board[row*BOARD_SIZE + col] |= this.getPlayer(row, col)
 	this.updateBoard(true);
 	this.board[row][col].who = this.piecesSeparator;
@@ -261,15 +255,13 @@ Board.prototype.getMovesInDirection = function (from, adj, bypassCondition) {
 		3 - store continuable moves
 */
 Board.prototype.getMoves = function (from, bypassCondition, direction) {
-	let row = getRow(from), col = getCol(from);
-
 	// move continuation AND has a move in specified direction
 	if (direction && this.inBounds(from+direction)) {
 		if( this.getMovesInDirection(from, from+direction, bypassCondition) ) return true;
 	} else if(bypassCondition === undefined || bypassCondition%3){
 		//step, jump, leap
 		for(let r=-1;r<2;r++) for(let c=-1;c<2; c++) {
-			let adj = toIndex(row + r, col + c);
+			let adj = from + (r*BOARD_SIZE) + c;
 			let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) //enemy or empty cell
 				&& this.inBounds(adj) && (adj-from);
 			if (validDirection && this.getMovesInDirection(from, adj, bypassCondition)) return true;
@@ -289,7 +281,7 @@ Board.prototype.getMoves = function (from, bypassCondition, direction) {
 Board.prototype.doMove = function (from, to) {
 
 	if(this.isCloneMove(from, to)) {
-		this.makeClone(to);
+		this.makeClone(from, to);
 		return;
 	}
 
@@ -351,10 +343,9 @@ Board.prototype.removeHighlight = function () {
 
 /*==========											INTEGRITY													==========*/
 
+//only works on nxn boards
 Board.prototype.getInverseIndex = function (index) {
-	const len = BOARD_SIZE - 1;
-	const row = getRow(index), col = getCol(index);
-	return toIndex(len - row, len - col);
+	return (BOARD_SIZE - 1) - index;
 }
 
 Board.prototype.inBounds = function (index) {
