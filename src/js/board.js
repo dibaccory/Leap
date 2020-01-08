@@ -146,9 +146,9 @@ Board.prototype.getCapturedPiece = function (pid, to) {
 	let nMoves = this.moves[pid].length;
 	for(let i=0; i< nMoves; i++) {
 		let move = this.moves[pid][i];
-		if( (move & (BIT_AREA - 1)) === to ) return move >> (BIT_INDEX_SHIFT);
+		let capturedPiece = move >> (BIT_INDEX_SHIFT);
+		if( (move & (BIT_AREA - 1)) === to  && capturedPiece) return capturedPiece;
 	}
-	return false;
 }
 
 /*==========											CLONE															==========*/
@@ -256,7 +256,7 @@ Board.prototype.getMovesInDirection = function (from, adj, bypassCondition) {
 
 /* bypassCondition (HIGHLIGHT BYPASS CONDITION):
 		undefined - default (Store all),
-		1 - bypass all,
+		1 - bypass any,
 		2 - bypass continuable moves,
 		3 - store continuable moves
 */
@@ -264,9 +264,9 @@ Board.prototype.getMoves = function (from, bypassCondition, direction) {
 	let row = getRow(from), col = getCol(from);
 
 	// move continuation AND has a move in specified direction
-	if (direction !== undefined && this.inBounds(from+direction)) {
+	if (direction && this.inBounds(from+direction)) {
 		if( this.getMovesInDirection(from, from+direction, bypassCondition) ) return true;
-	} else {
+	} else if(bypassCondition === undefined || bypassCondition%3){
 		//step, jump, leap
 		for(let r=-1;r<2;r++) for(let c=-1;c<2; c++) {
 			let adj = toIndex(row + r, col + c);
@@ -308,16 +308,20 @@ Board.prototype.doMove = function (from, to) {
 	const capturedPiece = this.getCapturedPiece(pi, to);
 	let direction;
 	if(capturedPiece) {
-		this.board[capturedPiece] &= 3;
 		const ci = this.board[capturedPiece] >> 5;
+		this.board[capturedPiece] &= 3;
 		this.board[BOARD_AREA + ci] = ~this.board[BOARD_AREA + ci]; //He DED
 		//if can continue move in direction
 		if( this.inBounds(to - capturedPiece) && this.getMovesInDirection(to, to - capturedPiece, 2) ) {
 			direction = to - capturedPiece;
 		}
 	}
-	//If can clone or is on different phase than starting position
-	if ( direction !== undefined && (this.canClone(to) || !this.samePhase(from, to))) direction = 0;
+	const onPhase = this.board[to] & 1;
+	const phased = this.isPhaseMove(from, to);
+	const isLeap = capturedPiece && phased;
+	const yetToPhase = onPhase && !phased;
+	//If can clone or is on phase that piece hasn't just travelled through
+	if ( !direction && ( this.canClone(to) || isLeap || yetToPhase ) ) direction = 0;
 
 	this.removeHighlight();
 	this.clearMoves();
@@ -333,6 +337,12 @@ Board.prototype.highlightMoves = function (piece) {
 	}
 }
 
+Board.prototype.isPhaseMove = function (from, to) {
+	const bothPhases = (this.board[from] & this.board[to]) & 1;
+	return (bothPhases) && this.getInverseIndex(from) === to;
+}
+
+
 Board.prototype.removeHighlight = function () {
 	for(let i=0; i<BOARD_AREA; i++) {
 		if(this.board[i] & 2) (this.board[i] = this.board[i] ^ 2);
@@ -345,12 +355,6 @@ Board.prototype.getInverseIndex = function (index) {
 	const len = BOARD_SIZE - 1;
 	const row = getRow(index), col = getCol(index);
 	return toIndex(len - row, len - col);
-}
-
-
-Board.prototype.samePhase = function (from, to) {
-	const isPhase = this.board[from] & 1;
-	return isPhase && this.getInverseIndex(from) === to;
 }
 
 Board.prototype.inBounds = function (index) {

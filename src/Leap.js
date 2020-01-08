@@ -92,14 +92,15 @@ class Leap extends Component {
 
   selectCell(cell, index) {
     //If a move is not a continuation, default case,
-    if (!this.state.continuedMove) {
+    if (this.state.continuedMove === false) {
       if (this.canSelectPiece(cell)) this.setPiece(cell, index);
       else if (this.state.selectedPiece)  this.handleMove(cell, index);
     } else { //if continuation
       //check if move = true..
       let board = this.state.board;
-      if (board.validMove(index)) this.handleMove(cell, index)
+      if (cell & 2) this.handleMove(cell, index);
       else {
+        board.removeHighlight();
         //TODO: prompt "end turn?" option.
         //right now, let's just end the turn otherwise
         this.setState({
@@ -108,7 +109,6 @@ class Leap extends Component {
           continuedMove: false,
           selectedPiece: null
         });
-        board.highlightPieceMoves(cell >> 5);
       }
     }
   }
@@ -133,8 +133,9 @@ class Leap extends Component {
     //all highlights gone
 
     //If we can jump or leap, or phase (if move prior was not a phase)
-    if (board.canContinueMove(pi, continuedDirection)) {
-      board.getMoves(pi, 3, continuedDirection.rowIncr, continuedDirection.colIncr); //highlight continuable moves
+    if (continuedDirection !== undefined) {
+      board.getMoves(to, 3, continuedDirection);
+      board.highlightMoves(pi);
       this.setState({
         board: board,
         turn: this.state.turn,
@@ -151,9 +152,8 @@ class Leap extends Component {
 
   //bot need not use this; they get the move from ai.js, pass it on directly to doMove
   canSelectPiece(cell) {
-    //let p = this.state.board.board[index];
-    //bit 2 indicates a player piece
-    return (cell & 4) && ( ((cell >> 2) & 3) === (this.state.turn >> 2) ) && !PLAYERS[this.state.turn].bot;
+    //true if cell contains current player's piece AND current player isn't a bot
+    return (cell & 4) && ( (cell & 12) === this.state.turn ) && !PLAYERS[this.state.turn].bot;
   }
 
   setPiece(cell, index) {
