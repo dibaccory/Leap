@@ -265,17 +265,23 @@ Board.prototype.getMovesInDirection = function (from, direction, bypassCondition
 		3 - store continuable moves
 */
 Board.prototype.getMoves = function (from, bypassCondition, direction) {
+
 	// move continuation AND has a move in specified direction
 	if (direction && this.inBounds(from+direction)) {
 		if( this.getMovesInDirection(from, direction, bypassCondition) ) return true;
-	} else if(bypassCondition === undefined || bypassCondition%3){
+	} else if(bypassCondition === undefined || bypassCondition%3) {
 		//step, jump, leap
-		for(let r=-1;r<2;r++) for(let c=-1;c<2; c++) { //from + (-8) + (-1) ... from + (8) + 1
-			direction = (r*BOARD_SIZE) + c;
-			const adj = from+direction;
-			//enemy or empty cell
-			let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) && this.inBounds(adj) && (direction);
-			if (validDirection && this.getMovesInDirection(from, direction, bypassCondition)) return true;
+		const bCol = (from+1)%BOARD_SIZE < 2 ? (from+1)%BOARD_SIZE : undefined;
+		for(let r=-1; r<2; r++) {
+
+			for(let c=-1+(bCol === 1 ? 1 : 0 ); c<2-(bCol === 0 ? 1 : 0); c++) {
+
+				direction = (r*BOARD_SIZE) + c;
+				let adj = from+direction;
+				//enemy or empty cell
+				let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) && this.inBounds(adj) && (direction);
+				if (validDirection && this.getMovesInDirection(from, direction, bypassCondition)) return true;
+			}
 		}
 	}
 	// on a phase

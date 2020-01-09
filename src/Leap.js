@@ -94,7 +94,7 @@ class Leap extends Component {
     //If a move is not a continuation, default case,
     if (this.state.continuedMove === false) {
       if (this.canSelectPiece(cell)) this.setPiece(cell, index);
-      else if (this.state.selectedPiece)  this.handleMove(cell, index);
+      else if (this.state.selectedPiece !== null)  this.handleMove(cell, index);
     } else { //if continuation
       //check if move = true..
       let board = this.state.board;
