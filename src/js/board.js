@@ -37,7 +37,7 @@ index = cell number
 key = piece index
 
 */
-var BOARD_SIZE, BOARD_AREA, BIT_SHIFT, BIT_LENGTH, BIT_INDEX_SHIFT, BIT_AREA;
+var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA;
 
 function getBitShift(b) {
   return (b >> 1) ? (1 + getBitShift(b >> 1)) : 1;
@@ -51,8 +51,8 @@ function Board(len, phaseLayout) {
 
 	BOARD_SIZE = len;
 	BOARD_AREA = BOARD_SIZE**2;
-	BIT_SHIFT = getBitShift(BOARD_SIZE-1);
-	BIT_LENGTH = 2**BIT_SHIFT;
+	BIT_SIZE = 2**getBitShift(BOARD_SIZE-1);
+	BIT_MAX_PI = 2*BIT_SIZE;
 	BIT_INDEX_SHIFT = getBitShift(BOARD_AREA-1);
 	BIT_AREA = 2**BIT_INDEX_SHIFT;
 
@@ -60,7 +60,7 @@ function Board(len, phaseLayout) {
 
 	(this.board = []).length = BOARD_AREA + 4*len;
 	(this.moves = []).length = 4*len;
-	this.board.fill(0);
+	this.board.fill(0, 0, BOARD_AREA-1);
 	this.bufferSize = 1;	//how many rows between the pieces' starting location and the nearest phases
 	this.init(phaseLayout);
 	//this.update();
@@ -85,8 +85,8 @@ Board.prototype.init = function (layout) {
 			this.board[i] = ( (pi << 5) | this.p1); //00000 0 01 00
 			this.initPiece(pi, i);
 
-			this.board[i + (len-1)*len] = ( (pi + 2*BIT_LENGTH << 5) | this.p2); //100000 0 11 00
-			this.initPiece(pi + 2*BIT_LENGTH, i + (len-1)*len);
+			this.board[i + (len-1)*len] = ( (pi + BIT_MAX_PI << 5) | this.p2); //100000 0 11 00
+			this.initPiece(pi + BIT_MAX_PI, i + (len-1)*len);
 
 
 			pi++;
@@ -149,35 +149,43 @@ Board.prototype.getCapturedPiece = function (pid, to) {
 
 /*==========											CLONE															==========*/
 
+//Assume special tiles won't appear on spawn rows
 Board.prototype.makeClone = function (from, to) {
-	this.board[to] &= this.getPlayer(from) | 16;
-	this.board[row*BOARD_SIZE + col] |= this.getPlayer(row, col)
-	this.updateBoard(true);
-	this.board[row][col].who = this.piecesSeparator;
-	return true;
+	const player = this.getPlayer(from);
+	const c = (player === 12) ? BIT_MAX_PI : 0;
+	let ci;
+	//Find first empty slot
+	for(ci= BOARD_SIZE+c; ci< 2*BOARD_SIZE+c; ci++) {
+		if(this.board[BOARD_AREA + ci] === undefined) {
+			this.board[BOARD_AREA + ci] = to;
+			this.board[to] = (ci << 5) | player | 16;
+			this.board[from] |= 16;
+			break;
+		}
+	}
+
 }
 
 
-Board.prototype.canClone = function (from) {
-	let onRow = from/BOARD_SIZE, piece = this.board[from];
-	let onBoundaryColumn = (from+1)%BOARD_SIZE < 2;
-	let onBoundaryRow = (onRow + 1)%BOARD_SIZE < 2;
+Board.prototype.onCloningCell = function (from) {
+	const onRow = from/BOARD_SIZE, piece = this.board[from];
+	const onBoundaryColumn = (from+1)%BOARD_SIZE < 2;
+	const onBoundaryRow = (onRow + 1)%BOARD_SIZE < 2;
 
 	//To clone: NOT be on boundary column, BE on boundary row, NOT be cloned yet
-	if(onBoundaryColumn || !onBoundaryRow || (piece ^ 16) ) return false;
+	if(onBoundaryColumn || !onBoundaryRow || (piece & 16) ) return false;
 
-	let spawnRow = (( (piece >> 5) & 2*BIT_LENGTH ) - 1) / 2;
+	const spawnRow = ( (piece >> 5) & BIT_MAX_PI ) ? (BOARD_SIZE-1) : 0;
 	return (onRow ^ spawnRow);
 }
-
 //Assumes valid move
-Board.prototype.isCloneMove = function (to, from) {
-	//suffice to show if to and from are on opposing boundary rows
-	let toRow = to/BOARD_SIZE, fromRow = from/BOARD_SIZE;
-	return this.canClone(from) && (toRow ^ fromRow);
+Board.prototype.isCloneMove = function (from, to) {
+	//if on cloning cell, suffice to show if destination is on spawn row
+	const spawnRow = ( (this.board[from] >> 5) & BIT_MAX_PI ) ? (BOARD_SIZE - 1) : 0;
+	return this.onCloningCell(from) && (Math.floor(to/BOARD_SIZE) === spawnRow);
 }
 
-/*==========											MOVES															==========*/
+/*==========											MOVE LOGIC												==========*/
 
 // Board.prototype.getPlayer = function (pi) {
 // 	return this.pieces[pi].player;
@@ -219,14 +227,15 @@ Board.prototype.canPhase = function (from, to, bypassCondition) {
 	}
 }
 
-//reaching this function implies selected piece can be cloned, so piece is on an bounding row
-Board.prototype.getCloneSpawnCells = function (from, bypassCondition) {
-	let spawnRow = ( from/BOARD_SIZE ^ (BOARD_SIZE-1) );
+//reaching this function implies selected piece can be cloned, so piece is on a bounding row
+Board.prototype.getSpawnCells = function (from, bypassCondition) {
+	const spawnRow = ( from/BOARD_SIZE ^ (BOARD_SIZE-1) );
 	for(let col=1; col<BOARD_SIZE-1;col++) {
-		let to = spawnRow + col;
-		let spawnCell = this.board[to];
+		let to = spawnRow*BOARD_SIZE + col;
+		let spawnCellEmpty = !(this.board[to] & 4);
+
 		//if spawnCell doesn't have a player on it
-		if ( spawnCell ^ 4 ) {
+		if (spawnCellEmpty) {
 			if (bypassCondition%3) return true;
 			else this.addMove(from, to);
 		}
@@ -260,7 +269,7 @@ Board.prototype.getMoves = function (from, bypassCondition, direction) {
 		if( this.getMovesInDirection(from, from+direction, bypassCondition) ) return true;
 	} else if(bypassCondition === undefined || bypassCondition%3){
 		//step, jump, leap
-		for(let r=-1;r<2;r++) for(let c=-1;c<2; c++) {
+		for(let r=-1;r<2;r++) for(let c=-1;c<2; c++) { //from + (-8) + (-1) ... from + (8) + 1
 			let adj = from + (r*BOARD_SIZE) + c;
 			let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) //enemy or empty cell
 				&& this.inBounds(adj) && (adj-from);
@@ -271,7 +280,8 @@ Board.prototype.getMoves = function (from, bypassCondition, direction) {
 	if (!this.isRedundantMove(from, this.getInverseIndex(from))
 	&& this.canPhase(from, this.getInverseIndex(from), bypassCondition)) return true;
 	// able to clone
-	if (this.canClone(from) && this.getCloneSpawnCells(from, bypassCondition)) return true;
+	if (!(this.board[from] & 16) && this.onCloningCell(from)
+	&& this.getSpawnCells(from, bypassCondition)) return true;
 
 	return false;
 }
@@ -282,20 +292,22 @@ Board.prototype.doMove = function (from, to) {
 
 	if(this.isCloneMove(from, to)) {
 		this.makeClone(from, to);
+		this.removeHighlight();
+		this.clearMoves();
 		return;
 	}
 
 	const pi = this.board[from] >> 5;
+	const piece = (pi << 5) | (this.board[from] & 16) | this.getPlayer(from);
 
 	if( (this.board[to] & 12) === 8 ) {
 		//SPECIAL PIECE *any player can move.... but how is TODO*
 		this.board[to] |= (pi << 5);
 	} else {
 		//We can assume this cell is empty
-		this.board[to] |= ( (pi << 5) | this.getPlayer(from) );
+		this.board[to] |= piece;
 	}
-	this.board[from] &= 3; //keep only cell data
-	this.board[BOARD_AREA + pi] = to;
+
 
 	const capturedPiece = this.getCapturedPiece(pi, to);
 	let direction;
@@ -312,8 +324,12 @@ Board.prototype.doMove = function (from, to) {
 	const phased = this.isPhaseMove(from, to);
 	const isLeap = capturedPiece && phased;
 	const yetToPhase = onPhase && !phased;
+	const canClone = (this.onCloningCell(to) && !this.onCloningCell(from) && this.getSpawnCells(to, 2));
 	//If can clone or is on phase that piece hasn't just travelled through
-	if ( !direction && ( this.canClone(to) || isLeap || yetToPhase ) ) direction = 0;
+	if ( !direction && ( canClone || isLeap || yetToPhase ) ) direction = 0;
+
+	this.board[from] &= 3; //keep only cell data
+	this.board[BOARD_AREA + pi] = to;
 
 	this.removeHighlight();
 	this.clearMoves();
@@ -345,7 +361,7 @@ Board.prototype.removeHighlight = function () {
 
 //only works on nxn boards
 Board.prototype.getInverseIndex = function (index) {
-	return (BOARD_SIZE - 1) - index;
+	return (BOARD_AREA - 1) - index;
 }
 
 Board.prototype.inBounds = function (index) {
@@ -362,10 +378,11 @@ Board.prototype.hasMoves = function (piece) {
 
 //Player has no more moves when (1): all player's pieces are dead (2): every piece has no moves
 Board.prototype.movesLeft = function (player) {
-	const c = (player === 12) ? 2*BIT_LENGTH : 0;
+	const c = (player === 12) ? BIT_MAX_PI : 0;
 	for(let pi=c; pi < 2*BOARD_SIZE + c; pi++) {
-		const piece = this.board[BOARD_AREA + pi];
-		if ( !(piece < 0) && this.getMoves(piece, 1)) return true;
+
+		let piece = this.board[BOARD_AREA + pi];
+		if ( !(piece < 0 || piece === undefined) && this.getMoves(piece, 1)) return true;
 	}
 	return false;
 }

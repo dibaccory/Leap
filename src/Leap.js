@@ -128,7 +128,6 @@ class Leap extends Component {
 
     //SHOULD BE DONE in DoMove!!
     //Check if move is a clone move; If it is, we need not call doMove
-    //if(board.isCloneMove(sel, index)) board.makeClone(pi, row, col);
     let continuedDirection = board.doMove(from, to);
     //all highlights gone
 
