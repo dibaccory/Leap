@@ -97,8 +97,8 @@ Board.prototype.init = function (layout) {
 		}
 }
 
-Board.prototype.initPiece = function (pi, index) {
-	this.board[BOARD_AREA + pi] = index;
+Board.prototype.initPiece = function (key, index) {
+	this.board[BOARD_AREA + key] = index;
 }
 
 Board.prototype.clearMoves = function (pi) {
@@ -153,12 +153,12 @@ Board.prototype.getCapturedPiece = function (pid, to) {
 Board.prototype.makeClone = function (from, to) {
 	const player = this.getPlayer(from);
 	const c = (player === 12) ? BIT_MAX_PI : 0;
-	let ci;
+	let key;
 	//Find first empty slot
-	for(ci= BOARD_SIZE+c; ci< 2*BOARD_SIZE+c; ci++) {
-		if(this.board[BOARD_AREA + ci] === undefined) {
-			this.board[BOARD_AREA + ci] = to;
-			this.board[to] = (ci << 5) | player | 16;
+	for(key= BOARD_SIZE+c; key< 2*BOARD_SIZE+c; key++) {
+		if(this.board[BOARD_AREA + key] === undefined) {
+			this.board[BOARD_AREA + key] = to;
+			this.board[to] = (key << 5) | player | 16;
 			this.board[from] |= 16;
 			break;
 		}
@@ -191,18 +191,19 @@ Board.prototype.isCloneMove = function (from, to) {
 // 	return this.pieces[pi].player;
 // }
 
-Board.prototype.canLeap = function (from, adj, isPhase, bypassCondition) {
-	let to = this.getInverseIndex(from);
-	if( !(this.getPlayer(to)) ) {
-		let inv = this.getInverseIndex(adj);
-		let phaseAdj = this.getPlayer(adj) & 4;
-		let phaseFar = this.getPlayer(inv) & 4;
+Board.prototype.canLeap = function (from, adj, bypassCondition) {
+	const to = this.getInverseIndex(from);
+	if(this.getPlayer(to)) return false;
 
-		if( (phaseAdj ^ phaseFar) ) {
-			if (bypassCondition%3) return true;
-			let captured = phaseAdj ? adj : inv;
-			this.addMove(from, to, captured);
-		}
+	const player = this.getPlayer(from);
+	const inv = this.getInverseIndex(adj);
+	const phaseAdj = this.getPlayer(adj);
+	const phaseFar = this.getPlayer(inv);
+
+	if( (phaseAdj ^ phaseFar ^ player === 2) ) {
+		if (bypassCondition%3) return true;
+		const captured = phaseAdj ? adj : inv;
+		this.addMove(from, to, captured);
 	}
 	//if neighbor cell is a phase, leap_cell clear, and (enemy piece on phaseAdj XOR enemy piece on phaseFar)
 }
@@ -242,12 +243,12 @@ Board.prototype.getSpawnCells = function (from, bypassCondition) {
 	}
 }
 
-Board.prototype.getMovesInDirection = function (from, adj, bypassCondition) {
+Board.prototype.getMovesInDirection = function (from, direction, bypassCondition) {
 	//check adjacent cells of piece p wrt the boundary
-	let direction = adj - from;
+	const adj = from+direction;
 	let isPhase = this.board[adj] & 1;
 
-	if (isPhase && this.canLeap(from, adj, isPhase, bypassCondition)) return true;
+	if (isPhase && this.canLeap(from, adj, bypassCondition)) return true;
 
 	if( this.getPlayer(adj) ) {
 		if (this.isJump(from, adj, direction, bypassCondition)) return true;
@@ -266,14 +267,15 @@ Board.prototype.getMovesInDirection = function (from, adj, bypassCondition) {
 Board.prototype.getMoves = function (from, bypassCondition, direction) {
 	// move continuation AND has a move in specified direction
 	if (direction && this.inBounds(from+direction)) {
-		if( this.getMovesInDirection(from, from+direction, bypassCondition) ) return true;
+		if( this.getMovesInDirection(from, direction, bypassCondition) ) return true;
 	} else if(bypassCondition === undefined || bypassCondition%3){
 		//step, jump, leap
 		for(let r=-1;r<2;r++) for(let c=-1;c<2; c++) { //from + (-8) + (-1) ... from + (8) + 1
-			let adj = from + (r*BOARD_SIZE) + c;
-			let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) //enemy or empty cell
-				&& this.inBounds(adj) && (adj-from);
-			if (validDirection && this.getMovesInDirection(from, adj, bypassCondition)) return true;
+			direction = (r*BOARD_SIZE) + c;
+			const adj = from+direction;
+			//enemy or empty cell
+			let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) && this.inBounds(adj) && (direction);
+			if (validDirection && this.getMovesInDirection(from, direction, bypassCondition)) return true;
 		}
 	}
 	// on a phase
@@ -315,10 +317,12 @@ Board.prototype.doMove = function (from, to) {
 		const ci = this.board[capturedPiece] >> 5;
 		this.board[capturedPiece] &= 3;
 		this.board[BOARD_AREA + ci] = ~this.board[BOARD_AREA + ci]; //He DED
+
+		//if Leap, then we get the direction by the difference between captured index and adjacent movement cell
+		const capturedAdjToDestination = (-9 <= (to-capturedPiece) && (to-capturedPiece) <= 9);
+		const capturedDirection = capturedAdjToDestination ? to - capturedPiece : capturedPiece - from;
 		//if can continue move in direction
-		if( this.inBounds(to - capturedPiece) && this.getMovesInDirection(to, to - capturedPiece, 2) ) {
-			direction = to - capturedPiece;
-		}
+		if( this.getMovesInDirection(to, capturedDirection, 2) ) direction = capturedDirection;
 	}
 	const onPhase = this.board[to] & 1;
 	const phased = this.isPhaseMove(from, to);
@@ -359,7 +363,7 @@ Board.prototype.removeHighlight = function () {
 
 /*==========											INTEGRITY													==========*/
 
-//only works on nxn boards
+//ONLY WORKS on NxN boards and phase group orders of 2
 Board.prototype.getInverseIndex = function (index) {
 	return (BOARD_AREA - 1) - index;
 }
@@ -368,9 +372,9 @@ Board.prototype.inBounds = function (index) {
 	return 0 <= index && index < BOARD_AREA;
 }
 
-Board.prototype.canContinueMove = function (from, direction) {
-	return direction !== undefined ? this.getMoves(from, 2, from+direction) : false;
-}
+// Board.prototype.canContinueMove = function (from, direction) {
+// 	return direction !== undefined ? this.getMoves(from, 2, from+direction) : false;
+// }
 
 Board.prototype.hasMoves = function (piece) {
 	return this.getMoves(piece, 1);
