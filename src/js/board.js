@@ -39,7 +39,7 @@ index = cell number
 key = piece index
 
 */
-var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA;
+var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA, PLAYER_ONE, PLAYER_TWO;
 
 function getBitShift(b) {
   return (b >> 1) ? (1 + getBitShift(b >> 1)) : 1;
@@ -47,58 +47,72 @@ function getBitShift(b) {
 
 
 function Board(player, len, phaseLayout) {
-	this.player = player;
-	this.p1 = 4;
-	this.p2 = 12;
+	//no args passed mean it will be a copy.
+	if (player) {
+		this.player = player;
+		PLAYER_ONE = 4;
+		PLAYER_TWO = 12;
+		BOARD_SIZE = len;
+		BOARD_AREA = BOARD_SIZE**2;
+		BIT_SIZE = 2**getBitShift(BOARD_SIZE-1);
+		BIT_MAX_PI = 2*BIT_SIZE;
+		BIT_INDEX_SHIFT = getBitShift(BOARD_AREA-1);
+		BIT_AREA = 2**BIT_INDEX_SHIFT;
 
-	BOARD_SIZE = len;
-	BOARD_AREA = BOARD_SIZE**2;
-	BIT_SIZE = 2**getBitShift(BOARD_SIZE-1);
-	BIT_MAX_PI = 2*BIT_SIZE;
-	BIT_INDEX_SHIFT = getBitShift(BOARD_AREA-1);
-	BIT_AREA = 2**BIT_INDEX_SHIFT;
-
-
-
-	(this.board = []).length = BOARD_AREA + 4*len;
-	(this.moves = []).length = 4*len;
-	this.board.fill(0, 0, BOARD_AREA-1);
-	this.bufferSize = 1;	//how many rows between the pieces' starting location and the nearest phases
-	this.init(phaseLayout);
-
+		this.init(phaseLayout);
+	}
 }
 
-
-
 Board.prototype.init = function (layout) {
-    let pi=0; //piece Index (ID)
-		const lastRow = (BOARD_SIZE-1)*BOARD_SIZE;
+	this.continuedMove = false;
+	(this.board = []).length = BOARD_AREA + 4*BOARD_SIZE;
+	(this.moves = []).length = 4*BOARD_SIZE;
+	this.board.fill(0, 0, BOARD_AREA-1);
+	this.bufferSize = 1;	//how many rows between the pieces' starting location and the nearest phases
 
-		const calcPhases = (index) => {
-			let k = 0;
-			while(k<phaseLayouts[layout].length) {
-				if ( (index^phaseLayouts[layout][k]) === 0 ) return 1;
-				k++;
-			}
-			return 0;
-		};
-		this.clearMoves();
-		for (let i=0; i<BOARD_SIZE; i++) {
-			this.board[i] = ( (pi << 5) | this.p1); //00000 0 01 00
-			this.initPiece(pi, i);
+  let pi=0; //piece Index (ID)
+	const lastRow = (BOARD_SIZE-1)*BOARD_SIZE;
 
-			this.board[i + lastRow] = ( (pi + BIT_MAX_PI << 5) | this.p2); //100000 0 11 00
-			this.initPiece(pi + BIT_MAX_PI, i + lastRow);
-			pi++;
-
-			for (let j=1+this.bufferSize; j<(BOARD_SIZE-1)-this.bufferSize; j++) {
-				this.board[i + j*BOARD_SIZE] |= calcPhases(i+j*BOARD_SIZE);
-			}
+	const calcPhases = (index) => {
+		let k = 0;
+		while(k<phaseLayouts[layout].length) {
+			if ( (index^phaseLayouts[layout][k]) === 0 ) return 1;
+			k++;
 		}
+		return 0;
+	};
+	this.clearMoves();
+	for (let i=0; i<BOARD_SIZE; i++) {
+		this.board[i] = ( (pi << 5) | PLAYER_ONE); //00000 0 01 00
+		this.initPiece(pi, i);
+
+		this.board[i + lastRow] = ( (pi + BIT_MAX_PI << 5) | PLAYER_TWO); //100000 0 11 00
+		this.initPiece(pi + BIT_MAX_PI, i + lastRow);
+		pi++;
+
+		for (let j=1+this.bufferSize; j<(BOARD_SIZE-1)-this.bufferSize; j++) {
+			this.board[i + j*BOARD_SIZE] |= calcPhases(i+j*BOARD_SIZE);
+		}
+	}
 }
 
 Board.prototype.initPiece = function (key, index) {
 	this.board[BOARD_AREA + key] = index;
+}
+
+Board.prototype.copy = function () {
+	const board = new Board();
+	const n = BOARD_AREA + 4*BOARD_SIZE;
+	(board.board = []).length = n;
+	(board.moves = []).length = this.moves.length;
+
+	//copy over the board info (including piece directory)
+	for (let i=0; i<n; i++) board.board[i] = this.board[i];
+
+	board.player = this.player;
+	board.continuedMove = this.continuedMove;
+	board.clearMoves();
+	return board;
 }
 
 
@@ -329,7 +343,8 @@ Board.prototype.doMove = function (from, to) {
 
 	//if not a continued move, change player
 	if(!this.moves[pi].length) this.switchPlayer();
-	return this.moves[pi].length;
+	else this.continuedMove = true;
+	return this.continuedMove;
 }
 
 
@@ -338,14 +353,7 @@ Board.prototype.doMove = function (from, to) {
 
 Board.prototype.getPlayer = function (index) {
 	const pid = (this.board[index] & 12);
-	switch (pid) {
-		case 12:
-			return this.p2;
-		case 4:
-			return this.p1;
-		default:
-			return 0;
-	}
+	return (pid === 4 || pid === 12) ? pid : 0;
 }
 
 Board.prototype.getCapturedPiece = function (pid, to) {
@@ -367,6 +375,7 @@ Board.prototype.getInverseIndex = function (index) {
 
 Board.prototype.switchPlayer = function () {
 	this.player ^= 8;
+	this.continuedMove = false;
 	return this.player;
 }
 
@@ -392,8 +401,5 @@ Board.prototype.validMove = function (piece, index) {
 	return !!(isAvailableMove);
 }
 
-Board.prototype.copy = function (board) {
-
-}
 
 export default Board;
