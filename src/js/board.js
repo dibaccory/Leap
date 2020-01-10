@@ -1,4 +1,6 @@
+//'use strict';
 import {cellType, phaseLayouts} from './util';
+
 /*
 
 REFACTOR CHANGES:
@@ -191,45 +193,45 @@ Board.prototype.isCloneMove = function (from, to) {
 // 	return this.pieces[pi].player;
 // }
 
-Board.prototype.canLeap = function (from, adj, bypassCondition) {
+Board.prototype.canLeap = function (from, adj, bypass) {
 	const to = this.getInverseIndex(from);
-	if(this.getPlayer(to)) return false;
 
-	const player = this.getPlayer(from);
+	//DOES NOT CONSIDER SPECIAL PIECE '10'
+	if(this.getPlayer(to)) return;
+
+	const player = this.getPlayer(from) >> 2;
 	const inv = this.getInverseIndex(adj);
-	const phaseAdj = this.getPlayer(adj);
-	const phaseFar = this.getPlayer(inv);
+	const phaseAdj = this.getPlayer(adj) >> 2;
+	const phaseFar = this.getPlayer(inv) >> 2;
 
-	if( (phaseAdj ^ phaseFar ^ player === 2) ) {
-		if (bypassCondition%3) return true;
-		const captured = phaseAdj ? adj : inv;
-		this.addMove(from, to, captured);
+	if( (phaseAdj ^ phaseFar ^ player) === 2 ) {
+		if (bypass) return true;
+		else this.addMove(from, to, (phaseAdj ? adj : inv));
 	}
 	//if neighbor cell is a phase, leap_cell clear, and (enemy piece on phaseAdj XOR enemy piece on phaseFar)
 }
 
-Board.prototype.isJump = function (from, adj, direction, bypassCondition) {
+Board.prototype.canJump = function (from, direction, bypass) {
 	//if adj cell occupied, jumpCell in bounds, jumpCell clear, and jumpCell has enemy piece
-	let to = adj+direction;
-	if(this.inBounds(to)) {
-		if (!this.getPlayer(to)) {
-			if(bypassCondition%3) return true;
-			else this.addMove(from, to, adj);
-		}
+	const adj = from+direction;
+	const to = adj+direction;
+	if(this.inBounds(to) && !this.getPlayer(to)) {
+		if (bypass) return true;
+		else this.addMove(from, to, adj);
 	}
 }
 
-Board.prototype.canPhase = function (from, to, bypassCondition) {
-	let isPhase = (this.board[to] & 1);
-	let isDestinationEmpty = (this.board[from] & 3); //1 if player piece
+Board.prototype.canPhase = function (from, to, bypass) {
+	let isPhase = (this.board[from] & 1);
+	let isDestinationEmpty = !(this.board[to] & 4); //1 if player piece
 	if(isPhase && isDestinationEmpty) {
-		if (bypassCondition%3) return true;
+		if (bypass) return true;
 		else this.addMove(from, to);
 	}
 }
 
 //reaching this function implies selected piece can be cloned, so piece is on a bounding row
-Board.prototype.getSpawnCells = function (from, bypassCondition) {
+Board.prototype.getSpawnCells = function (from, bypass) {
 	const spawnRow = ( from/BOARD_SIZE ^ (BOARD_SIZE-1) );
 	for(let col=1; col<BOARD_SIZE-1;col++) {
 		let to = spawnRow*BOARD_SIZE + col;
@@ -237,61 +239,42 @@ Board.prototype.getSpawnCells = function (from, bypassCondition) {
 
 		//if spawnCell doesn't have a player on it
 		if (spawnCellEmpty) {
-			if (bypassCondition%3) return true;
+			if (bypass) return true;
 			else this.addMove(from, to);
 		}
 	}
 }
 
-Board.prototype.getMovesInDirection = function (from, direction, bypassCondition) {
+Board.prototype.getMovesInDirection = function (from, direction, bypass) {
 	//check adjacent cells of piece p wrt the boundary
 	const adj = from+direction;
 	let isPhase = this.board[adj] & 1;
 
-	if (isPhase && this.canLeap(from, adj, bypassCondition)) return true;
+	if (isPhase && this.canLeap(from, adj, bypass)) return true;
 
-	if( this.getPlayer(adj) ) {
-		if (this.isJump(from, adj, direction, bypassCondition)) return true;
-	}
-	else if (bypassCondition%3%2) return bypassCondition%2;	//adjacent moves
-	else if (!bypassCondition) this.addMove(from, adj);
-	return false;
+	if( this.getPlayer(adj) ^ this.getPlayer(from) === 2) {
+		if (this.canJump(from, direction, bypass) ) return true;
+ 	}
+	else if(bypass) return true;
+	else this.addMove(from, adj);
 }
 
-/* bypassCondition (HIGHLIGHT BYPASS CONDITION):
-		undefined - default (Store all),
-		1 - bypass any,
-		2 - bypass continuable moves,
-		3 - store continuable moves
-*/
-Board.prototype.getMoves = function (from, bypassCondition, direction) {
-
-	// move continuation AND has a move in specified direction
-	if (direction && this.inBounds(from+direction)) {
-		if( this.getMovesInDirection(from, direction, bypassCondition) ) return true;
-	} else if(bypassCondition === undefined || bypassCondition%3) {
-		//step, jump, leap
-		const bCol = (from+1)%BOARD_SIZE < 2 ? (from+1)%BOARD_SIZE : undefined;
-		for(let r=-1; r<2; r++) {
-
-			for(let c=-1+(bCol === 1 ? 1 : 0 ); c<2-(bCol === 0 ? 1 : 0); c++) {
-
-				direction = (r*BOARD_SIZE) + c;
-				let adj = from+direction;
-				//enemy or empty cell
-				let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) && this.inBounds(adj) && (direction);
-				if (validDirection && this.getMovesInDirection(from, direction, bypassCondition)) return true;
-			}
+//bypass: if you want to see if this piece is able to move
+Board.prototype.getMoves = function (from, bypass) {
+	const bCol = (from+1)%BOARD_SIZE < 2 ? (from+1)%BOARD_SIZE : undefined;
+	for(let r=-1; r<2; r++) {
+		for(let c=-1+(bCol === 1 ? 1 : 0); c<2-(bCol === 0 ? 1 : 0); c++) {
+			let direction = (r*BOARD_SIZE) + c;
+			let adj = from+direction;
+			//enemy or empty cell
+			let validDirection = ( this.getPlayer(adj) ^ this.getPlayer(from) ) && this.inBounds(adj) && (direction);
+			if ( validDirection && this.getMovesInDirection(from, direction, bypass) ) return true;
 		}
 	}
-	// on a phase
-	if (!this.isRedundantMove(from, this.getInverseIndex(from))
-	&& this.canPhase(from, this.getInverseIndex(from), bypassCondition)) return true;
+	const inv = this.getInverseIndex(from);
+	if ( !this.isRedundantMove(from, inv) && this.canPhase(from, inv, bypass) ) return true;
 	// able to clone
-	if (!(this.board[from] & 16) && this.onCloningCell(from)
-	&& this.getSpawnCells(from, bypassCondition)) return true;
-
-	return false;
+	if (!(this.board[from] & 16) && this.onCloningCell(from) && this.getSpawnCells(from, bypass)) return true;
 }
 
 //Performs move. returns true if caught piece in process, else false
@@ -304,8 +287,11 @@ Board.prototype.doMove = function (from, to) {
 		this.clearMoves();
 		return;
 	}
-
 	const pi = this.board[from] >> 5;
+	const capturedPiece = this.getCapturedPiece(pi, to);
+	this.removeHighlight();
+	this.clearMoves();
+
 	const piece = (pi << 5) | (this.board[from] & 16) | this.getPlayer(from);
 
 	if( (this.board[to] & 12) === 8 ) {
@@ -317,8 +303,8 @@ Board.prototype.doMove = function (from, to) {
 	}
 
 
-	const capturedPiece = this.getCapturedPiece(pi, to);
-	let direction;
+
+
 	if(capturedPiece) {
 		const ci = this.board[capturedPiece] >> 5;
 		this.board[capturedPiece] &= 3;
@@ -326,25 +312,24 @@ Board.prototype.doMove = function (from, to) {
 
 		//if Leap, then we get the direction by the difference between captured index and adjacent movement cell
 		const capturedAdjToDestination = (-9 <= (to-capturedPiece) && (to-capturedPiece) <= 9);
-		const capturedDirection = capturedAdjToDestination ? to - capturedPiece : capturedPiece - from;
+		const capturedDirection = capturedAdjToDestination ? (to-capturedPiece) : (capturedPiece - from);
 		//if can continue move in direction
-		if( this.getMovesInDirection(to, capturedDirection, 2) ) direction = capturedDirection;
+		let adj = to+capturedDirection;
+		if ( this.board[adj] & 1 ) this.canLeap(to, adj);
+		if( this.getPlayer(adj) ^ this.getPlayer(to) === 2) this.canJump(to, capturedDirection);
 	}
-	const onPhase = this.board[to] & 1;
-	const phased = this.isPhaseMove(from, to);
-	const isLeap = capturedPiece && phased;
-	const yetToPhase = onPhase && !phased;
-	const canClone = (this.onCloningCell(to) && !this.onCloningCell(from) && this.getSpawnCells(to, 2));
+	//const isLeap = capturedPiece && alreadyPhased;
+	const canPhase = (this.board[to] & 1) && !this.isPhaseMove(from, to, capturedPiece);
+	const canClone = this.onCloningCell(to) && !this.onCloningCell(from);
 	//If can clone or is on phase that piece hasn't just travelled through
-	if ( !direction && ( canClone || isLeap || yetToPhase ) ) direction = 0;
+	if ( canPhase ) this.canPhase(to, this.getInverseIndex(to));
+	if ( canClone )	this.getSpawnCells(to);
 
 	this.board[from] &= 3; //keep only cell data
 	this.board[BOARD_AREA + pi] = to;
 
-	this.removeHighlight();
-	this.clearMoves();
-
-	return direction;
+	//What if we return length of this.moves[pi] to determine if move can be continued? Then we don't need to call all these checkers
+	return this.moves[pi].length;
 }
 
 Board.prototype.highlightMoves = function (piece) {
@@ -355,9 +340,9 @@ Board.prototype.highlightMoves = function (piece) {
 	}
 }
 
-Board.prototype.isPhaseMove = function (from, to) {
+Board.prototype.isPhaseMove = function (from, to, captured) {
 	const bothPhases = (this.board[from] & this.board[to]) & 1;
-	return (bothPhases) && this.getInverseIndex(from) === to;
+	return !captured && bothPhases && this.getInverseIndex(from) === to;
 }
 
 
@@ -369,6 +354,8 @@ Board.prototype.removeHighlight = function () {
 
 /*==========											INTEGRITY													==========*/
 
+
+
 //ONLY WORKS on NxN boards and phase group orders of 2
 Board.prototype.getInverseIndex = function (index) {
 	return (BOARD_AREA - 1) - index;
@@ -378,21 +365,13 @@ Board.prototype.inBounds = function (index) {
 	return 0 <= index && index < BOARD_AREA;
 }
 
-// Board.prototype.canContinueMove = function (from, direction) {
-// 	return direction !== undefined ? this.getMoves(from, 2, from+direction) : false;
-// }
-
-Board.prototype.hasMoves = function (piece) {
-	return this.getMoves(piece, 1);
-}
-
 //Player has no more moves when (1): all player's pieces are dead (2): every piece has no moves
 Board.prototype.movesLeft = function (player) {
 	const c = (player === 12) ? BIT_MAX_PI : 0;
-	for(let pi=c; pi < 2*BOARD_SIZE + c; pi++) {
+	for(let key=c; key < 2*BOARD_SIZE + c; key++) {
 
-		let piece = this.board[BOARD_AREA + pi];
-		if ( !(piece < 0 || piece === undefined) && this.getMoves(piece, 1)) return true;
+		let piece = this.board[BOARD_AREA + key];
+		if ( !(piece < 0 || piece === undefined) && this.getMoves(piece, true) ) return true;
 	}
 	return false;
 }

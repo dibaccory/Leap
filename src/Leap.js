@@ -92,7 +92,7 @@ class Leap extends Component {
 
   selectCell(cell, index) {
     //If a move is not a continuation, default case,
-    if (this.state.continuedMove === false) {
+    if (!this.state.continuedMove) {
       if (this.canSelectPiece(cell)) this.setPiece(cell, index);
       else if (this.state.selectedPiece !== null)  this.handleMove(cell, index);
     } else { //if continuation
@@ -123,22 +123,18 @@ class Leap extends Component {
       return;
     }
     console.log("handling move...");
+
     let from = this.state.selectedPiece;
+    let canContinue = board.doMove(from, to);
 
-
-    //SHOULD BE DONE in DoMove!!
-    //Check if move is a clone move; If it is, we need not call doMove
-    let continuedDirection = board.doMove(from, to);
-    //all highlights gone
-
-    //If we can jump or leap, or phase (if move prior was not a phase)
-    if (continuedDirection !== undefined) {
-      board.getMoves(to, 3, continuedDirection);
+    //If we can jump or leap, or phase
+    if (canContinue) {
+      //board.getMoves(to, 3, continuedDirection);
       board.highlightMoves(pi);
       this.setState({
         board: board,
         turn: this.state.turn,
-        continuedMove: continuedDirection,
+        continuedMove: true,
         selectedPiece: to
       });
     } else this.setState({
