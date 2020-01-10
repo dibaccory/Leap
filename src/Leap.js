@@ -28,10 +28,11 @@ class Leap extends Component {
   constructor(props) {
     super(props);
     BOARD_SIZE = props.config.size;
+    const player = props.config.players[0].first ? playerOne : playerTwo
     this.state = {
       /*...props.config,*/
-      board: new Board(BOARD_SIZE, 0), // 0 is phaseLayout
-      turn: props.config.players[0].first ? playerOne : playerTwo,
+      board: new Board(player, BOARD_SIZE, 0), // 0 is phaseLayout
+      turn: player,
       continuedMove: false,
       selectedPiece: null,
       winner: null
@@ -81,7 +82,7 @@ class Leap extends Component {
       let board = this.state.board;
       if (!board.movesLeft(this.state.turn)) {
         console.log("${this.state.turn} has no more moves!");
-        this.setState({winner: this.nextPlayer()});
+        this.setState({winner: this.switchPlayer()});
       }
     } else if (this.state.selectedPiece){
       //HIGHLIGHT MOVES
@@ -105,7 +106,7 @@ class Leap extends Component {
         //right now, let's just end the turn otherwise
         this.setState({
           board: board,
-          turn: this.nextPlayer(this.state.turn),
+          turn: board.switchPlayer(),
           continuedMove: false,
           selectedPiece: null
         });
@@ -124,8 +125,7 @@ class Leap extends Component {
     }
     console.log("handling move...");
 
-    let from = this.state.selectedPiece;
-    let canContinue = board.doMove(from, to);
+    let canContinue = board.doMove(this.state.selectedPiece, to);
 
     //If we can jump or leap, or phase
     if (canContinue) {
@@ -133,19 +133,18 @@ class Leap extends Component {
       board.highlightMoves(pi);
       this.setState({
         board: board,
-        turn: this.state.turn,
+        turn: board.player,
         continuedMove: true,
         selectedPiece: to
       });
     } else this.setState({
         board: board,
-        turn: this.nextPlayer(this.state.turn),
+        turn: board.player,
         continuedMove: false,
         selectedPiece: null
       });
   }
 
-  //bot need not use this; they get the move from ai.js, pass it on directly to doMove
   canSelectPiece(cell) {
     //true if cell contains current player's piece AND current player isn't a bot
     return (cell & 4) && ( (cell & 12) === this.state.turn ) && !PLAYERS[this.state.turn].bot;
@@ -159,10 +158,6 @@ class Leap extends Component {
     board.highlightMoves(pi);
     this.setState({selectedPiece: index});
       //console.log("selected piece: " + this.state.board.board[row][col].who);
-  }
-
-  nextPlayer() {
-    return this.state.turn ^ 8;
   }
 
   restart() {
