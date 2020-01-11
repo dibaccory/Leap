@@ -39,7 +39,9 @@ index = cell number
 key = piece index
 
 */
-var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA, PLAYER_ONE, PLAYER_TWO;
+var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA;
+const PLAYER_ONE = 4
+const PLAYER_TWO = 12;
 
 function getBitShift(b) {
   return (b >> 1) ? (1 + getBitShift(b >> 1)) : 1;
@@ -50,8 +52,6 @@ function Board(player, len, phaseLayout) {
 	//no args passed mean it will be a copy.
 	if (player) {
 		this.player = player;
-		PLAYER_ONE = 4;
-		PLAYER_TWO = 12;
 		BOARD_SIZE = len;
 		BOARD_AREA = BOARD_SIZE**2;
 		BIT_SIZE = 2**getBitShift(BOARD_SIZE-1);
@@ -64,6 +64,10 @@ function Board(player, len, phaseLayout) {
 }
 
 Board.prototype.init = function (layout) {
+	this.pAmount = {
+		[PLAYER_ONE]: BOARD_SIZE,
+		[PLAYER_TWO]: BOARD_SIZE
+	};
 	this.continuedMove = false;
 	(this.board = []).length = BOARD_AREA + 4*BOARD_SIZE;
 	(this.moves = []).length = 4*BOARD_SIZE;
@@ -131,15 +135,7 @@ Board.prototype.clearMoves = function (pi) {
 	for (let i=0; i<4*BOARD_SIZE; i++) this.moves[i] = [];
 }
 
-//Player has no more moves when (1): all player's pieces are dead (2): every piece has no moves
-Board.prototype.movesLeft = function (player) {
-	const c = (player === 12) ? BIT_MAX_PI : 0;
-	for (let key=c; key < 2*BOARD_SIZE + c; key++) {
-		let piece = this.board[BOARD_AREA + key];
-		if ( !(piece < 0 || piece === undefined) && this.getMoves(piece, true) ) return true;
-	}
-	return false;
-}
+
 
 Board.prototype.highlightMoves = function (piece) {
 	const nMoves = this.moves[piece].length;
@@ -162,6 +158,7 @@ Board.prototype.removeHighlight = function () {
 //Assume special tiles won't appear on spawn rows
 Board.prototype.makeClone = function (from, to) {
 	const player = this.player;
+	this.pAmount[player]++;
 	const c = (player === 12) ? BIT_MAX_PI : 0;
 	let key;
 	//Find first empty slot
@@ -288,15 +285,21 @@ Board.prototype.getMoves = function (from, bypass) {
 
 Board.prototype.getAllMoves = function (player) {
 	const c = (player === 12) ? BIT_MAX_PI : 0;
+	var hasMoves = 0;
 	for (let key=c; key < 2*BOARD_SIZE + c; key++) {
 		let from = this.board[BOARD_AREA + key];
-		if (!(from === undefined || from < 0)) this.getMoves(from);
+		if (!(from === undefined || from < 0)) {
+			hasMoves++;
+			this.getMoves(from);
+		}
 	}
+	return hasMoves;
 }
 
-//Performs move. returns true if caught piece in process, else false
+//Performs move. returns true if enemy runs out of pieces
 //NOTE: it is impossible to capture a piece at board index 0
 Board.prototype.doMove = function (from, to) {
+	//CACHE this.board HERE. ITS A VERY HOT FUNCTION lmao (. Y .)
 	if (this.isCloneMove(from, to)) {
 		this.makeClone(from, to);
 		this.removeHighlight();
@@ -323,6 +326,7 @@ Board.prototype.doMove = function (from, to) {
 		this.board[capturedPiece] &= 3;
 		this.board[BOARD_AREA + ci] = ~this.board[BOARD_AREA + ci]; //He DED
 
+		if(--this.pAmount[(this.player ^ 8)]) return true;
 		//if Leap, then we get the direction by the difference between captured index and adjacent movement cell
 		const capturedAdjToDestination = (-9 <= (to-capturedPiece) && (to-capturedPiece) <= 9);
 		const capturedDirection = capturedAdjToDestination ? (to-capturedPiece) : (capturedPiece - from);
@@ -344,7 +348,8 @@ Board.prototype.doMove = function (from, to) {
 	//if not a continued move, change player
 	if(!this.moves[pi].length) this.switchPlayer();
 	else this.continuedMove = true;
-	return this.continuedMove;
+
+	return false;
 }
 
 
@@ -370,8 +375,11 @@ Board.prototype.getInverseIndex = function (index) {
 	return (BOARD_AREA - 1) - index;
 }
 
-
 /*==========											UTILITY														==========*/
+
+Board.prototype.inBounds = function (index) {
+	return 0 <= index && index < BOARD_AREA;
+}
 
 Board.prototype.switchPlayer = function () {
 	this.player ^= 8;
@@ -388,17 +396,26 @@ Board.prototype.isRedundantMove = function (from, to) {
 	return false;
 }
 
-Board.prototype.inBounds = function (index) {
-	return 0 <= index && index < BOARD_AREA;
-}
+//Player has no more moves when (1): all player's pieces are dead (2): every piece has no moves
+// Board.prototype.movesLeft = function (player) {
+// 	const c = (player === 12) ? BIT_MAX_PI : 0;
+// 	for (let key=c; key < 2*BOARD_SIZE + c; key++) {
+// 		let piece = this.board[BOARD_AREA + key];
+// 		if ( !(piece < 0 || piece === undefined) && this.getMoves(piece, true) ) return true;
+// 	}
+// 	return false;
+// }
 
 Board.prototype.validMove = function (piece, index) {
 	const n = this.moves[piece].length;
-	let isAvailableMove = 0;
 	for (let i=0; i<n; i++) {
-		if ( (this.moves[piece][i] & (BIT_AREA - 1)) === index ) isAvailableMove++;
+		if ( (this.moves[piece][i] & (BIT_AREA - 1)) === index ) return true;
 	}
-	return !!(isAvailableMove);
+	return false;
+}
+
+Board.prototype.randomMove = function () {
+	this.getAllMoves(this.player);
 }
 
 

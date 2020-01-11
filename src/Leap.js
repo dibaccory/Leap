@@ -60,7 +60,7 @@ class Leap extends Component {
     //Check if first player is bot
     if(PLAYERS[this.state.turn].bot) {
       console.log('tete');
-    }
+    } else this.state.board.getAllMoves(this.state.turn);
   }
 
 //GOOD PLACE FOR NETWORK REQUEST
@@ -80,9 +80,9 @@ class Leap extends Component {
     //this.state.board.highlightPieceMoves();
     if (prevState.turn !== this.state.turn) {
       let board = this.state.board;
-      if (!board.movesLeft(this.state.turn)) {
+      if (!board.getAllMoves(this.state.turn)) {
         console.log("${this.state.turn} has no more moves!");
-        this.setState({winner: this.switchPlayer()});
+        this.setState({winner: board.switchPlayer()});
       }
     } else if (this.state.selectedPiece){
       //HIGHLIGHT MOVES
@@ -125,11 +125,14 @@ class Leap extends Component {
     }
     console.log("handling move...");
 
-    let canContinue = board.doMove(this.state.selectedPiece, to);
+    //check if win
+    if(board.doMove(this.state.selectedPiece, to)) {
+      this.setState({winner: board.switchPlayer()});
+      return;
+    }
 
     //If we can jump or leap, or phase
-    if (canContinue) {
-      //board.getMoves(to, 3, continuedDirection);
+    if (board.continuedMove) {
       board.highlightMoves(pi);
       this.setState({
         board: board,
@@ -153,8 +156,6 @@ class Leap extends Component {
   setPiece(cell, index) {
     let board = this.state.board, pi = cell >> 5;
     board.removeHighlight();
-    board.clearMoves(pi);
-    board.getMoves(index);
     board.highlightMoves(pi);
     this.setState({selectedPiece: index});
       //console.log("selected piece: " + this.state.board.board[row][col].who);

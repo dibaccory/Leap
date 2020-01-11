@@ -1,42 +1,42 @@
 
 
-function Node(move, player) {
+function Node(from, to) {
     this.visits = 1;
     this.score = 0;
     this.children = null;
-    this.player = player;
-    this.move = move;
+    this.to = to || -1;
+    this.from = from || -1;
 }
-
-Node.prototype.opponent = function () {
-    return this.player ^ 8;
-}
+//
+// Node.prototype.opponent = function () {
+//     return this.player ^ 8;
+// }
 
 Node.prototype.append = function (child) {
     if (!this.children) this.children = [child];
     else this.children.push(child);
 }
 
-Node.prototype.expand = function (board) {
-    board.clearMoves();
-    board.getAllMoves();
+Node.prototype.branch = function (state) {
+    state.clearMoves();
+    state.getAllMoves(state.player);
 
-    for (var i = 0; i < moveList.length; i++) {
-        var child = new Node(moveList.list[i], board.player);
+    const shift = (state.player === 12) ? BIT_MAX_PI : 0;
+    for (let pi = shift; pi < BIT_MAX_PI + shift; pi++) {
+      const nMoves = state.moves[pi].length;
+      const from = state.board[BOARD_AREA + pi];
+
+      for (let i = 0; i < nMoves; i++) {
+        const to = ( state.moves[pi][i] & (BIT_AREA - 1) );
+        let child = new Node(from, to);
         this.append(child);
-    }
+      }
+  }
 }
 
-Node.prototype.playFor = function (board) {
-    var move = this.move;
-    var fromRow = move >> 24;
-    var fromCol = (move >> 16) & 0xFF;
-    var toRow = (move >> 8) & 0xFF;
-    var toCol = (move) & 0xFF;
-    return board.move(fromRow, fromCol, toRow, toCol);
+Node.prototype.playFor = function (state) {
+    return state.doMove(this.from, this.to);
 }
-
-
 
 Node.prototype.ucb = function (coeff) {
     var score = (this.score / this.visits);
@@ -62,59 +62,48 @@ Node.prototype.findBestChild = function () {
 
 
 
-function UCT() {
-  const root = new Node(0, 0);
-  let MaxHistory = original.area();
+function UCT(startState, maxTime) {
+  this.root = new Node();
+  this.startState = startState;
   let MaturityThreshold = 200;
 
   // Populate the first node.
-  root.expand(original, moveList);
-  var history = [root];
+  this.root.branch(startState);
+  var history = [this.root];
 
   var TotalPlayouts = 0;
   var start = Date.now();
-  var elapsed;
-  while (true) {
-      for (var i = 0; i < 500; i++)
-          this.run();
+  var elapsedTime;
+  while (elapsedTime < maxTime) {
+      for (var i = 0; i < 500; i++) this.run();
       TotalPlayouts += 500;
-      elapsed = Date.now() - start;
-      if (elapsed >= maxTime)
-          break;
+      elapsedTime = Date.now() - start;
   }
 
   var bestChild = null;
   var bestScore = -Infinity;
-  for (var i = 0; i < root.children.length; i++) {
-      var child = root.children[i];
+  for (var i = 0; i < this.root.children.length; i++) {
+      var child = this.root.children[i];
       if (child.visits > bestScore) {
           bestChild = child;
           bestScore = child.visits;
       }
   }
 
-  var move = bestChild.move;
-  var fromRow = move >> 24;
-  var fromCol = (move >> 16) & 0xFF;
-  var toRow = (move >> 8) & 0xFF;
-  var toCol = (move) & 0xFF;
-
-  return { elapsed: elapsed,
-      playouts: TotalPlayouts,
-      fromRow: fromRow,
-      fromCol: fromCol,
-      toRow: toRow,
-      toCol: toCol
+  return {
+    elapsed: elapsed,
+    playouts: TotalPlayouts,
+    from: bestChild.from,
+    to: bestChild.to
   };
 }
 
-UCT.prototype.playout = function (board) {
+UCT.prototype.playout = function (state) {
     var nmoves = 0;
 
     while (++nmoves < 60) {
-        var result = board.moveRandom(moveList);
-        if (result)
-            return result;
+        var result = state.moveRandom(); //returns if won
+        if (result) return result;
     }
     var p1 = board.evaluateScore(Checkers.PlayerOne);
     var p2 = board.evaluateScore(Checkers.PlayerTwo);
@@ -122,19 +111,19 @@ UCT.prototype.playout = function (board) {
         return Checkers.PlayerOne;
     if (p1 < p2)
         return Checkers.PlayerTwo;
-    return 0;
+    return 0; //tie?
 }
 
 UCT.protoype.run = function () {
-    var depth = 1;
-    var board = original.copy();
-    var node = this.root;
-    var winner = 0;
+    const state = this.startState.copy();
+    const node = this.root;
+    let depth = 1;
+    let winner = 0;
 
     while (true) {
         if (node.children === null) {
             if (node.visits >= MaturityThreshold) {
-                node.expand(board, moveList);
+                node.branch(state);
 
                 // Leaf node - go directly to update.
                 if (node.children === null) {
@@ -144,12 +133,12 @@ UCT.protoype.run = function () {
                 }
                 continue;
             }
-            winner = this.playout(board);
+            winner = this.playout(state);
             break;
         }
         node = node.findBestChild();
         history[depth++] = node;
-        if (node.playFor(board)) {
+        if (node.playFor(state)) {
             winner = board.player;
             break;
         }

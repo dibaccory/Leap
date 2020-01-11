@@ -48,7 +48,7 @@ function NewGame(props) {
       },{
         name: 'Botto',
         color: 'black',
-        bot: false,
+        bot: true,
         first: false,
       }],
       size: 8,
