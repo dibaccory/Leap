@@ -3,7 +3,7 @@ import './css/ui.css';
 import Countdown from 'react-countdown-now';
 import {cellType} from './js/util.js';
 import Board from './js/board.js';
-
+import {UCT as Bot} from './js/ai.js';
 /*
 TODO:
 highlight pieces
@@ -59,7 +59,8 @@ class Leap extends Component {
   componentDidMount() {
     //Check if first player is bot
     if(PLAYERS[this.state.turn].bot) {
-      console.log('tete');
+      var ai = Bot(this.state.board, 1000);
+      this.handleMove(ai.from, ai.to);
     } else this.state.board.getAllMoves(this.state.turn);
   }
 
@@ -77,6 +78,11 @@ class Leap extends Component {
 
   //React update method
   componentDidUpdate(prevProps, prevState) {
+    if (PLAYERS[this.state.turn].bot) {
+      var ai = new Bot(this.state.board, 1000);
+      this.handleMove(ai.from, ai.to);
+      return;
+    }
     //this.state.board.highlightPieceMoves();
     if (prevState.turn !== this.state.turn) {
       let board = this.state.board;
@@ -95,11 +101,11 @@ class Leap extends Component {
     //If a move is not a continuation, default case,
     if (!this.state.continuedMove) {
       if (this.canSelectPiece(cell)) this.setPiece(cell, index);
-      else if (this.state.selectedPiece !== null)  this.handleMove(cell, index);
+      else if (this.state.selectedPiece !== null)  this.handleMove(this.state.selectedPiece, index);
     } else { //if continuation
       //check if move = true..
       let board = this.state.board;
-      if (cell & 2) this.handleMove(cell, index);
+      if (cell & 2) this.handleMove(this.state.selectedPiece, index);
       else {
         board.removeHighlight();
         //TODO: prompt "end turn?" option.
@@ -114,9 +120,9 @@ class Leap extends Component {
     }
   }
 
-  handleMove(cell, to) {
-    let board = this.state.board;
-    let pi = board.board[this.state.selectedPiece] >> 5;
+  handleMove(from, to) {
+    const board = this.state.board;
+    const pi = board.board[from] >> 5;
 
     //Have shake animation effect on piece.
     if (!board.validMove(pi, to)) {
@@ -126,7 +132,7 @@ class Leap extends Component {
     console.log("handling move...");
 
     //check if win
-    if(board.doMove(this.state.selectedPiece, to)) {
+    if(board.doMove(from, to)) {
       this.setState({winner: board.switchPlayer()});
       return;
     }

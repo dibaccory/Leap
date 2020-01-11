@@ -39,7 +39,7 @@ index = cell number
 key = piece index
 
 */
-var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA;
+export var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA;
 const PLAYER_ONE = 4
 const PLAYER_TWO = 12;
 
@@ -416,6 +416,7 @@ Board.prototype.validMove = function (piece, index) {
 	return false;
 }
 
+//not sure how performant this is...
 Board.prototype.randomMove = function () {
 	//if no moves, enemy wins
 	if (!this.getAllMoves(this.player)) return (this.player ^ 8);
@@ -424,6 +425,23 @@ Board.prototype.randomMove = function () {
 	const to = (Math.random() * reducedMoveList[piece].length) & (BIT_AREA - 1);
 	const from = this.board[BOARD_AREA + piece];
 	return this.doMove(from, to);
+}
+
+//what should the heuristic be??
+Board.prototype.score = function () {
+	let p1 = 0;
+	let p2 = 0;
+	const pieces = this.board.slice(BOARD_AREA);
+	const n = pieces.length;
+	for (let pi=0; pi < n; pi++) {
+		const isClone = pieces[pi] & 16;
+		const score = (2+!isClone);
+		if (pi < this.pAmount[PLAYER_ONE]) p1 += score;
+		else p2 += score;
+	}
+	if (p1 > p2) return PLAYER_ONE;
+	else if (p2 > p1) return PLAYER_TWO;
+	else return 0;
 }
 
 
