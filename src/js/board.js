@@ -111,7 +111,7 @@ Board.prototype.copy = function () {
 	(board.moves = []).length = this.moves.length;
 
 	//copy over the board info (including piece directory)
-	for (let i=0; i<n; i++) board.board[i] = this.board[i];
+	board.board = [...this.board];
 
 	board.player = this.player;
 	board.continuedMove = this.continuedMove;
@@ -283,6 +283,8 @@ Board.prototype.getMoves = function (from, bypass) {
 	if (!(this.board[from] & 16) && this.onCloningCell(from) && this.getSpawnCells(from, bypass)) return true;
 }
 
+
+//returns how many pieces this player can move
 Board.prototype.getAllMoves = function (player) {
 	const c = (player === 12) ? BIT_MAX_PI : 0;
 	var hasMoves = 0;
@@ -415,7 +417,13 @@ Board.prototype.validMove = function (piece, index) {
 }
 
 Board.prototype.randomMove = function () {
-	this.getAllMoves(this.player);
+	//if no moves, enemy wins
+	if (!this.getAllMoves(this.player)) return (this.player ^ 8);
+	const reducedMoveList = Object.assign( {}, this.moves.filter(item => item.length) );
+	const piece = Math.floor(Math.random() * reducedMoveList.length);
+	const to = (Math.random() * reducedMoveList[piece].length) & (BIT_AREA - 1);
+	const from = this.board[BOARD_AREA + piece];
+	return this.doMove(from, to);
 }
 
 
