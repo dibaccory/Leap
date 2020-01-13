@@ -115,6 +115,7 @@ Board.prototype.copy = function () {
 
 	board.player = this.player;
 	board.continuedMove = this.continuedMove;
+	board.pAmount = {...this.pAmount};
 	board.clearMoves();
 	return board;
 }
@@ -420,10 +421,15 @@ Board.prototype.validMove = function (piece, index) {
 Board.prototype.randomMove = function () {
 	//if no moves, enemy wins
 	if (!this.getAllMoves(this.player)) return (this.player ^ 8);
-	const reducedMoveList = Object.assign( {}, this.moves.filter(item => item.length) );
-	const piece = Math.floor(Math.random() * reducedMoveList.length);
-	const to = (Math.random() * reducedMoveList[piece].length) & (BIT_AREA - 1);
-	const from = this.board[BOARD_AREA + piece];
+	const moves = {...this.moves};
+	const reducedMoveList = Object.keys(moves)
+		.filter( item => moves[item].length)
+		.reduce( (res, key) => (res[key] = moves[key], res), {} );
+	const moveKeys = Object.keys(reducedMoveList);
+	const length = moveKeys.length;
+	const piece = moveKeys[Math.floor(Math.random() * length)];
+	const to = reducedMoveList[piece][Math.floor(Math.random() * reducedMoveList[piece].length)] & (BIT_AREA - 1);
+	const from = this.board[BOARD_AREA + parseInt(piece)];
 	return this.doMove(from, to);
 }
 

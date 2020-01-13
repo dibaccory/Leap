@@ -28,11 +28,11 @@ class Leap extends Component {
   constructor(props) {
     super(props);
     BOARD_SIZE = props.config.size;
-    const player = props.config.players[0].first ? playerOne : playerTwo
+    this.firstPlayer = props.config.players[0].first ? playerOne : playerTwo
     this.state = {
       /*...props.config,*/
-      board: new Board(player, BOARD_SIZE, 0), // 0 is phaseLayout
-      turn: player,
+      board: new Board(this.firstPlayer, BOARD_SIZE, 0), // 0 is phaseLayout
+      turn: this.firstPlayer,
       continuedMove: false,
       selectedPiece: null,
       winner: null
@@ -59,7 +59,7 @@ class Leap extends Component {
   componentDidMount() {
     //Check if first player is bot
     if(PLAYERS[this.state.turn].bot) {
-      var ai = Bot(this.state.board, 1000);
+      var ai = Bot(this.state.board, 5000);
       this.handleMove(ai.from, ai.to);
     } else this.state.board.getAllMoves(this.state.turn);
   }
@@ -78,11 +78,6 @@ class Leap extends Component {
 
   //React update method
   componentDidUpdate(prevProps, prevState) {
-    if (PLAYERS[this.state.turn].bot) {
-      var ai = new Bot(this.state.board, 1000);
-      this.handleMove(ai.from, ai.to);
-      return;
-    }
     //this.state.board.highlightPieceMoves();
     if (prevState.turn !== this.state.turn) {
       let board = this.state.board;
@@ -90,11 +85,19 @@ class Leap extends Component {
         console.log("${this.state.turn} has no more moves!");
         this.setState({winner: board.switchPlayer()});
       }
+
+      if (PLAYERS[this.state.turn].bot) setTimeout ( () => this.botMove(), 200 );
+
     } else if (this.state.selectedPiece){
       //HIGHLIGHT MOVES
       //if is a move continuation and Counter hasn't started, start the timer
       //if (this.state.contined_move) {}
     }
+  }
+
+  botMove() {
+      var ai = new Bot(this.state.board, 5000);
+       this.handleMove(ai.from, ai.to);
   }
 
   selectCell(cell, index) {
@@ -168,8 +171,10 @@ class Leap extends Component {
   }
 
   restart() {
-    this.setState({ board: new Board(BOARD_SIZE, playerOne, playerTwo),
-                    continuedMove: false, turn: playerOne, //TODO
+    this.state.board.removeHighlight();
+    this.state.board.clearMoves();
+    this.setState({ board: new Board(this.firstPlayer, BOARD_SIZE, 0),
+                    continuedMove: false, turn: this.firstPlayer, //TODO
                     selectedPiece: null, winner: null });
   }
 

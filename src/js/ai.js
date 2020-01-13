@@ -1,11 +1,12 @@
 import {BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA} from './board.js';
 
-function Node(from, to) {
+function Node(player, from, to) {
     this.visits = 1;
     this.score = 0;
     this.children = null;
     this.to = to || -1;
     this.from = from || -1;
+    this.player = player;
 }
 //
 // Node.prototype.opponent = function () {
@@ -28,7 +29,7 @@ Node.prototype.branch = function (state) {
 
       for (let i = 0; i < nMoves; i++) {
         const to = ( state.moves[pi][i] & (BIT_AREA - 1) );
-        let child = new Node(from, to);
+        let child = new Node(state.player, from, to);
         this.append(child);
       }
   }
@@ -63,7 +64,7 @@ Node.prototype.findBestChild = function () {
 
 
 export function UCT(startState, maxTime) {
-  this.root = new Node();
+  this.root = new Node(startState.player);
   this.startState = startState;
   this.visitThreshold = 200;
 
@@ -73,7 +74,7 @@ export function UCT(startState, maxTime) {
 
   var totalPlayouts = 0;
   var start = Date.now();
-  var elapsedTime;
+  var elapsedTime = 0;
   while (elapsedTime < maxTime) {
       for (var i = 0; i < 500; i++) this.run();
       totalPlayouts += 500;
@@ -102,7 +103,7 @@ UCT.prototype.playout = function (state) {
     var nmoves = 0;
 
     while (++nmoves < 60) {
-        var result = state.moveRandom(); //returns if won
+        var result = state.randomMove(); //returns if won
         if (result) return result;
     }
     return state.score();
@@ -110,7 +111,7 @@ UCT.prototype.playout = function (state) {
 
 UCT.prototype.run = function () {
     const state = this.startState.copy();
-    const node = this.root;
+    let node = this.root;
     let depth = 1;
     let winner = 0;
 
@@ -141,9 +142,9 @@ UCT.prototype.run = function () {
     for (var i = 0; i < depth; i++) {
         node = this.history[i];
         node.visits++;
-        if (winner == node.player)
+        if (winner === node.player)
             node.score += 1;
-        else if (winner != 0)
+        else if (winner !== 0)
             node.score -= 1;
     }
 }
