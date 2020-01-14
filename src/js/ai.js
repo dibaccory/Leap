@@ -4,8 +4,8 @@ function Node(player, from, to) {
     this.visits = 1;
     this.score = 0;
     this.children = null;
-    this.to = to || -1;
-    this.from = from || -1;
+    this.to = to;
+    this.from = from;
     this.player = player;
 }
 //
@@ -66,7 +66,7 @@ Node.prototype.findBestChild = function () {
 export function UCT(startState, maxTime) {
   this.root = new Node(startState.player);
   this.startState = startState;
-  this.visitThreshold = 200;
+  this.visitThreshold = 2*BOARD_SIZE;
 
   // Populate the first node.
   this.root.branch(startState);
@@ -117,7 +117,7 @@ UCT.prototype.run = function () {
 
     while (true) {
         if (node.children === null) {
-            if (node.visits >= this.visitThreshold) {
+            if (node.visits >= this.visitThreshold*depth) {
                 node.branch(state);
 
                 // Leaf node - go directly to update.
@@ -144,7 +144,7 @@ UCT.prototype.run = function () {
         node.visits++;
         if (winner === node.player)
             node.score += 1;
-        else if (winner !== 0)
+        else if (!winner)
             node.score -= 1;
     }
 }

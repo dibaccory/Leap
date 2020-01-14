@@ -96,7 +96,7 @@ class Leap extends Component {
   }
 
   botMove() {
-      var ai = new Bot(this.state.board, 5000);
+      var ai = new Bot(this.state.board, 1000);
        this.handleMove(ai.from, ai.to);
   }
 
@@ -146,7 +146,7 @@ class Leap extends Component {
       this.setState({
         board: board,
         turn: board.player,
-        continuedMove: true,
+        continuedMove: board.continuedMove,
         selectedPiece: to
       });
     } else this.setState({

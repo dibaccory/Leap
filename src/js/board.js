@@ -254,10 +254,10 @@ Board.prototype.getMovesInDirection = function (from, direction, bypass) {
 	//check adjacent cells of piece p wrt the boundary
 	const adj = from+direction;
 	const isPhase = this.board[adj] & 1;
-
+	const jumpWithinBounds = Math.abs( (adj+direction)%BOARD_SIZE - from%BOARD_SIZE ) < 3;
 	if (isPhase && this.canLeap(from, adj, bypass)) return true;
 
-	if ( (this.getPlayer(adj) ^ this.player) === 8) {
+	if ( (this.getPlayer(adj) ^ this.player) === 8 && jumpWithinBounds) {
 		if (this.canJump(from, direction, bypass) ) return true;
  	}
 	else if (bypass) return true;
@@ -272,8 +272,9 @@ Board.prototype.getMoves = function (from, bypass) {
 		for (let c=-1+(bCol === 1 ? 1 : 0); c<2-(bCol === 0 ? 1 : 0); c++) {
 			let direction = (r*BOARD_SIZE) + c;
 			let adj = from+direction;
+
 			//enemy or empty cell
-			let validDirection = ( this.getPlayer(adj) ^ this.player ) && this.inBounds(adj) && (direction);
+			let validDirection = (direction) && ( this.getPlayer(adj) ^ this.player ) && this.inBounds(adj);
 			if ( validDirection && this.getMovesInDirection(from, direction, bypass) ) return true;
 		}
 	}
@@ -307,6 +308,7 @@ Board.prototype.doMove = function (from, to) {
 		this.makeClone(from, to);
 		this.removeHighlight();
 		this.clearMoves();
+		this.continuedMove = false;
 		return;
 	}
 	const pi = this.board[from] >> 5;
@@ -326,10 +328,12 @@ Board.prototype.doMove = function (from, to) {
 
 	if (capturedPiece) {
 		const ci = this.board[capturedPiece] >> 5;
+		if(ci < 0) debugger;
 		this.board[capturedPiece] &= 3;
 		this.board[BOARD_AREA + ci] = ~this.board[BOARD_AREA + ci]; //He DED
 
-		if(--this.pAmount[(this.player ^ 8)]) return true;
+
+		if( (--this.pAmount[(this.player ^ 8)]) === 0) return true;
 		//if Leap, then we get the direction by the difference between captured index and adjacent movement cell
 		const capturedAdjToDestination = (-9 <= (to-capturedPiece) && (to-capturedPiece) <= 9);
 		const capturedDirection = capturedAdjToDestination ? (to-capturedPiece) : (capturedPiece - from);
@@ -350,7 +354,7 @@ Board.prototype.doMove = function (from, to) {
 
 	//if not a continued move, change player
 	if(!this.moves[pi].length) this.switchPlayer();
-	else this.continuedMove = true;
+	else {this.continuedMove = to;/*debugger;*/}
 
 	return false;
 }
@@ -363,12 +367,15 @@ Board.prototype.getPlayer = function (index) {
 	const pid = (this.board[index] & 12);
 	return (pid === 4 || pid === 12) ? pid : 0;
 }
+//NOTE: index 0 can never be captured
+//How to optimize? Well, if moves[pid][i] !< BOARD_AREA, then it must be a capture
 
 Board.prototype.getCapturedPiece = function (pid, to) {
 	const nMoves = this.moves[pid].length;
 	for (let i=0; i< nMoves; i++) {
 		let move = this.moves[pid][i];
 		let capturedPiece = move >> (BIT_INDEX_SHIFT);
+		if (capturedPiece >= BOARD_AREA) debugger;
 		if ( (move & (BIT_AREA - 1)) === to  && capturedPiece) return capturedPiece;
 	}
 }
@@ -419,31 +426,47 @@ Board.prototype.validMove = function (piece, index) {
 
 //not sure how performant this is...
 Board.prototype.randomMove = function () {
-	//if no moves, enemy wins
-	if (!this.getAllMoves(this.player)) return (this.player ^ 8);
-	const moves = {...this.moves};
-	const reducedMoveList = Object.keys(moves)
-		.filter( item => moves[item].length)
-		.reduce( (res, key) => (res[key] = moves[key], res), {} );
-	const moveKeys = Object.keys(reducedMoveList);
-	const length = moveKeys.length;
-	const piece = moveKeys[Math.floor(Math.random() * length)];
-	const to = reducedMoveList[piece][Math.floor(Math.random() * reducedMoveList[piece].length)] & (BIT_AREA - 1);
-	const from = this.board[BOARD_AREA + parseInt(piece)];
-	return this.doMove(from, to);
+	if (!this.continuedMove) {
+		//if no moves, enemy wins
+		if (!this.getAllMoves(this.player)) return (this.player ^ 8);
+		const moves = {...this.moves};
+		const reducedMoveList = Object.keys(moves)
+			.filter( item => moves[item].length)
+			.reduce( (res, key) => (res[key] = moves[key], res), {} );
+		const moveKeys = Object.keys(reducedMoveList);
+		const length = moveKeys.length;
+		const piece = moveKeys[Math.floor(Math.random() * length)];
+		const to = reducedMoveList[piece][Math.floor(Math.random() * reducedMoveList[piece].length)] & (BIT_AREA - 1);
+		const from = this.board[BOARD_AREA + parseInt(piece)];
+
+		return (this.doMove(from, to)) ? this.player : 0;
+	} else {
+
+		this.clearMoves();
+		const from = this.continuedMove;
+		this.getMoves(from);
+		const pi = this.board[from] >> 5;
+		const to = this.moves[pi][Math.floor(Math.random() * this.moves[pi].length)] & (BIT_AREA - 1);
+
+		return (this.doMove(from, to)) ? this.player : 0;
+	}
+
 }
 
 //what should the heuristic be??
 Board.prototype.score = function () {
 	let p1 = 0;
 	let p2 = 0;
-	const pieces = this.board.slice(BOARD_AREA);
-	const n = pieces.length;
-	for (let pi=0; pi < n; pi++) {
+	const p = {...this.board.slice(BOARD_AREA)};
+	const pieces = Object.keys(p)
+		.filter( item => p[item] !== undefined)
+		.reduce( (res, key) => (res[key] = p[key], res), {} );
+	const n = Object.keys(pieces).length;
+	for (let pi in pieces) {
 		const isClone = pieces[pi] & 16;
 		const score = (2+!isClone);
-		if (pi < this.pAmount[PLAYER_ONE]) p1 += score;
-		else p2 += score;
+		if (parseInt(pi)/BIT_MAX_PI) p2 += score;
+		else p1 += score;
 	}
 	if (p1 > p2) return PLAYER_ONE;
 	else if (p2 > p1) return PLAYER_TWO;
