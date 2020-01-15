@@ -194,7 +194,7 @@ Board.prototype.isCloneMove = function (from, to) {
 
 /*==========											MOVE LOGIC												==========*/
 
-Board.prototype.canLeap = function (from, adj, bypass) {
+Board.prototype.canLeap = function (from, adj) {
 	const to = this.getInverseIndex(from);
 
 	//DOES NOT CONSIDER SPECIAL PIECE '10'
@@ -205,19 +205,17 @@ Board.prototype.canLeap = function (from, adj, bypass) {
 	const phaseFar = this.getPlayer(inv);
 
 	if ( (phaseAdj ^ phaseFar ^ this.player) === 8 ) {
-		if (bypass) return true;
-		else this.addMove(from, to, (phaseAdj ? adj : inv));
+		this.addMove(from, to, (phaseAdj ? adj : inv));
 	}
 	//if neighbor cell is a phase, leap_cell clear, and (enemy piece on phaseAdj XOR enemy piece on phaseFar)
 }
 
-Board.prototype.canJump = function (from, direction, bypass) {
+Board.prototype.canJump = function (from, direction) {
 	//if adj cell occupied, jumpCell in bounds, jumpCell clear, and jumpCell has enemy piece
 	const adj = from+direction;
 	const to = adj+direction;
 	if (this.inBounds(to) && !this.getPlayer(to)) {
-		if (bypass) return true;
-		else this.addMove(from, to, adj);
+		this.addMove(from, to, adj);
 	}
 }
 
@@ -226,46 +224,40 @@ Board.prototype.isPhaseMove = function (from, to, captured) {
 	return !captured && bothPhases && this.getInverseIndex(from) === to;
 }
 
-Board.prototype.canPhase = function (from, to, bypass) {
+Board.prototype.canPhase = function (from, to) {
 	const isPhase = (this.board[from] & 1);
 	const isDestinationEmpty = !(this.board[to] & 4); //1 if player piece
 	if (isPhase && isDestinationEmpty) {
-		if (bypass) return true;
-		else this.addMove(from, to);
+		this.addMove(from, to);
 	}
 }
 
 //reaching this function implies selected piece can be cloned, so piece is on a bounding row
-Board.prototype.getSpawnCells = function (from, bypass) {
+Board.prototype.getSpawnCells = function (from) {
 	const spawnRow = ( from/BOARD_SIZE ^ (BOARD_SIZE-1) );
 	for (let col=1; col<BOARD_SIZE-1;col++) {
 		let to = spawnRow*BOARD_SIZE + col;
 		let spawnCellEmpty = !(this.board[to] & 4);
 
 		//if spawnCell doesn't have a player on it
-		if (spawnCellEmpty) {
-			if (bypass) return true;
-			else this.addMove(from, to);
-		}
+		if (spawnCellEmpty) this.addMove(from, to);
 	}
 }
 
-Board.prototype.getMovesInDirection = function (from, direction, bypass) {
+Board.prototype.getMovesInDirection = function (from, direction) {
 	//check adjacent cells of piece p wrt the boundary
 	const adj = from+direction;
 	const isPhase = this.board[adj] & 1;
 	const jumpWithinBounds = Math.abs( (adj+direction)%BOARD_SIZE - from%BOARD_SIZE ) < 3;
-	if (isPhase && this.canLeap(from, adj, bypass)) return true;
+	if (isPhase && this.canLeap(from, adj)) return true;
 
-	if ( (this.getPlayer(adj) ^ this.player) === 8 && jumpWithinBounds) {
-		if (this.canJump(from, direction, bypass) ) return true;
+	if ( (this.getPlayer(adj) ^ this.player) === 8 ) {
+		if (jumpWithinBounds && this.canJump(from, direction) ) return true;
  	}
-	else if (bypass) return true;
 	else this.addMove(from, adj);
 }
 
-//bypass: if you want to see if this piece is able to move
-Board.prototype.getMoves = function (from, bypass) {
+Board.prototype.getMoves = function (from) {
 
 	const bCol = (from+1)%BOARD_SIZE < 2 ? (from+1)%BOARD_SIZE : undefined;
 	for (let r=-1; r<2; r++) {
@@ -275,14 +267,14 @@ Board.prototype.getMoves = function (from, bypass) {
 
 			//enemy or empty cell
 			let validDirection = (direction) && ( this.getPlayer(adj) ^ this.player ) && this.inBounds(adj);
-			if ( validDirection && this.getMovesInDirection(from, direction, bypass) ) return true;
+			if ( validDirection && this.getMovesInDirection(from, direction) ) return true;
 		}
 	}
 	const inv = this.getInverseIndex(from);
 	// phase condition
-	if ( !this.isRedundantMove(from, inv) && this.canPhase(from, inv, bypass) ) return true;
+	if ( !this.isRedundantMove(from, inv) && this.canPhase(from, inv) ) return true;
 	// clone condition
-	if (!(this.board[from] & 16) && this.onCloningCell(from) && this.getSpawnCells(from, bypass)) return true;
+	if (!(this.board[from] & 16) && this.onCloningCell(from) && this.getSpawnCells(from)) return true;
 }
 
 
@@ -308,6 +300,7 @@ Board.prototype.doMove = function (from, to) {
 		this.makeClone(from, to);
 		this.removeHighlight();
 		this.clearMoves();
+		this.switchPlayer();
 		this.continuedMove = false;
 		return;
 	}
@@ -340,7 +333,7 @@ Board.prototype.doMove = function (from, to) {
 		//if can continue move in direction
 		let adj = to+capturedDirection;
 		if ( this.board[adj] & 1 ) this.canLeap(to, adj);
-		if ( this.getPlayer(adj) ^ this.player === 2) this.canJump(to, capturedDirection);
+		if ( (this.getPlayer(adj) ^ this.player) === 8) this.canJump(to, capturedDirection);
 	}
 	this.board[from] &= 3; //keep only cell data
 	this.board[BOARD_AREA + pi] = to;
@@ -429,6 +422,8 @@ Board.prototype.randomMove = function () {
 	if (!this.continuedMove) {
 		//if no moves, enemy wins
 		if (!this.getAllMoves(this.player)) return (this.player ^ 8);
+
+		//There's gotta be a better way to remove undefined indeces
 		const moves = {...this.moves};
 		const reducedMoveList = Object.keys(moves)
 			.filter( item => moves[item].length)
@@ -457,16 +452,32 @@ Board.prototype.randomMove = function () {
 Board.prototype.score = function () {
 	let p1 = 0;
 	let p2 = 0;
-	const p = {...this.board.slice(BOARD_AREA)};
-	const pieces = Object.keys(p)
-		.filter( item => p[item] !== undefined)
-		.reduce( (res, key) => (res[key] = p[key], res), {} );
-	const n = Object.keys(pieces).length;
-	for (let pi in pieces) {
-		const isClone = pieces[pi] & 16;
-		const score = (2+!isClone);
-		if (parseInt(pi)/BIT_MAX_PI) p2 += score;
-		else p1 += score;
+	const spawnRow = index => ( (index >> 5) & BIT_MAX_PI ) ? (BOARD_SIZE-1) : 0;
+
+	//no piece difference...
+	if ( (this.pAmount[PLAYER_ONE] - this.pAmount[PLAYER_TWO]) === 0 ) {
+
+		for (let key=0; key<2*BIT_MAX_PI && (this.board[BOARD_AREA + key] !== undefined);key++) {
+			const piece = this.board[BOARD_AREA + key];
+			const distanceFromSpawn = Math.abs(spawnRow(piece) - piece/BOARD_SIZE);
+			if (key < BIT_MAX_PI) p1 += distanceFromSpawn;
+			else p2 += distanceFromSpawn;
+
+		}
+
+
+	} else {
+		const p = {...this.board.slice(BOARD_AREA)};
+		const pieces = Object.keys(p)
+			.filter( item => p[item] !== undefined)
+			.reduce( (res, key) => (res[key] = p[key], res), {} );
+		const n = Object.keys(pieces).length;
+		for (let pi in pieces) {
+			const isClone = 2*(pieces[pi] & 16);
+			const score = (5+!isClone);
+			if (parseInt(pi)/BIT_MAX_PI) p2 += score;
+			else p1 += score;
+		}
 	}
 	if (p1 > p2) return PLAYER_ONE;
 	else if (p2 > p1) return PLAYER_TWO;

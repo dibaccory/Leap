@@ -1,10 +1,12 @@
 import {BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA} from './board.js';
 
+const UCB_COEFFICENT = 1;
+
 function Node(player, from, to) {
     this.visits = 1;
-    this.score = 0;
+    this.score = (to >> 5) ? BOARD_SIZE : 0;
     this.children = null;
-    this.to = to;
+    this.to = to & (BIT_AREA - 1);
     this.from = from;
     this.player = player;
 }
@@ -28,7 +30,7 @@ Node.prototype.branch = function (state) {
       const from = state.board[BOARD_AREA + pi];
 
       for (let i = 0; i < nMoves; i++) {
-        const to = ( state.moves[pi][i] & (BIT_AREA - 1) );
+        const to = state.moves[pi][i];
         let child = new Node(state.player, from, to);
         this.append(child);
       }
@@ -39,22 +41,27 @@ Node.prototype.playFor = function (state) {
     return state.doMove(this.from, this.to);
 }
 
-Node.prototype.ucb = function (coeff) {
-    var score = (this.score / this.visits);
-    return score + Math.sqrt(coeff / this.visits);
+Node.prototype.ucb = function (c) {
+    const score = (this.score / this.visits);
+    return score + UCB_COEFFICENT * Math.sqrt( c / this.visits);
 }
 
 Node.prototype.findBestChild = function () {
-    var coeff = 20 * Math.log(this.visits);
-    var bestScore = -Infinity;
-    var bestChild = null;
-    for (var i = 0; i < this.children.length; i++) {
-        var child = this.children[i];
-        var score = child.ucb(coeff);
-        if (score > bestScore) {
-            bestScore = score;
-            bestChild = child;
-        }
+    const coeff = Math.log(this.visits);
+    let bestScore = -Infinity;
+    let bestChild = null;
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      let score;
+
+      //Prioritize unexplored nodes
+      if (child.visits !== 1) score = child.ucb(coeff);
+      else score = Math.ceil( 10000*(1 + Math.random()) );
+
+      if (score > bestScore) {
+          bestScore = score;
+          bestChild = child;
+      }
     }
     return bestChild;
 }
@@ -66,25 +73,26 @@ Node.prototype.findBestChild = function () {
 export function UCT(startState, maxTime) {
   this.root = new Node(startState.player);
   this.startState = startState;
-  this.visitThreshold = 2*BOARD_SIZE;
+  this.visitThreshold = BOARD_SIZE;
 
   // Populate the first node.
   this.root.branch(startState);
   this.history = [this.root];
 
-  var totalPlayouts = 0;
-  var start = Date.now();
-  var elapsedTime = 0;
+  let totalPlayouts = 0;
+  const start = Date.now();
+  let elapsedTime = 0;
   while (elapsedTime < maxTime) {
-      for (var i = 0; i < 500; i++) this.run();
+      for (let i = 0; i < 500; i++) this.run();
       totalPlayouts += 500;
       elapsedTime = Date.now() - start;
   }
 
-  var bestChild = null;
-  var bestScore = -Infinity;
-  for (var i = 0; i < this.root.children.length; i++) {
-      var child = this.root.children[i];
+  //Choose best child of root to return next move
+  let bestChild = null;
+  let bestScore = -Infinity;
+  for (let i = 0; i < this.root.children.length; i++) {
+      const child = this.root.children[i];
       if (child.visits > bestScore) {
           bestChild = child;
           bestScore = child.visits;
@@ -100,11 +108,11 @@ export function UCT(startState, maxTime) {
 }
 
 UCT.prototype.playout = function (state) {
-    var nmoves = 0;
+    let nmoves = 0;
 
-    while (++nmoves < 60) {
-        var result = state.randomMove(); //returns if won
-        if (result) return result;
+    while (++nmoves < 40) {
+      const result = state.randomMove(); //returns if won
+      if (result) return result;
     }
     return state.score();
 }
@@ -116,35 +124,35 @@ UCT.prototype.run = function () {
     let winner = 0;
 
     while (true) {
-        if (node.children === null) {
-            if (node.visits >= this.visitThreshold*depth) {
-                node.branch(state);
+      if (node.children === null) {
+        //Keeps UCT from branching too quickly
+        if (node.visits >= this.visitThreshold*depth) {
+        node.branch(state);
 
-                // Leaf node - go directly to update.
-                if (node.children === null) {
-                    winner = node.opponent();
-                    this.history[depth++] = node;
-                    break;
-                }
-                continue;
-            }
-            winner = this.playout(state);
-            break;
+        // Leaf node - go directly to update.
+        if (node.children === null) {
+          winner = node.opponent();
+          this.history[depth++] = node;
+          break;
         }
+          continue;
+        }
+        winner = this.playout(state);
+        break;
+      }
         node = node.findBestChild();
         this.history[depth++] = node;
         if (node.playFor(state)) {
-            winner = state.player;
-            break;
+          winner = state.player;
+          break;
         }
     }
 
-    for (var i = 0; i < depth; i++) {
-        node = this.history[i];
-        node.visits++;
-        if (winner === node.player)
-            node.score += 1;
-        else if (!winner)
-            node.score -= 1;
+    //Update scores
+    for (let i = 0; i < depth; i++) {
+      node = this.history[i];
+      node.visits++;
+      if (winner === node.player) node.score += 1;
+      else if (!winner) node.score -= 1;
     }
 }

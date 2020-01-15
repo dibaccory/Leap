@@ -133,7 +133,8 @@ class Leap extends Component {
       return;
     }
     console.log("handling move...");
-
+    //debugger;
+    
     //check if win
     if(board.doMove(from, to)) {
       this.setState({winner: board.switchPlayer()});
