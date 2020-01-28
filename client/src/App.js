@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import socketIOClient from "socket.io-client";
+import crypto from 'crypto';
 import './css/App.css';
 import './lib/fa/css/all.min.css';
 import { CSSTransition } from 'react-transition-group';
+import Settings from './Settings';
 import Leap from './Leap';
 import Menu from './Menu';
 
@@ -9,74 +12,99 @@ const CONFIG = {
   difficulty: 0,
   online: true,
   port: 3001,
-  players: [{
-    name: 'Player 1',
-    color: 'white',
-    bot: false,
-    first: true,
-  },{
-    name: 'Player 2',
-    color: 'black',
-    bot: false,
-    first: false,
-  }],
+  player: {},
   size: 8,
 };
 
-function App() {
+class App extends React.Component {
   // add back   <Menu/>
   //If roomURL isn't empty, then Multiplayer
   //go to roomURL.
-  if (CONFIG.online) {
-    //make new process on server to set CONFIG.port. right now it's static
-  }
-
-  return (
-    <div className="App">
-    <Settings/>
-
-    <Leap config={ CONFIG }/>
-    </div>
-  );
-}
-
-//Move these to their own file
-function Settings() {
-  const options= {
-      'sfx'   :{text: 'SFX', icon: 'fas fa-volume-down', type:'toggle', crossed: false},
-      'music' :{text: 'Music', icon: 'fas fa-music', type:'toggle', crossed: false},
-      'ads'   :{text: 'Ads', icon: 'fas fa-ad', type:'page'}
+  constructor () {
+    super();
+    this.socket = socketIOClient(`http://localhost:${CONFIG.port}`);
+    var name;
+    do { name = prompt("username?");}while(!name);
+    const player = {
+      name: name,
+      bot: false,
+      color: 'white',
     };
-  const [container, showContainer] = useState(false);
-  //useEffect(()=>containerToggle = !containerToggle);
-  const settingsItems = Object.values(options).map( (item, i) =>
-    <SettingsItem
-      key={ i }
-      item={ item }
-    />
-  );
-  return ( <div className='settings'>
-      <i className='fas fa-cog' onClick = { () => showContainer(!container) } />
-      <CSSTransition
-        in={container}
-        timeout={0}
-        classNames= 'settings-container'
-      >
-        <div className='setcon'>{settingsItems}</div>
-      </CSSTransition>
-    </div>
-  );
+    this.socket.emit('login', player);
+    CONFIG.player = player;
+    this.state = {
+      player: player,
+      inGame: '',
+      lobby: [],
+    };
+
+    this.socket.emit('lobbyLoad');
+    this.socket.on('lobbyLoadSuccess', games => {
+      let lobby = [];
+      for (const id in games) {
+        lobby.push(
+          <button
+            key= {id}
+            onClick={ () => this.setState({inGame: id}) }>
+            Game with { games[id].host }
+          </button>
+        );
+      }
+      this.setState({lobby: lobby});
+    });
+
+    console.log(this.state.lobby);
+
+
+  }
+
+
+  componentDidMount () {
+
+  }
+
+
+
+  exitGame() {
+
+  }
+
+
+  render () {
+
+
+
+    const createGame = () => {
+      const id =  crypto.randomBytes(10).toString('hex');
+      console.log(id);
+      this.socket.emit('gameCreate', {
+        id: id,
+        whitelist: false,
+        host: this.state.player.name,
+        users : {},
+      });
+
+      //this.socket.emit('sendGames');
+    }
+
+    return (
+      <div className="App">
+        <Settings/>
+        <div>
+          gameroonis
+          { (this.state.lobby.length > 0) && this.state.lobby }
+        </div>
+        <button
+          className='start-game-btn'
+          onClick={ () => createGame() }>
+          Create new game
+        </button>
+        { this.state.inGame && <Leap gameid= { this.state.inGame } config={ CONFIG }/> }
+      </div>
+    );
+  }
 }
 
-function SettingsItem(props) {
-  let id = props.item.text.toLowerCase();
-  let classes = 'settings-item';
-  if(props.item.type === 'toggle'){
-    classes += props.item.crossed ? ' crossed' : '';
-  }
-  return ( <div className= { classes } id={ id } /*onClick={ () => props.handleClick(id) }*/>
-    <i className= { props.item.icon } ></i>
-  </div> );
-}
+
 
 export default App;

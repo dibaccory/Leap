@@ -1,38 +1,23 @@
-import path from 'path';
-import express from 'express';
-import socket from 'socket.io';
-import { createServer } from 'http';
+//import express from 'express';
+const socket = require('socket.io');
+const http = require('http');
+const express = require('express');
 
 const port = process.env.PORT || 3001;
-const server = http.createServer(express());
-server.get('/', (req, res) => { res.sendFile(__dirname + '../') });
-server.listen(port, () => console.log('Listening on port ${ port }'));
+const app = express();
+const router = express.Router();
+router.get('/', (req, res) => { res.send({response: 'hurrrr' }) } );
+app.use(router);
+const server = http.createServer( app );
 const io = socket(server);
+io.origins('*:*');
+server.listen(port, () => console.log(`Listening on port ${ port }`));
+
+
 /*
 This connection begins when a user is 'logged in' to the app.
 -Entering the site, user is automatically generated a username (is usertype GUEST)
 -guests don't have saved games
-
-On entering site:
-- if cached guest username:
-  -adduser (CACHED GUEST USERNAME)
-- else
-  -adduser (NEW GENERATED GUESTSTRING)
-
-- SHOW ROOMS USER IS IN (connect to db...? look for USERNAME.getRooms())
-
-
-user commands:
-
-gameCreate: make new room (add room then emit roomEnter)
-
-gameEnter: connect to room
-
-gameLeave: disconnect from room
-
-sendChat: has data {currentRoom, message, chat? idk lol}
-
-updateName:
 
 should there be a master lobby where all logged in people can see games they can enter?
 that'd be neat
@@ -54,15 +39,21 @@ that'd be neat
 
 */
 
+var users = {};
+
+var clientGames = {};
+
 
 io.sockets.on('connection', socket => {
 
   //login prompt (returning user / guest)
   socket.on('login', d => {
     //update client data
-    socket.username = d.username;
+    socket.player = d;
+    users[d.username] = d;
+    console.log(`CLIENT PLAYER: ${JSON.stringify(d)}`);
     // if (d['isGuest'] is TRUE and d['username'] IN CACHE) then clientGames is also in cache
-    //socket.clientGames = GET ACTIVE GAMES FROM DB
+    //clientGames = GET ACTIVE GAMES FROM DB
 
   });
 
@@ -70,25 +61,35 @@ io.sockets.on('connection', socket => {
   socket.on('userUpdate', user => {
     socket.user = user;
     socket.username = user.name;
+
+  });
+
+  socket.on('lobbyLoad', () => {
+    io.sockets.emit('lobbyLoadSuccess', clientGames);
   });
 
   //create new game, then enter
   socket.on('gameCreate', game => {
-    socket.activeGame = game;
-    socket.clientGames[game.id] = game;
+
+    clientGames[game.id] = game;
+    console.log(`NEW GAME: ${JSON.stringify(game)}`);
     //UPDATE clientGames to DB
-
-    socket.join(game.id);
+    io.sockets.emit('lobbyLoadSuccess', clientGames);
   });
 
-  socket.on('gameEnter', game => {
-    socket.activeGame = game;
-    socket.broadcast.to(game.id).emit('userActive', socket.username);
+  socket.on('gameEnter', id => {
+    clientGames[id].users[socket.player.name] = socket.player;
+    //socket.activeGame = clientGames[id];
+    socket.join(id);
+    socket.emit('sendGame', clientGames[id]);
+    socket.broadcast.to(id).emit('userActive', socket.player.name);
+
   });
 
-  socket.on('gameLeave', game => {
-    socket.activeGame = null;
-    socket.broadcast.to(game.id).emit('userInactive', socket.username);
+  socket.on('gameLeave', id => {
+    delete clientGames[id].users[socket.player.name];
+    //socket.activeGame = null;
+    socket.broadcast.to(id).emit('userInactive', socket.player.name);
 
     //If there are any spectators, let them be the new thing or whatever
 

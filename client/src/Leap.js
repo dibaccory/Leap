@@ -1,10 +1,13 @@
 import React, { Component } from 'react';
+import socketIOClient from "socket.io-client";
 import './css/ui.css';
 import Countdown from 'react-countdown-now';
 import {cellType} from './js/util.js';
 import Board from './js/board.js';
 import {UCT as Bot} from './js/ai.js';
-import * as Colyseus from 'colyseus.js';
+
+
+
 
 export var BOARD_SIZE;
 //const BOARD_AREA = BOARD_SIZE*BOARD_SIZE;
@@ -17,56 +20,70 @@ const CELL_COLORS = [ "gray1", "gray2", "pink", "red", "orange", "yellow", "gree
 class Leap extends Component {
   constructor(props) {
     super(props);
-    BOARD_SIZE = props.config.size;
-    this.firstPlayer = props.config.players[0].first ? playerOne : playerTwo
-    this.state = {
-      /*...props.config,*/
-      board: new Board(this.firstPlayer, BOARD_SIZE, 0), // 0 is phaseLayout
-      turn: this.firstPlayer,
-      continuedMove: false,
-      selectedPiece: null,
-      winner: null
-    };
+    if(props.config.online) {
+      const endpoint = ( window.location.origin + `//:${ props.config.port }` );
+      this.io = socketIOClient(endpoint);
+      this.io.on('connect', ()=>{
+        this.io.on('sendGame', game => {
+            //game.
+        })
+      });
 
-    /*
-    When we implement colyseus,
-      name: 'Player X' default, change in 'more' section or something
-      class: 'piece '+ chosen color
-      bot: true | false
-    */
-    PLAYERS = {
-      [playerOne]: {
-        ...props.config.players[0],
-        class: "player-one"
-      },
-      [playerTwo]: {
-        ...props.config.players[1],
-        class: "player-two"
+
+      BOARD_SIZE = props.config.size;
+      this.state = {
+        online: props.config.online,
+        endpoint: ( window.location.origin + `//:${ props.config.port }` ),
+        board: new Board(this.firstPlayer, BOARD_SIZE, 0), // 0 is phaseLayout
+        turn: this.firstPlayer,
+        continuedMove: false,
+        selectedPiece: null,
+        winner: null
+      };
+
+      PLAYERS = {
+        [playerOne]: {
+          class: "player-one"
+        },
+        [playerTwo]: {
+          class: "player-two"
+        }
+      }
+
+      this.io.emit('gameEnter', props.id);
+
+    } else {
+      BOARD_SIZE = props.config.size;
+      this.firstPlayer = props.config.players[0].first ? playerOne : playerTwo;
+      this.state = {
+        online: props.config.online,
+        endpoint: ( window.location.origin + `//:${ props.config.port }` ),
+        board: new Board(this.firstPlayer, BOARD_SIZE, 0), // 0 is phaseLayout
+        turn: this.firstPlayer,
+        continuedMove: false,
+        selectedPiece: null,
+        winner: null
+      };
+      PLAYERS = {
+        [playerOne]: {
+          ...props.config.players[0],
+          class: "player-one"
+        },
+        [playerTwo]: {
+          ...props.config.players[1],
+          class: "player-two"
+        }
       }
     }
 
-    //if true at this point, then port has been established
-    if (props.config.online) {
-      // use current hostname/port as colyseus server endpoint
-      var endpoint = window.location.protocol.replace("http", "ws") + "//" + window.location.hostname;
-
-      // development server
-      if (window.location.port && window.location.port !== "80") endpoint += ":${ props.config.port }";
-
-      this.send = new CustomEvent('move');
-      this.colyseus = new Colyseus(endpoint);
-      this.gameHandler = this.colyseus.join('game', { channel: window.location.hash || "#default" });
-      this.gameHandler.on('move', this.onUpdateRemote.bind(this));
-
-    }
-  }
-
-  onUpdateRemote (newState) {
-    console.log("new state: ", newState);
-    this.setState(newState);
   }
 
   componentDidMount() {
+    if( this.state.online ) {
+      this.io.on('userActive', (player) => {
+        console.log(`${player} has joined`);
+      });
+    }
     //Check if first player is bot
     if(PLAYERS[this.state.turn].bot) {
       var ai = Bot(this.state.board, 5000);
