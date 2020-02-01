@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import socketIOClient from "socket.io-client";
+import * as io from "socket.io-client";
 import crypto from 'crypto';
 import './css/App.css';
 import './lib/fa/css/all.min.css';
@@ -22,7 +22,10 @@ class App extends React.Component {
   //go to roomURL.
   constructor () {
     super();
-    this.socket = socketIOClient(`http://localhost:${CONFIG.port}`);
+    this.socket = io.connect(`http://localhost:${CONFIG.port}`);
+    this.socket.on('connect', () => {
+      this.socket.emit('lobbyLoad');
+    });
     var name;
     do { name = prompt("username?");}while(!name);
     const player = {
@@ -30,22 +33,14 @@ class App extends React.Component {
       bot: false,
       color: 'white',
     };
-    this.socket.emit('login', player);
-    CONFIG.player = player;
-    this.state = {
-      player: player,
-      inGame: '',
-      lobby: [],
-    };
 
-    this.socket.emit('lobbyLoad');
     this.socket.on('lobbyLoadSuccess', games => {
       let lobby = [];
       for (const id in games) {
         lobby.push(
           <button
             key= {id}
-            onClick={ () => this.setState({inGame: id}) }>
+            onClick={ () => this.enterGame(id) }>
             Game with { games[id].host }
           </button>
         );
@@ -53,8 +48,16 @@ class App extends React.Component {
       this.setState({lobby: lobby});
     });
 
-    console.log(this.state.lobby);
+    this.socket.emit('login', player);
+    CONFIG.player = player;
+    this.state = {
+      player: player,
+      inGame: '',
+      lobby: [],
+    };
+    this.socket.emit('lobbyLoad');
 
+    //console.log(this.state.lobby);
 
   }
 
@@ -63,6 +66,23 @@ class App extends React.Component {
 
   }
 
+  enterGame(id) {
+    this.setState({inGame: id});
+  }
+
+  createGame() {
+    const id =  crypto.randomBytes(10).toString('hex');
+    console.log(id);
+    this.socket.emit('gameCreate', {
+      id: id,
+      whitelist: false,
+      host: this.state.player.name,
+      hostGoesFirst: true,
+      users : {},
+    });
+
+    this.enterGame(id);
+  }
 
 
   exitGame() {
@@ -72,34 +92,23 @@ class App extends React.Component {
 
   render () {
 
-
-
-    const createGame = () => {
-      const id =  crypto.randomBytes(10).toString('hex');
-      console.log(id);
-      this.socket.emit('gameCreate', {
-        id: id,
-        whitelist: false,
-        host: this.state.player.name,
-        users : {},
-      });
-
-      //this.socket.emit('sendGames');
-    }
-
     return (
       <div className="App">
         <Settings/>
-        <div>
-          gameroonis
-          { (this.state.lobby.length > 0) && this.state.lobby }
-        </div>
-        <button
-          className='start-game-btn'
-          onClick={ () => createGame() }>
-          Create new game
-        </button>
-        { this.state.inGame && <Leap gameid= { this.state.inGame } config={ CONFIG }/> }
+        { this.state.inGame ? (
+          <Leap io={this.socket} gameid= { this.state.inGame } config={ CONFIG }/>
+        ) : (
+          <div>
+            <div>
+              gameroonis
+              { (this.state.lobby.length > 0) && this.state.lobby }
+            </div>
+            <button
+              className='start-game-btn'
+              onClick={ () => this.createGame() }>
+              Create new game
+            </button>
+          </div>)}
       </div>
     );
   }

@@ -78,22 +78,41 @@ io.sockets.on('connection', socket => {
   });
 
   socket.on('gameEnter', id => {
-    clientGames[id].users[socket.player.name] = socket.player;
-    //socket.activeGame = clientGames[id];
+    console.log(`USER ${JSON.stringify(socket.player)} ENTER GAME: ${id}`);
+    clientGames[id]['users'][socket.player.name] = socket.player;
+    if (clientGames[id].board) console.log(`GAME BOARD: ${JSON.stringify(clientGames[id].board)}`);
+    socket.activeGameID = id;
     socket.join(id);
-    socket.emit('sendGame', clientGames[id]);
-    socket.broadcast.to(id).emit('userActive', socket.player.name);
+    socket.emit('gameLoad', socket.player, clientGames[id]);
+    socket.broadcast.to(id).emit('userActive', socket.player);
 
   });
 
   socket.on('gameLeave', id => {
     delete clientGames[id].users[socket.player.name];
-    //socket.activeGame = null;
+    socket.activeGame = null;
     socket.broadcast.to(id).emit('userInactive', socket.player.name);
 
     //If there are any spectators, let them be the new thing or whatever
 
   });
+
+  socket.on('gameSet', game => {
+    clientGames[socket.activeGameID] = game;
+  });
+
+  socket.on('gameBoardSend', (id, board) => {
+    console.log(`DID IT SEND: ${JSON.stringify(board)}`);
+    clientGames[socket.activeGameID].board = board;
+    console.log(`DID IT SEND: ${JSON.stringify(board.player)}`);
+    io.in(id).emit('gameBoardRecieve', board);
+  });
+
+  // socket.on('gameBoardSet', board => {
+  //   clientGames[socket.activeGameID].board = board;
+  //   clientGames[socket.activeGameID].board = board;
+  //   socket.broadcast.to(id).emit('gameBoardGet', board);
+  // });
 
   socket.on('chatSend', msg => {
     io.sockets.in(socket.activeGame.id).emit('chatUpdate', socket.username, msg);

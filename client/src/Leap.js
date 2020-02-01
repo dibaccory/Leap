@@ -1,63 +1,46 @@
 import React, { Component } from 'react';
-import socketIOClient from "socket.io-client";
 import './css/ui.css';
-import Countdown from 'react-countdown-now';
+//import Countdown from 'react-countdown-now';
 import {cellType} from './js/util.js';
 import Board from './js/board.js';
 import {UCT as Bot} from './js/ai.js';
-
-
-
-
-export var BOARD_SIZE;
-//const BOARD_AREA = BOARD_SIZE*BOARD_SIZE;
 const playerOne = 4;
 const playerTwo = 12;
 var PLAYERS;
+var BOARD_SIZE;
+
 
 const CELL_COLORS = [ "gray1", "gray2", "pink", "red", "orange", "yellow", "green", "blue"];
 
 class Leap extends Component {
   constructor(props) {
     super(props);
+    BOARD_SIZE = props.config.size;
+    PLAYERS = {
+      [playerOne]: {
+        class: "player-one"
+      },
+      [playerTwo]: {
+        class: "player-two"
+      }
+    }
+
     if(props.config.online) {
-      const endpoint = ( window.location.origin + `//:${ props.config.port }` );
-      this.io = socketIOClient(endpoint);
-      this.io.on('connect', ()=>{
-        this.io.on('sendGame', game => {
-            //game.
-        })
+    //  const endpoint = ( window.location.origin + `//:${ props.config.port }` );
+      this.state = {online: true, id: props.gameid, ready: false};
+      this.io = props.io;
+      this.io.on('gameBoardRecieve',function (board) { this.setState({board: board, turn: board.player}) });
+      this.io.on('gameLoad', (user, game) => this.loadGame(user, game));
+
+      this.io.on('move', game => {
+        //game.
       });
 
-
-      BOARD_SIZE = props.config.size;
-      this.state = {
-        online: props.config.online,
-        endpoint: ( window.location.origin + `//:${ props.config.port }` ),
-        board: new Board(this.firstPlayer, BOARD_SIZE, 0), // 0 is phaseLayout
-        turn: this.firstPlayer,
-        continuedMove: false,
-        selectedPiece: null,
-        winner: null
-      };
-
-      PLAYERS = {
-        [playerOne]: {
-          class: "player-one"
-        },
-        [playerTwo]: {
-          class: "player-two"
-        }
-      }
-
-      this.io.emit('gameEnter', props.id);
-
     } else {
-      BOARD_SIZE = props.config.size;
+      //LOCAL GAME
       this.firstPlayer = props.config.players[0].first ? playerOne : playerTwo;
       this.state = {
-        online: props.config.online,
-        endpoint: ( window.location.origin + `//:${ props.config.port }` ),
+        online: false,
         board: new Board(this.firstPlayer, BOARD_SIZE, 0), // 0 is phaseLayout
         turn: this.firstPlayer,
         continuedMove: false,
@@ -78,30 +61,78 @@ class Leap extends Component {
 
   }
 
+  loadGame (user, game) {
+    const isHost = user.name === game.host;
+
+    const initGameState = () => {
+      const firstPlayer = game.isHostFirst ? playerOne : playerTwo;
+      const board = new Board(firstPlayer, BOARD_SIZE, 0);
+      game.board = board;
+      return {
+        online: true,
+        board: board,
+        turn: firstPlayer,
+        continuedMove: false,
+        selectedPiece: null,
+        winner: null,
+        ready: true,
+      };
+    };
+    //if game.board exists, load the game details
+    //if game.invite === user.name, then set user as appropriate player
+    if (game.board) {
+
+      //set player
+      if (game.isHostFirst && !game.playerTwo) {
+        game.playerTwo = isHost ? '' : user.name;
+        this.player = playerTwo;
+      } else if (!game.isHostFirst && !game.playerOne){
+        game.playerOne = isHost ? '' : user.name;
+        this.player = playerOne;
+      }
+      this.io.emit('gameSet', game);
+
+      this.setState({
+        online: true,
+        board: game.board,
+        turn: game.board.player,
+        continuedMove: false,
+        selectedPiece: null,
+        winner: null,
+        ready: true,
+      });
+
+    } else {
+
+      if(game.isHostFirst) {
+        game.playerOne = game.host;
+        this.player = playerOne;
+      } else {
+        game.playerTwo = game.host;
+        this.player = playerTwo;
+      }
+      this.io.emit('gameSet', game);
+      this.setState(initGameState());
+    }
+
+    PLAYERS[playerOne].name = game.playerOne;
+    PLAYERS[playerTwo].name = game.playerTwo;
+
+  }
+
   componentDidMount() {
     if( this.state.online ) {
+      this.io.emit('gameEnter', this.state.id);
       this.io.on('userActive', (player) => {
-        console.log(`${player} has joined`);
+        console.log(`${player.name} has joined as player ${ (this.player & 8) ? 'PLAYER TWO' : 'PLAYER ONE' }`);
       });
     }
     //Check if first player is bot
-    if(PLAYERS[this.state.turn].bot) {
+    else if(PLAYERS[this.state.turn].bot) {
       var ai = Bot(this.state.board, 5000);
       this.handleMove(ai.from, ai.to);
     } else this.state.board.getAllMoves(this.state.turn);
   }
-
-//GOOD PLACE FOR NETWORK REQUEST
-/*
-  componentDidUpdate(prevProps, prevState, snapshot) {
-
-    //check if current player is bot
-    if(PLAYERS[this.state.turn].bot) {
-      console.log('BOT TIME: ');
-
-    }
-  }
-  */
 
   //React update method
   componentDidUpdate(prevProps, prevState) {
@@ -164,7 +195,7 @@ class Leap extends Component {
 
     //check if win
     if(board.doMove(from, to)) {
-      this.setState({winner: board.switchPlayer()});
+      this.setState({winner: board.player});
       return;
     }
 
@@ -177,20 +208,25 @@ class Leap extends Component {
         continuedMove: board.continuedMove,
         selectedPiece: to
       });
-    } else this.setState({
+    } else {
+      this.io.emit('gameBoardSend', this.state.id, board);
+
+      this.setState({
         board: board,
         turn: board.player,
         continuedMove: false,
         selectedPiece: null
       });
 
-    //If multiplayer, send board
-    if(this.send !== undefined) this.dispatchEvent(this.send);
+
+    }
+
   }
 
   canSelectPiece(cell) {
     //true if cell contains current player's piece AND current player isn't a bot
-    return (cell & 4) && ( (cell & 12) === this.state.turn ) && !PLAYERS[this.state.turn].bot;
+    if (this.state.online) return (cell & 4) && ( (cell & 12) === this.state.turn ) && !PLAYERS[this.state.turn].bot;
+    else return (cell & 4) && ( (cell & 12) === this.state.turn ) && (this.player === this.state.turn);
   }
 
   setPiece(cell, index) {
@@ -210,22 +246,27 @@ class Leap extends Component {
   }
 
   render() {
-    return (
-      <div className="Leap">
-        { this.state.winner && <Winner player={this.state.winner} restart={this.restart.bind(this)} /> }
-        <h3>
-          Current turn: {PLAYERS[this.state.turn].name}
-          <span className={PLAYERS[this.state.turn].class+"-token"}></span>
-        </h3>
-        <div className="game-container">
-          <div className="game-options"></div>
-          <GameBoard board={this.state.board}
-                     selectedPiece={this.state.selectedPiece}
-                     selectCell={this.selectCell.bind(this)} />
-          <div className="game-menu"></div>
+    if (this.state.ready) {
+      const player = PLAYERS[this.state.turn].name;
+      const turn = player ? `Current Player: ${ player }` : 'Waiting for player...' ;
+
+      return (
+        <div className="Leap">
+          { this.state.winner && <Winner player={this.state.winner} restart={this.restart.bind(this)} /> }
+          <h3>
+            {PLAYERS[this.state.turn].name}
+            <span className={PLAYERS[this.state.turn].class+"-token"}></span>
+          </h3>
+          <div className="game-container">
+            <div className="game-options"></div>
+            <GameBoard board={this.state.board}
+                       selectedPiece={this.state.selectedPiece}
+                       selectCell={this.selectCell.bind(this)} />
+            <div className="game-menu"></div>
+          </div>
         </div>
-      </div>
-    );
+      );
+    } else return <div className="Leap">LOADING</div>;
   }
 }
 
