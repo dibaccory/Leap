@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import * as io from "socket.io-client";
 import crypto from 'crypto';
 import './css/App.css';
 import './lib/fa/css/all.min.css';
-import { CSSTransition } from 'react-transition-group';
 import Settings from './Settings';
 import Leap from './game/Leap';
 import Menu from './Menu';
@@ -56,15 +55,10 @@ class App extends React.Component {
       lobby: [],
     };
     this.socket.emit('lobbyLoad');
-
-    //console.log(this.state.lobby);
-
   }
 
 
-  componentDidMount () {
-
-  }
+  componentDidMount () {}
 
   enterGame(id) {
     this.setState({inGame: id});
@@ -80,15 +74,10 @@ class App extends React.Component {
       hostGoesFirst: true,
       users : {},
     });
-
     this.enterGame(id);
   }
 
-
-  exitGame() {
-
-  }
-
+  exitGame() {}
 
   render () {
 
@@ -113,7 +102,5 @@ class App extends React.Component {
     );
   }
 }
-
-
 
 export default App;

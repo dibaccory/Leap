@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './css/menu.css';
 import './lib/fa/css/all.min.css';
 import NavModalContent from './NavModalContent';
-import { CSSTransition } from 'react-transition-group';
 import Leap from './game/Leap';
 
 export var CONFIG = {
