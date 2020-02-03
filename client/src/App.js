@@ -5,7 +5,7 @@ import './css/App.css';
 import './lib/fa/css/all.min.css';
 import { CSSTransition } from 'react-transition-group';
 import Settings from './Settings';
-import Leap from './Leap';
+import Leap from './game/Leap';
 import Menu from './Menu';
 
 const CONFIG = {

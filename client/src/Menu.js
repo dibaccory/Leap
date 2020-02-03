@@ -3,7 +3,7 @@ import './css/menu.css';
 import './lib/fa/css/all.min.css';
 import NavModalContent from './NavModalContent';
 import { CSSTransition } from 'react-transition-group';
-import Leap from './Leap';
+import Leap from './game/Leap';
 
 export var CONFIG = {
   difficulty: 0,
