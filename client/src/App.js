@@ -1,11 +1,11 @@
 import React from 'react';
 import * as io from "socket.io-client";
 import crypto from 'crypto';
-import './css/App.css';
+import './App.css';
 import './lib/fa/css/all.min.css';
-import Settings from './Settings';
-import Leap from './game/Leap';
-import Menu from './Menu';
+import Settings from './Components/Settings/Settings';
+import Leap from './Scenes/Game/Leap';
+//import Menu from './Menu';
 
 const CONFIG = {
   difficulty: 0,
