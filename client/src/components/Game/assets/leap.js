@@ -1,17 +1,12 @@
 //'use strict';
 import {phaseLayouts} from './util';
 
+export var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA;
 const PLAYER_ONE = 4
 const PLAYER_TWO = 12;
 
 function getBitShift(b) {
   return (b >> 1) ? (1 + getBitShift(b >> 1)) : 1;
-}
-
-class Leap {
-  constructor (player, size, phaseLayout) {
-
-  }
 }
 
 

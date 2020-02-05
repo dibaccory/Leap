@@ -1,21 +1,47 @@
 import React from 'react';
-import {cellType, CELL_COLORS} from '.././assets/util.js';
+import {cellType, CELL_COLORS} from './assets/util.js';
+import Leap from './assets/leap.js';
+import {UCT as Bot} from './assets/ai.js';
 var BOARD_SIZE;
 var PLAYERS;
-export function GameBoard(props) {
+
+class Board extends React.Component {
   //let selectedRow = props.selectedPiece ? props.selectedPiece.row : null;
+  constructor (props) {
+    super();
   BOARD_SIZE = props.size;
   PLAYERS = props.players;
-  let rows = [];
-  for(let r=0; r<BOARD_SIZE; r++) {
-    rows.push(<Row
-      key={r}
-      row={r}
-      board={props.board}
-      selectedPiece={props.selectedPiece}
-      selectCell={props.selectCell} />);
+
   }
-  return (<div className="board"> {rows} </div>);
+
+  componentDidMount () {
+    if(PLAYERS[this.state.turn].bot) {
+      var ai = Bot(this.state.game, 5000);
+      this.handleMove(ai.from, ai.to);
+    } else this.state.game.getAllMoves(this.state.turn);
+  }
+
+  componentDidUpdate (prevProps, prevState) {
+    if (this.state.turn === this.player) {
+      let game = this.state.game;
+      if (!game.getAllMoves(this.player)) {
+        console.log("${this.state.turn} has no more moves!");
+        this.);
+      }
+    }
+  }
+
+  render () {
+    let rows = [];
+    for(let r=0; r<BOARD_SIZE; r++) {
+      rows.push(<Row
+        key={r}
+        row={r}
+        board={props.board}
+        selectedPiece={props.selectedPiece}
+        selectCell={props.selectCell} />);
+    return (<div className="board"> {rows} </div>);
+  }
 }
 
 function Row(props) {

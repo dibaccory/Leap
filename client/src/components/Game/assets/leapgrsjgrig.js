@@ -1,7 +1,6 @@
 //'use strict';
 import {phaseLayouts} from './util';
 
-export var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA;
 const PLAYER_ONE = 4
 const PLAYER_TWO = 12;
 
@@ -9,8 +8,14 @@ function getBitShift(b) {
   return (b >> 1) ? (1 + getBitShift(b >> 1)) : 1;
 }
 
+class Leap {
+  constructor (player, size, phaseLayout) {
 
-function Board(player, len, phaseLayout) {
+  }
+}
+
+
+function Leap(player, len, phaseLayout) {
 	//no args passed mean it will be a copy.
 	if (player) {
 		this.player = player;
@@ -25,7 +30,7 @@ function Board(player, len, phaseLayout) {
 	}
 }
 
-Board.prototype.init = function (layout) {
+Leap.prototype.init = function (layout) {
 	this.pAmount = {
 		[PLAYER_ONE]: BOARD_SIZE,
 		[PLAYER_TWO]: BOARD_SIZE
@@ -62,12 +67,12 @@ Board.prototype.init = function (layout) {
 	}
 }
 
-Board.prototype.initPiece = function (key, index) {
+Leap.prototype.initPiece = function (key, index) {
 	this.board[BOARD_AREA + key] = index;
 }
 
-Board.prototype.copy = function () {
-	const board = new Board();
+Leap.prototype.copy = function () {
+	const board = new Leap();
 	const n = BOARD_AREA + 4*BOARD_SIZE;
 	(board.board = []).length = n;
 	(board.moves = []).length = this.moves.length;
@@ -82,7 +87,7 @@ Board.prototype.copy = function () {
 	return board;
 }
 
-Board.prototype.set = function (board) {
+Leap.prototype.set = function (board) {
   this.board = board.board;
   this.player = board.player;
   this.continuedMove = board.continuedMove;
@@ -92,13 +97,13 @@ Board.prototype.set = function (board) {
 }
 
 // moves[pi] = [0000000 0000000] --> [board index of captured piece + board index of destination cell]
-Board.prototype.addMove = function (from, to, captured) {
+Leap.prototype.addMove = function (from, to, captured) {
 	captured = captured || 0;
 	const pi = (this.board[from] >> 5);
 	this.moves[pi].push( (captured << (BIT_INDEX_SHIFT) ) + to );
 }
 
-Board.prototype.clearMoves = function (pi) {
+Leap.prototype.clearMoves = function (pi) {
 	if (pi !== undefined) {
 		this.moves[pi] = [];
 		return;
@@ -106,7 +111,7 @@ Board.prototype.clearMoves = function (pi) {
 	for (let i=0; i<4*BOARD_SIZE; i++) this.moves[i] = [];
 }
 
-Board.prototype.highlightMoves = function (piece) {
+Leap.prototype.highlightMoves = function (piece) {
 	const nMoves = this.moves[piece].length;
 	for (let i=0; i<nMoves; i++) {
 		let to = ( this.moves[piece][i] & (BIT_AREA - 1) );
@@ -114,7 +119,7 @@ Board.prototype.highlightMoves = function (piece) {
 	}
 }
 
-Board.prototype.removeHighlight = function () {
+Leap.prototype.removeHighlight = function () {
 	for (let i=0; i<BOARD_AREA; i++) {
 		if (this.board[i] & 2) (this.board[i] = this.board[i] ^ 2);
 	}
@@ -123,7 +128,7 @@ Board.prototype.removeHighlight = function () {
 /*==========											CLONE															==========*/
 
 //Assume special tiles won't appear on spawn rows
-Board.prototype.makeClone = function (from, to) {
+Leap.prototype.makeClone = function (from, to) {
 	const player = this.player;
 	this.pAmount[player]++;
 	const c = (player === 12) ? BIT_MAX_PI : 0;
@@ -139,7 +144,7 @@ Board.prototype.makeClone = function (from, to) {
 	}
 }
 
-Board.prototype.onCloningCell = function (from) {
+Leap.prototype.onCloningCell = function (from) {
 	const onRow = from/BOARD_SIZE
 	const piece = this.board[from];
 	const onBoundaryColumn = (from+1)%BOARD_SIZE < 2;
@@ -152,7 +157,7 @@ Board.prototype.onCloningCell = function (from) {
 	return (onRow ^ spawnRow);
 }
 //Assumes valid move
-Board.prototype.isCloneMove = function (from, to) {
+Leap.prototype.isCloneMove = function (from, to) {
 	//if on cloning cell, suffice to show if destination is on spawn row
 	const spawnRow = ( (this.board[from] >> 5) & BIT_MAX_PI ) ? (BOARD_SIZE - 1) : 0;
 	return this.onCloningCell(from) && (Math.floor(to/BOARD_SIZE) === spawnRow);
@@ -160,7 +165,7 @@ Board.prototype.isCloneMove = function (from, to) {
 
 /*==========											MOVE LOGIC												==========*/
 
-Board.prototype.canLeap = function (from, adj) {
+Leap.prototype.canLeap = function (from, adj) {
 	const to = this.getInverseIndex(from);
 
 	//DOES NOT CONSIDER SPECIAL PIECE '10'
@@ -176,7 +181,7 @@ Board.prototype.canLeap = function (from, adj) {
 	//if neighbor cell is a phase, leap_cell clear, and (enemy piece on phaseAdj XOR enemy piece on phaseFar)
 }
 
-Board.prototype.canJump = function (from, direction) {
+Leap.prototype.canJump = function (from, direction) {
 	//if adj cell occupied, jumpCell in bounds, jumpCell clear, and jumpCell has enemy piece
 	const adj = from+direction;
 	const to = adj+direction;
@@ -185,12 +190,12 @@ Board.prototype.canJump = function (from, direction) {
 	}
 }
 
-Board.prototype.isPhaseMove = function (from, to, captured) {
+Leap.prototype.isPhaseMove = function (from, to, captured) {
 	const bothPhases = (this.board[from] & this.board[to]) & 1;
 	return !captured && bothPhases && this.getInverseIndex(from) === to;
 }
 
-Board.prototype.canPhase = function (from, to) {
+Leap.prototype.canPhase = function (from, to) {
 	const isPhase = (this.board[from] & 1);
 	const isDestinationEmpty = !(this.board[to] & 4); //1 if player piece
 	if (isPhase && isDestinationEmpty) {
@@ -199,7 +204,7 @@ Board.prototype.canPhase = function (from, to) {
 }
 
 //reaching this function implies selected piece can be cloned, so piece is on a bounding row
-Board.prototype.getSpawnCells = function (from) {
+Leap.prototype.getSpawnCells = function (from) {
 	const spawnRow = ( from/BOARD_SIZE ^ (BOARD_SIZE-1) );
 	for (let col=1; col<BOARD_SIZE-1;col++) {
 		let to = spawnRow*BOARD_SIZE + col;
@@ -210,7 +215,7 @@ Board.prototype.getSpawnCells = function (from) {
 	}
 }
 
-Board.prototype.getMovesInDirection = function (from, direction) {
+Leap.prototype.getMovesInDirection = function (from, direction) {
 	//check adjacent cells of piece p wrt the boundary
 	const adj = from+direction;
 	const isPhase = this.board[adj] & 1;
@@ -223,7 +228,7 @@ Board.prototype.getMovesInDirection = function (from, direction) {
 	else this.addMove(from, adj);
 }
 
-Board.prototype.getMoves = function (from) {
+Leap.prototype.getMoves = function (from) {
 	const bCol = (from+1)%BOARD_SIZE < 2 ? (from+1)%BOARD_SIZE : undefined;
 	for (let r=-1; r<2; r++) {
 		for (let c=-1+(bCol === 1 ? 1 : 0); c<2-(bCol === 0 ? 1 : 0); c++) {
@@ -240,7 +245,7 @@ Board.prototype.getMoves = function (from) {
 	if (!(this.board[from] & 16) && this.onCloningCell(from) ) this.getSpawnCells(from);
 }
 
-Board.prototype.getAllMoves = function (player) {
+Leap.prototype.getAllMoves = function (player) {
 	const c = (player === 12) ? BIT_MAX_PI : 0;
 	var hasMoves = 0;
 	for (let key=c; key < 2*BOARD_SIZE + c; key++) {
@@ -254,7 +259,7 @@ Board.prototype.getAllMoves = function (player) {
 }
 
 //Performs move. returns true if enemy runs out of pieces
-Board.prototype.doMove = function (from, to) {
+Leap.prototype.doMove = function (from, to) {
 	//CACHE this.board HERE. ITS A VERY HOT FUNCTION lmao (. Y .)
 	if (this.isCloneMove(from, to)) {
 		this.makeClone(from, to);
@@ -313,14 +318,14 @@ Board.prototype.doMove = function (from, to) {
 
 /*==========											REFERENCES												==========*/
 
-Board.prototype.getPlayer = function (index) {
+Leap.prototype.getPlayer = function (index) {
 	const pid = (this.board[index] & 12);
 	return (pid === 4 || pid === 12) ? pid : 0;
 }
 //NOTE: index 0 can never be captured
 //How to optimize? Well, if moves[pid][i] !< BOARD_AREA, then it must be a capture
 
-Board.prototype.getCapturedPiece = function (pid, to) {
+Leap.prototype.getCapturedPiece = function (pid, to) {
 	const nMoves = this.moves[pid].length;
 	for (let i=0; i< nMoves; i++) {
 		let move = this.moves[pid][i];
@@ -331,23 +336,23 @@ Board.prototype.getCapturedPiece = function (pid, to) {
 }
 
 //ONLY WORKS on NxN boards and phase group orders of 2
-Board.prototype.getInverseIndex = function (index) {
+Leap.prototype.getInverseIndex = function (index) {
 	return (BOARD_AREA - 1) - index;
 }
 
 /*==========											UTILITY														==========*/
 
-Board.prototype.inBounds = function (index) {
+Leap.prototype.inBounds = function (index) {
 	return 0 <= index && index < BOARD_AREA;
 }
 
-Board.prototype.switchPlayer = function () {
+Leap.prototype.switchPlayer = function () {
 	this.player ^= 8;
 	this.continuedMove = false;
 	return this.player;
 }
 
-Board.prototype.isRedundantMove = function (from, to) {
+Leap.prototype.isRedundantMove = function (from, to) {
 	const pi = (this.board[from] >> 5);
 	const n = this.moves[pi].length;
 	for (let i=0; i<n; i++) {
@@ -356,7 +361,7 @@ Board.prototype.isRedundantMove = function (from, to) {
 	return false;
 }
 
-Board.prototype.validMove = function (piece, index) {
+Leap.prototype.validMove = function (piece, index) {
 	const n = this.moves[piece].length;
 	for (let i=0; i<n; i++) {
 		if ( (this.moves[piece][i] & (BIT_AREA - 1)) === index ) return true;
@@ -365,7 +370,7 @@ Board.prototype.validMove = function (piece, index) {
 }
 
 //not sure how performant this is...
-Board.prototype.randomMove = function () {
+Leap.prototype.randomMove = function () {
 	if (!this.continuedMove) {
 		//if no moves, enemy wins
 		if (!this.getAllMoves(this.player)) return (this.player ^ 8);
@@ -394,7 +399,7 @@ Board.prototype.randomMove = function () {
 }
 
 //what should the heuristic be??
-Board.prototype.score = function () {
+Leap.prototype.score = function () {
 	let p1 = 0;
 	let p2 = 0;
 	const spawnRow = index => ( (index >> 5) & BIT_MAX_PI ) ? (BOARD_SIZE-1) : 0;
@@ -425,4 +430,4 @@ Board.prototype.score = function () {
 	else return 0;
 }
 
-export default Board;
+export default Leap;

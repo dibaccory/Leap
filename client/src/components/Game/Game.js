@@ -1,15 +1,14 @@
 import React, { Component } from 'react';
 import './ui.css';
-import { Winner } from './Components/Announcements';
-import { GameBoard } from './Components/GameBoard';
-import Board from './assets/board.js';
-import {UCT as Bot} from './assets/ai.js';
+import Board from './Board';
+//import { Winner } from '../Announcements';
+
 const playerOne = 4;
 const playerTwo = 12;
 var PLAYERS;
 var BOARD_SIZE;
 
-class Leap extends Component {
+class Game extends Component {
   constructor(props) {
     super(props);
     BOARD_SIZE = props.config.size;
@@ -32,10 +31,6 @@ class Leap extends Component {
       this.io = props.io;
       this.io.on('gameBoardRecieve', board => gameBoardRecieve(board));
       this.io.on('gameLoad', (user, game) => this.loadGame(user, game));
-
-      this.io.on('move', game => {
-        //game.
-      });
 
     } else {
       //LOCAL GAME
@@ -118,14 +113,14 @@ class Leap extends Component {
     if( this.state.online ) {
       this.io.emit('gameEnter', this.state.id);
       this.io.on('userActive', (player) => {
-        console.log(`${player.name} has joined as player ${ (this.player & 8) ? 'PLAYER TWO' : 'PLAYER ONE' }`);
+        console.log(`${player.name} has joined as ${ (this.player & 8) ? 'PLAYER TWO' : 'PLAYER ONE' }`);
       });
     }
-    //Check if first player is bot
-    else if(PLAYERS[this.state.turn].bot) {
-      var ai = Bot(this.state.board, 5000);
-      this.handleMove(ai.from, ai.to);
-    } else this.state.board.getAllMoves(this.state.turn);
+  }
+
+
+  sendMove() {
+    this.io.emit('gameBoardSend', this.state.id, board);
   }
 
   //React update method
