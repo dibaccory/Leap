@@ -37,11 +37,7 @@ class Game extends Component {
       this.firstPlayer = props.config.players[0].first ? playerOne : playerTwo;
       this.state = {
         online: false,
-        board: new Board(this.firstPlayer, BOARD_SIZE, 0), // 0 is phaseLayout
-        turn: this.firstPlayer,
-        continuedMove: false,
-        selectedPiece: null,
-        winner: null
+        game: new Leap(this.firstPlayer, BOARD_SIZE, 0), // 0 is phaseLayout
       };
       PLAYERS = {
         [playerOne]: {
@@ -57,55 +53,47 @@ class Game extends Component {
 
   }
 
-  loadGame (user, game) {
-    const isHost = user.name === game.host;
-  //  const sidesFull = !(game.playerOne || game.playerTwo);
+  loadGame (user, room) {
+    const isHost = user.name === room.host;
+  //  const sidesFull = !(room.playerOne || room.playerTwo);
 
     const initGameState = () => {
-      const firstPlayer = game.hostGoesFirst ? playerOne : playerTwo;
-      const board = new Board(firstPlayer, BOARD_SIZE, 0);
+      const firstPlayer = room.hostGoesFirst ? playerOne : playerTwo;
+      const game = new Leap(firstPlayer, BOARD_SIZE, 0);
       return {
         online: true,
-        board: board,
-        turn: firstPlayer,
-        continuedMove: false,
-        selectedPiece: null,
-        winner: null,
+        game: game,
         ready: true,
       };
     };
 
-    if(game.hostGoesFirst) {
-      game.playerOne = game.playerOne || game.host;
-      game.playerTwo = isHost ? game.playerTwo : user.name;
+    if(room.hostGoesFirst) {
+      room.playerOne = room.playerOne || room.host;
+      room.playerTwo = isHost ? room.playerTwo : user.name;
       this.player = isHost ? playerOne : playerTwo;
     } else {
-      game.playerOne = isHost ? user.name : game.playerOne;
-      game.playerTwo = game.playerTwo || game.host;
+      room.playerOne = isHost ? user.name : room.playerOne;
+      room.playerTwo = room.playerTwo || room.host;
       this.player = isHost ? playerTwo : playerOne;
     }
 
-    //if game.board exists, load the game details
-    //if game.invite === user.name, then set user as appropriate player
-    if (game.board) {
-      const board = new Board(game.board.player, BOARD_SIZE, 0);
-      game.board = board.set(game.board);
+    //if room.board exists, load the room details
+    //if room.invite === user.name, then set user as appropriate player
+    if (room.board) {
+      const game = new Leap(room.game.player, BOARD_SIZE, 0);
+      room.game = game.set(room.game);
       this.setState({
         online: true,
-        board: game.board,
-        turn: game.board.player,
-        continuedMove: false,
-        selectedPiece: null,
-        winner: null,
+        game: room.game,
         ready: true,
       });
 
     } else {
       this.setState(initGameState());
     }
-    this.io.emit('gameSet', game);
-    PLAYERS[playerOne].name = game.playerOne;
-    PLAYERS[playerTwo].name = game.playerTwo;
+    this.io.emit('gameSet', room);
+    PLAYERS[playerOne].name = room.playerOne;
+    PLAYERS[playerTwo].name = room.playerTwo;
 
   }
 
@@ -118,16 +106,15 @@ class Game extends Component {
     }
   }
 
-
-  sendMove() {
-    this.io.emit('gameBoardSend', this.state.id, board);
+  handleMove (game) {
+    this.io.emit('gameBoardSend', this.state.id, game);
   }
 
   //React update method
   componentDidUpdate(prevProps, prevState) {
     //this.state.board.highlightPieceMoves();
     if (prevState.turn !== this.state.turn) {
-      let board = this.state.board;
+      let board = this.state.game;
       if (!board.getAllMoves(this.state.turn)) {
         console.log("${this.state.turn} has no more moves!");
         this.setState({winner: board.switchPlayer()});
@@ -138,93 +125,6 @@ class Game extends Component {
     } else if (this.state.selectedPiece){ }//if is a move continuation and Counter hasn't started, start the timer
   }
 
-  botMove() {
-      var ai = new Bot(this.state.board, 1000);
-       this.handleMove(ai.from, ai.to);
-  }
-
-  selectCell(cell, index) {
-    //If a move is not a continuation, default case,
-    if (!this.state.continuedMove) {
-      if (this.canSelectPiece(cell)) this.setPiece(cell, index);
-      else if (this.state.selectedPiece !== null)  this.handleMove(this.state.selectedPiece, index);
-    } else { //if continuation
-      //check if move = true..
-      let board = this.state.board;
-      if (cell & 2) this.handleMove(this.state.selectedPiece, index);
-      else {
-        board.removeHighlight();
-        //TODO: prompt "end turn?" option.
-        //right now, let's just end the turn otherwise
-        board.switchPlayer();
-        if (this.state.online) this.io.emit('gameBoardSend', this.state.id, board);
-        this.setState({
-          board: board,
-          turn: board.player,
-          continuedMove: false,
-          selectedPiece: null
-        });
-      }
-    }
-  }
-
-  handleMove(from, to) {
-    const board = this.state.board;
-    const pi = board.board[from] >> 5;
-
-    //Have shake animation effect on piece.
-    if (!board.validMove(pi, to)) {
-      console.log("Invalid move!");
-      return;
-    }
-
-    //check if win
-    if (board.doMove(from, to)) {
-      this.setState({winner: board.player});
-      return;
-    }
-
-    //If we can phase, clone, or capture
-    if (board.continuedMove) {
-      board.highlightMoves(pi);
-      this.setState({
-        board: board,
-        turn: board.player,
-        continuedMove: board.continuedMove,
-        selectedPiece: to
-      });
-    } else {
-      if (this.state.online) this.io.emit('gameBoardSend', this.state.id, board);
-      this.setState({
-        board: board,
-        turn: board.player,
-        continuedMove: false,
-        selectedPiece: null
-      });
-    }
-  }
-
-  canSelectPiece(cell) {
-    return (this.state.online)
-      ? (cell & 4) && ( (cell & 12) === this.state.turn ) && (this.player === this.state.turn)
-      : (cell & 4) && ( (cell & 12) === this.state.turn ) && !PLAYERS[this.state.turn].bot;
-  }
-
-  setPiece(cell, index) {
-    let board = this.state.board, pi = cell >> 5;
-    board.removeHighlight();
-    board.highlightMoves(pi);
-    this.setState({selectedPiece: index});
-      //console.log("selected piece: " + this.state.board.board[row][col].who);
-  }
-
-  restart() {
-    this.state.board.removeHighlight();
-    this.state.board.clearMoves();
-    this.setState({ board: new Board(this.firstPlayer, BOARD_SIZE, 0),
-                    continuedMove: false, turn: this.firstPlayer, //TODO
-                    selectedPiece: null, winner: null });
-  }
 
   render() {
     if (this.state.ready) {
@@ -232,25 +132,20 @@ class Game extends Component {
       const turn = player ? `Current Player: ${ player }` : 'Waiting for player...' ;
 
       return (
-        <div className="Leap">
-          { this.state.winner && <Winner player={PLAYERS[this.state.winner]} restart={this.restart.bind(this)} /> }
+        <div className="game-container">
           <h3>
             {turn}
             <span className={PLAYERS[this.state.turn].class+"-token"}></span>
           </h3>
-          <div className="game-container">
-            <div className="game-options"></div>
-            <GameBoard board={this.state.board}
-                       size={BOARD_SIZE}
-                       players={PLAYERS}
-                       selectedPiece={this.state.selectedPiece}
-                       selectCell={this.selectCell.bind(this)} />
-            <div className="game-menu"></div>
-          </div>
+          <Board
+            game={this.state.game}
+            size={BOARD_SIZE}
+            players={PLAYERS}
+          />
         </div>
       );
-    } else return <div className="Leap">LOADING</div>;
+    } else return <div className="game-container">LOADING</div>;
   }
 }
 
-export default Leap;
+export default Game;

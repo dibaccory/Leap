@@ -13,7 +13,7 @@ function getBitShift(b) {
 function Leap(player, len, phaseLayout) {
 	//no args passed mean it will be a copy.
 	if (player) {
-		this.player = player;
+		this.turn = player;
 		BOARD_SIZE = len;
 		BOARD_AREA = BOARD_SIZE**2;
 		BIT_SIZE = 2**getBitShift(BOARD_SIZE-1);
@@ -42,7 +42,7 @@ Leap.prototype.init = function (layout) {
 	const calcPhases = (index) => {
 		let k = 0;
 		while(k<phaseLayouts[layout].length) {
-			if ( (index^phaseLayouts[layout][k]) === 0 ) return 1;
+			if (index === phaseLayouts[layout][k]) return 1;
 			k++;
 		}
 		return 0;
@@ -75,7 +75,7 @@ Leap.prototype.copy = function () {
 	//copy over the board info (including piece directory)
 	board.board = [...this.board];
 
-	board.player = this.player;
+	board.turn = this.turn;
 	board.continuedMove = this.continuedMove;
 	board.pAmount = {...this.pAmount};
 	board.clearMoves();
@@ -84,7 +84,7 @@ Leap.prototype.copy = function () {
 
 Leap.prototype.set = function (board) {
   this.board = board.board;
-  this.player = board.player;
+  this.turn = board.turn;
   this.continuedMove = board.continuedMove;
   this.pAmount = board.pAmount;
   this.moves = board.moves;
@@ -124,7 +124,7 @@ Leap.prototype.removeHighlight = function () {
 
 //Assume special tiles won't appear on spawn rows
 Leap.prototype.makeClone = function (from, to) {
-	const player = this.player;
+	const player = this.turn;
 	this.pAmount[player]++;
 	const c = (player === 12) ? BIT_MAX_PI : 0;
 	let key;
@@ -170,7 +170,7 @@ Leap.prototype.canLeap = function (from, adj) {
 	const phaseAdj = this.getPlayer(adj);
 	const phaseFar = this.getPlayer(inv);
 
-	if ( (phaseAdj ^ phaseFar ^ this.player) === 8 ) {
+	if ( (phaseAdj ^ phaseFar ^ this.turn) === 8 ) {
 		this.addMove(from, to, (phaseAdj ? adj : inv));
 	}
 	//if neighbor cell is a phase, leap_cell clear, and (enemy piece on phaseAdj XOR enemy piece on phaseFar)
@@ -217,7 +217,7 @@ Leap.prototype.getMovesInDirection = function (from, direction) {
 	const jumpWithinBounds = Math.abs( (adj+direction)%BOARD_SIZE - from%BOARD_SIZE ) < 3;
 	if (isPhase) this.canLeap(from, adj);
 
-	if ( (this.getPlayer(adj) ^ this.player) === 8 ) {
+	if ( (this.getPlayer(adj) ^ this.turn) === 8 ) {
 		if (jumpWithinBounds) this.canJump(from, direction);
  	}
 	else this.addMove(from, adj);
@@ -229,7 +229,7 @@ Leap.prototype.getMoves = function (from) {
 		for (let c=-1+(bCol === 1 ? 1 : 0); c<2-(bCol === 0 ? 1 : 0); c++) {
 			let direction = (r*BOARD_SIZE) + c;
 			let adj = from+direction;
-			let validDirection = (direction) && ( this.getPlayer(adj) ^ this.player ) && this.inBounds(adj);
+			let validDirection = (direction) && ( this.getPlayer(adj) ^ this.turn ) && this.inBounds(adj);
 			if ( validDirection ) this.getMovesInDirection(from, direction);
 		}
 	}
@@ -269,7 +269,7 @@ Leap.prototype.doMove = function (from, to) {
 	this.removeHighlight();
 	this.clearMoves();
 
-	const piece = (pi << 5) | (this.board[from] & 16) | this.player;
+	const piece = (pi << 5) | (this.board[from] & 16) | this.turn;
 
 	if ( (this.board[to] & 12) === 8 ) {
 		//SPECIAL PIECE *any player can move.... but how is TODO*
@@ -286,14 +286,14 @@ Leap.prototype.doMove = function (from, to) {
 		this.board[BOARD_AREA + ci] = ~this.board[BOARD_AREA + ci]; //He DED
 
 
-		if( (--this.pAmount[(this.player ^ 8)]) === 0) return true;
+		if( (--this.pAmount[(this.turn ^ 8)]) === 0) return true;
 		//if Leap, then we get the direction by the difference between captured index and adjacent movement cell
 		const capturedAdjToDestination = (-9 <= (to-capturedPiece) && (to-capturedPiece) <= 9);
 		const capturedDirection = capturedAdjToDestination ? (to-capturedPiece) : (capturedPiece - from);
 		//if can continue move in direction
 		let adj = to+capturedDirection;
 		if ( this.board[adj] & 1 ) this.canLeap(to, adj);
-		if ( (this.getPlayer(adj) ^ this.player) === 8) this.canJump(to, capturedDirection);
+		if ( (this.getPlayer(adj) ^ this.turn) === 8) this.canJump(to, capturedDirection);
 	}
 	this.board[from] &= 3; //keep only cell data
 	this.board[BOARD_AREA + pi] = to;
@@ -301,8 +301,8 @@ Leap.prototype.doMove = function (from, to) {
 	const canPhase = (this.board[to] & 1) && !this.isPhaseMove(from, to, capturedPiece);
 	const canClone = this.onCloningCell(to) && !this.onCloningCell(from);
 	//If can clone or is on phase that piece hasn't just travelled through
-	if ( canPhase ) this.canPhase(to, this.getInverseIndex(to));
-	if ( canClone )	this.getSpawnCells(to);
+	if (canPhase) this.canPhase(to, this.getInverseIndex(to));
+	if (canClone)	this.getSpawnCells(to);
 
 	//if not a continued move, change player
 	if(!this.moves[pi].length) this.switchPlayer();
@@ -342,9 +342,9 @@ Leap.prototype.inBounds = function (index) {
 }
 
 Leap.prototype.switchPlayer = function () {
-	this.player ^= 8;
+	this.turn ^= 8;
 	this.continuedMove = false;
-	return this.player;
+	return this.turn;
 }
 
 Leap.prototype.isRedundantMove = function (from, to) {
@@ -368,7 +368,7 @@ Leap.prototype.validMove = function (piece, index) {
 Leap.prototype.randomMove = function () {
 	if (!this.continuedMove) {
 		//if no moves, enemy wins
-		if (!this.getAllMoves(this.player)) return (this.player ^ 8);
+		if (!this.getAllMoves(this.turn)) return (this.turn ^ 8);
 
 		//There's gotta be a better way to remove undefined indeces
 		const moves = {...this.moves};
@@ -381,7 +381,7 @@ Leap.prototype.randomMove = function () {
 		const to = reducedMoveList[piece][Math.floor(Math.random() * reducedMoveList[piece].length)] & (BIT_AREA - 1);
 		const from = this.board[BOARD_AREA + parseInt(piece)];
 
-		return (this.doMove(from, to)) ? this.player : 0;
+		return (this.doMove(from, to)) ? this.turn : 0;
 	} else {
 
 		this.clearMoves();
@@ -389,7 +389,7 @@ Leap.prototype.randomMove = function () {
 		this.getMoves(from);
 		const pi = this.board[from] >> 5;
 		const to = this.moves[pi][Math.floor(Math.random() * this.moves[pi].length)] & (BIT_AREA - 1);
-		return (this.doMove(from, to)) ? this.player : 0;
+		return (this.doMove(from, to)) ? this.turn : 0;
 	}
 }
 

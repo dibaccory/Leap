@@ -5,30 +5,29 @@ export const phaseLayouts = {
 	[0]: [ 17, 41,	26, 34,		19, 43,		20, 44,		29, 37, 	22, 46] // spaced by column for some reason?
 };
 
-//Instead of by coordinates, turn into stack
-export const cellType = function (row, col) {
+export const cellType = index => {
 	let type;
 	switch (true) {
-		case (col === 1 && row === 2) || (col === 6 && row === 5):
+		case (index === 17) || (index === 41):
 			type = 2;
 			break;
-		case (col === 3 && row === 2) || (col === 4 && row === 5):
+		case (index === 26) || (index === 34):
 			type = 3;
 			break;
-		case (col === 4 && row === 2) || (col === 3 && row === 5):
+		case (index === 19) || (index === 43):
 			type = 4;
 			break;
-		case (col === 5 && row === 3) || (col === 2 && row === 4):
+		case (index === 20) || (index === 44):
 			type = 5;
 			break;
-		case (col === 5 && row === 4) || (col === 2 && row === 3):
+		case (index === 29) || (index === 37):
 			type = 6;
 			break;
-		case (col === 6 && row === 2) || (col === 1 && row === 5):
+		case (index === 22) || (index === 46):
 			type = 7;
 			break;
 		default:
-			type = (row + col) % 2 === 0 ? 0 : 1;
+			type = (index % 2) ? 1 : 0;
 			break;
 	}
 	return type;

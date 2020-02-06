@@ -23,7 +23,7 @@ should there be a master lobby where all logged in people can see games they can
 that'd be neat
 */
 
-//Games client's user is subscribed to in clientGames
+//Games client's user is subscribed to in ROOMS
 /* game = {
     id: reGAWGRGAWFEF,
     whitelist: boolean
@@ -41,7 +41,7 @@ that'd be neat
 
 var users = {};
 
-var clientGames = {};
+var ROOMS = {};
 
 
 io.sockets.on('connection', socket => {
@@ -52,8 +52,8 @@ io.sockets.on('connection', socket => {
     socket.player = d;
     users[d.username] = d;
     console.log(`CLIENT PLAYER: ${JSON.stringify(d)}`);
-    // if (d['isGuest'] is TRUE and d['username'] IN CACHE) then clientGames is also in cache
-    //clientGames = GET ACTIVE GAMES FROM DB
+    // if (d['isGuest'] is TRUE and d['username'] IN CACHE) then ROOMS is also in cache
+    //ROOMS = GET ACTIVE GAMES FROM DB
 
   });
 
@@ -65,61 +65,61 @@ io.sockets.on('connection', socket => {
   });
 
   socket.on('lobbyLoad', () => {
-    io.sockets.emit('lobbyLoadSuccess', clientGames);
+    io.sockets.emit('lobbyLoadSuccess', ROOMS);
   });
 
   //create new game, then enter
-  socket.on('gameCreate', game => {
+  socket.on('gameCreate', room => {
 
-    clientGames[game.id] = game;
-    console.log(`NEW GAME: ${JSON.stringify(game)}`);
-    //UPDATE clientGames to DB
-    io.sockets.emit('lobbyLoadSuccess', clientGames);
+    ROOMS[room.id] = room;
+    console.log(`NEW GAME: ${JSON.stringify(room)}`);
+    //UPDATE ROOMS to DB
+    io.sockets.emit('lobbyLoadSuccess', ROOMS);
   });
 
   socket.on('gameEnter', id => {
     console.log(`USER ${JSON.stringify(socket.player)} ENTER GAME: ${id}`);
-    clientGames[id]['users'][socket.player.name] = socket.player;
-    if (clientGames[id].board) console.log(`GAME BOARD: ${JSON.stringify(clientGames[id].board)}`);
-    socket.activeGameID = id;
+    ROOMS[id]['users'][socket.player.name] = socket.player;
+    if (ROOMS[id].game) console.log(`GAME BOARD: ${JSON.stringify(ROOMS[id].game)}`);
+    socket.activeRoomID = id;
     socket.join(id);
-    socket.emit('gameLoad', socket.player, clientGames[id]);
+    socket.emit('gameLoad', socket.player, ROOMS[id]);
     socket.broadcast.to(id).emit('userActive', socket.player);
 
   });
 
   socket.on('gameLeave', id => {
-    delete clientGames[id].users[socket.player.name];
-    socket.activeGame = null;
+    delete ROOMS[id].users[socket.player.name];
+    socket.activeRoom = null;
     socket.broadcast.to(id).emit('userInactive', socket.player.name);
 
     //If there are any spectators, let them be the new thing or whatever
 
   });
 
-  socket.on('gameSet', game => {
-    clientGames[socket.activeGameID] = game;
+  socket.on('gameSet', room => {
+    ROOMS[socket.activeRoomID] = room;
   });
 
-  socket.on('gameBoardSend', (id, board) => {
-    console.log(`DID IT SEND: ${JSON.stringify(board)}`);
-    clientGames[socket.activeGameID].board = board;
-    console.log(`DID IT SEND: ${JSON.stringify(board.player)}`);
-    io.in(id).emit('gameBoardRecieve', board);
+  socket.on('gameBoardSend', (id, game) => {
+    console.log(`DID IT SEND: ${JSON.stringify(game)}`);
+    ROOMS[socket.activeRoomID].game = game;
+    console.log(`DID IT SEND: ${JSON.stringify(game.player)}`);
+    io.in(id).emit('gameBoardRecieve', game);
   });
 
-  // socket.on('gameBoardSet', board => {
-  //   clientGames[socket.activeGameID].board = board;
-  //   clientGames[socket.activeGameID].board = board;
-  //   socket.broadcast.to(id).emit('gameBoardGet', board);
+  // socket.on('gameBoardSet', game => {
+  //   ROOMS[socket.activeRoomID].game = game;
+  //   ROOMS[socket.activeRoomID].game = game;
+  //   socket.broadcast.to(id).emit('gameBoardGet', game);
   // });
 
   socket.on('chatSend', msg => {
-    io.sockets.in(socket.activeGame.id).emit('chatUpdate', socket.username, msg);
+    io.sockets.in(socket.activeRoom.id).emit('chatUpdate', socket.username, msg);
   });
 
   // socket.on('chatTyping', msg => {
-  //   io.sockets.in(socket.activeGame.id).emit('chatUpdate', socket.username, msg);
+  //   io.sockets.in(socket.activeRoom.id).emit('chatUpdate', socket.username, msg);
   // });
 
   socket.on('disconnect', () => {
