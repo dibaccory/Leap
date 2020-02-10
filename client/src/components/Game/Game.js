@@ -107,7 +107,9 @@ class Game extends Component {
   }
 
   handleMove (game) {
-    this.io.emit('gameBoardSend', this.state.id, game);
+    if (this.state.online) this.io.emit('gameBoardSend', this.state.id, game);
+
+    //this.io.emit('gameBoardSend', this.state.id, game);
   }
 
   //React update method

@@ -17,16 +17,10 @@ class Board extends React.Component {
   this.submit = props.handleMove.bind(this);
   this.endGame = props.handleEndGame.bind(this);
 
-  /*
-  user: {
-    value: {PLAYER | SPECTATOR}
-    isBot: range (0 , 10) 0 = not a bot, 1-10 = bot difficulty
-  }
-  */
   this.state = {
     game: props.game,
-    user: props.user,
-    move: { from: undefined, to: undefined},
+    user: props.user, //value, isBot, color
+    move: { from: undefined, to: undefined, captured: undefined},
   }
 
   }
@@ -47,7 +41,6 @@ class Board extends React.Component {
       else if (user.isBot) this.botMove();
     }
   }
-
 
   selectCell (cell, index) { //call implies it's this user's turn
     const { game, user } = this.state;
@@ -87,43 +80,31 @@ class Board extends React.Component {
     game.removeHighlight();
     game.highlightMoves(pi);
     this.setState({piece: index});
-      //console.log("selected piece: " + this.state.game.board[row][col].who);
   }
 
   setDestination (to) {
-    this.setState({move: {from: this.state.move.from, to: to, captured: this.state.game.board[]} });
+    this.setState({ move: {from: this.state.move.from, to: to, captured: this.state.game.board[]} });
   }
 
-
-
   move() {
-    //const from = this.state.move.from;
-    //const to = this.state.move.to;
-    const game = this.state.game;
+    const { game, move } = this.state;
+    const { from, to } = move;
     const pi = game.board[from] >> 5;
 
-    //check if win
-    if (game.doMove(from, to)) {
+    if (game.doMove(from, to)) { //win
       this.endTurn(true);
       return;
-    }
-
-    //If we can phase, clone, or capture
-    if (game.continuedMove) {
+    } else if (game.continuedMove) {
       game.highlightMoves(pi);
-      this.setState({ game: game, piece: to});
+      this.setState({ game: game, move: {to: to, from: undefined, captured: undefined} });
     } else {
-      //if (this.state.online) this.io.emit('gameBoardSend', this.state.id, game);
-      this.setState({
-        game: game,
-        piece: null
-      });
+      this.endTurn();
     }
   }
 
   botMove () {
       var ai = new Bot(this.state.game, this.state.user.isBot*BOT_COEFF);
-       this.handleMove(ai.from, ai.to);
+       this.move();
   }
 
   endTurn (gameOver) {
@@ -131,7 +112,7 @@ class Board extends React.Component {
     if (gameOver) this.endGame(game.turn);
     else {
       game.removeHighlight();
-      this.setState({game: game, move: {from: undefined, to: undefined}});
+      this.setState({ game: game, move: {from: undefined, to: undefined, captured: undefined} });
     }
 
     this.submit(this.state);
@@ -141,9 +122,7 @@ class Board extends React.Component {
     { game, move } = this.state;
     const isTurn = user.value === game.turn;
     const selectAction = isTurn ? props.selectCell.bind(this) : console.log('NOT UR TURN');
-    /*
-      display: grid for the cells
-    */
+    /*  display: grid for the cells  */
     let cells = [];
     for (let index = 0; index < game.board.length; index++) {
       const cell = game.board[index];
