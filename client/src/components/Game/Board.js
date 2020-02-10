@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {cellType, CELL_COLORS} from './assets/util.js';
 import Leap from './assets/leap.js';
 import {UCT as Bot} from './assets/ai.js';
@@ -49,7 +49,7 @@ class Board extends React.Component {
   }
 
 
-  selectCell (cell, index) {
+  selectCell (cell, index) { //call implies it's this user's turn
     const { game, user } = this.state;
     const highlighted = (cell & 2);
 
@@ -61,50 +61,37 @@ class Board extends React.Component {
         this.endTurn();
       }
     } else {
-      const isPiece = (cell & 8) | (cell & 4);
-      const isSelectablePiece = !(isPiece ^ user.value);
-      const isTurn = user.value === game.turn;
-      const canSelectPiece = isSelectablePiece && isTurn;
-      if (canSelectPiece) this.setPiece(cell, index);
-      else if()
-    }
+      const pieceType = cell & (8 | 10 | 12);
+      if (pieceType) {  //if piece
+        const isSelectablePiece = !(pieceType ^ user.value) || pieceType === 10;
+        const hasMoves = game.moves[cell >> 5].length > 0;
 
-
-
-    if (!this.state.game.continuedMove) {
-      //if cell has piece, piece belongs to user, and it's this users' turn
-
-      else if ()
-      else if (cell & 2) this.handleMove(this.state.piece, index);
-      else console.log();
-    } else {
-      //check if move = true..
-      let board = this.state.game;
-      if (cell & 2) this.handleMove(this.state.piece, index);
-      else {
-        board.removeHighlight();
-
-        //right now, let's just end the turn otherwise
-        board.switchPlayer();
-        if (this.state.online) this.io.emit('gameBoardSend', this.state.id, board);
-        this.setState({
-          board: board,
-          piece: null
-        });
+        if (canSelectPiece && hasMoves) this.setPiece(cell, index);
+        else try {
+          if (canSelectPiece) throw 'PIECE HAS NO MOVES';
+          if (hasMoves) throw 'OPPONENT PIECE';
+        } catch (error) {
+          console.log(`CANNOT SELECT: ${error}`);
+        }
       }
-    }
+      else {  //if empty cell
+        if (cell & 2) this.move();
+        else console.log('CANNOT SELECT: NOT EMPTY');
+      }
   }
+}
 
   setPiece (cell, index) {
-    let board = this.state.game, pi = cell >> 5;
-    board.removeHighlight();
-    board.highlightMoves(pi);
+    const { game } = this.state;
+    const pi = cell >> 5;
+    game.removeHighlight();
+    game.highlightMoves(pi);
     this.setState({piece: index});
       //console.log("selected piece: " + this.state.game.board[row][col].who);
   }
 
   setDestination (to) {
-    this.setState({move: {from: this.state.move.from, to: to} });
+    this.setState({move: {from: this.state.move.from, to: to, captured: this.state.game.board[]} });
   }
 
 
@@ -151,61 +138,52 @@ class Board extends React.Component {
   }
 
   render () {
-    let rows = [];
-    for(let r = 0; r < BOARD_SIZE; r++) {
-      rows.push(<Row
-        key={r}
-        row={r}
-        board={this.state.game.board}
-        piece={props.piece}
-        selectCell={props.selectCell} />);
-      }
-    return (<div className="board"> {rows} </div>);
-  }
-}
+    { game, move } = this.state;
+    const isTurn = user.value === game.turn;
+    const selectAction = isTurn ? props.selectCell.bind(this) : console.log('NOT UR TURN');
+    /*
+      display: grid for the cells
+    */
+    let cells = [];
+    for (let index = 0; index < game.board.length; index++) {
+      const cell = game.board[index];
+      const selected = (move.to === index && 'to') || (move.from === index && 'from') || (move.captured === index && 'captured') || '';
 
-function Row(props) {
-  let cells = [], index, cell;
-  for(let c=0; c< BOARD_SIZE; c++) {
-    index = props.row*BOARD_SIZE + c;
-    cell = props.board[index];
-    cells.push(<Cell
-      key={ index } //board index
-      index={ index }
-      val={ cell } //cell info
-      row={ props.row }
-      col={c}
-      highlight={props.board[index] & 2}
-      selected={index === props.piece}
-      selectCell={props.selectCell} />);
+      cells.push(<Cell
+        key={index}
+        index={index}
+        cell={cell}
+        highlight={cell & 2}
+        selected={selected}
+        select={selectAction} />);
+    }
+
+    return (<div className="board"> { cells } </div>);
   }
-  return (<span className="row"> { cells } </span>);
 }
 
 function Cell(props) {
-  let color = CELL_COLORS[cellType(props.index)];
-  let highlight = props.highlight ? " highlight" : "";
-  let classes = "cell " + color + highlight;
-  //TODO: (props.val & 12) > 0) also counts for "special cell" replace this in future
+  const { cell, index, selected } = props;
+  const color = CELL_COLORS[cellType(index)];
+  const status = selected || (highlight ? 'possible' : '');
+  const classes = `cell ${color} ${(status ? 'move-'+status : '')}`;
+
   return (
-    <div className={classes} onClick={ () => props.selectCell(props.val, props.index) }>
-      { ((props.val & 12) > 0) && <Piece
-        key={props.val >> 5}
-        player={props.val & 12}
-        cloned={(props.val >> 4) & 16}
-        selected={props.selected} />}
+    <div className={classes} onClick={ () => props.select(cell, index) }>
+      { ((cell & 12) > 0) && <Piece
+        key={cell >> 5}
+        player={cell & 12}
+        cloned={(cell >> 4) & 16}
+        selected={selected} />}
     </div>
   );
 }
 
 function Piece(props) {
-  let classes = "";
-  classes += (props.player );
-  if (props.cloned) classes += " cloned";
-  if (props.selected) {
-    classes += " selected";
-  }
-  return (<div className={classes}></div>);
+  const {...props} = props;
+  const pieceColor = (player === 8 && 'white') || (player === 12 && 'black') || 'superposed';
+  const classes = `piece ${cloned && 'cloned'} ${pieceColor}`;
+  return (<div className={classes} ></div>);
 }
 
 export default Board;
