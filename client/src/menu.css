@@ -1,54 +1,5 @@
 /*mobile*/
 
-.settings {
-  float: right;
-  width: 10%;
-  top: 0;
-}
-
-.settings-container {
-  line-height: 2em;
-  margin-top: 10%;
-  height: 0;
-  transition: height 0.2s ease-out;
-  -moz-transition: height 0.2s ease-out;
-  background-color: #EEE;
-  overflow: hidden;
-}
-
-.setcon {
-  max-height: 0;
-  line-height: 2em;
-  margin-top: 10%;
-  background-color: #EEE;
-  border-radius: 0.5em;
-  overflow: hidden;
-}
-
-.settings-container-enter {
-  max-height: 0;
-  opacity: 0;
-}
-
-.settings-container-enter-active,.settings-container-enter-done {
-  max-height: 50vh;
-  opacity: 1;
-  transition: max-height 0.5s ease-out, opacity 0.1s ease-out;
-  -moz-transition: max-height 0.5s ease-out, opacity 0.1s ease-out;
-}
-
-.settings-container-exit {
-  max-height: 30vh;
-  opacity: 1;
-}
-
-.settings-container-exit-active, .settings-container-exit-done  {
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 0.2s ease-out, opacity 0.8s ease-out;
-  -moz-transition: max-height 0.2s ease-out, opacity 0.8s ease-out;
-}
-
 .nav-container {
   bottom: 0;
   display: flex;
@@ -128,11 +79,3 @@
 .mp-options > div {
   flex: 1 0 0;
 }
-
-@media only screen and (max-width: 415px) {}
-
-/*tablet*/
-@media only screen and (min-width: 416px) and ((max-width: 960px)) {}
-
-
-@media only screen and (min-width: 961px) {}

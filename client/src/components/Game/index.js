@@ -1,9 +1,9 @@
 import React from 'react';
-import Game from './Game';
+import Room from './Room';
 
-function GameContainer (props) {
+function RoomContainer (props) {
 
-  return <Game {...props}/>
+  return <Room {...props}/>
 }
 
-export default GameContainer;
+export default RoomContainer;

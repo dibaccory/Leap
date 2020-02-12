@@ -31,3 +31,11 @@
     transform: rotate(360deg);
   }
 }
+
+@media only screen and (max-width: 415px) {}
+
+/*tablet*/
+@media only screen and (min-width: 416px) and ((max-width: 960px)) {}
+
+
+@media only screen and (min-width: 961px) {}

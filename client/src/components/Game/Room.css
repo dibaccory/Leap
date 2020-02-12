@@ -1,0 +1,13 @@
+.room-container {
+  display: flex;
+  transition-duration: 0.8s;
+  transition-property: transform;
+}
+
+.room-options {
+  flex-grow: 1;
+}
+
+.room-menu {
+  flex-grow: 1;
+}

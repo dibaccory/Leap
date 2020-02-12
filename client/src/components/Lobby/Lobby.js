@@ -25,7 +25,7 @@ class Lobby extends React.Component {
       bot: false,
       color: 'white',
     };
-    
+
     this.socket.on('lobbyLoadSuccess', games => {
       let lobby = [];
       for (const id in games) {
@@ -69,23 +69,18 @@ class Lobby extends React.Component {
 
   render () {
 
+    /*
+    have list of available games
+
+    cycle through list if reach either end
+
+    */
+
     return (
-      <div className="App">
-        <Settings/>
-        { this.state.inGame ? (
-          <Leap io={this.socket} gameid= { this.state.inGame } config={ CONFIG }/>
-        ) : (
-          <div>
-            <div>
-              gameroonis
-              { (this.state.lobby.length > 0) && this.state.lobby }
-            </div>
-            <button
-              className='start-game-btn'
-              onClick={ () => this.createGame() }>
-              Create new game
-            </button>
-          </div>)}
+      <div className="lobby-container">
+        //<GameContainer/> previous game (if any)
+        <GameContainer/>
+        //<GameContainer/> next game (if any)
       </div>
     );
   }

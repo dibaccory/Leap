@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import * as io from "socket.io-client";
 import './App.css';
 import './lib/fa/css/all.min.css';
 
 class App extends React.Component {
+  static ClientSocket = React.createContext();
   constructor () {
     super();
-    this.socket = io.connect(`http://localhost:${CONFIG.port}`);
+    this.socket =
     this.state = {
       user: {},
       settings: {
@@ -15,17 +15,21 @@ class App extends React.Component {
         notificationBadges: true,
       }
     };
+
+
   }
 
   render () {
 
     return (
       <div className="App">
-        //<Splash/> on initial render
-        //<BannerContainer />
-        <HeaderContainer /> //has settings at upper righthand
-        <ViewContainer/>
-        <BottomNavigation/>
+        <ClientSocket.Provider value={this.socket}>
+          //<Splash/> on initial render
+          //<BannerContainer />
+          <HeaderContainer /> //has settings at upper righthand
+          <ViewContainer/>
+          <BottomNavigation/>
+        </ClientSocket.Provider>
       </div>
     );
   }
