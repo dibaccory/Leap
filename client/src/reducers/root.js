@@ -1,38 +1,39 @@
+import CHAT from '../constants/ChatTypes';
 const initialState = {
   base: {},
 };
 
 function rootReducer (state = initialState, action) {
   switch (action.type) {
-    case USER_LOGIN: {
+    case USER.LOGIN: {
 
     }
-    case USER_LOGOUT: {
+    case USER.LOGOUT: {
 
     }
-    case USER_PROFILE_UPDATE: {
+    case USER.UPDATE_PROFILE: {
 
     }
-    case ROOM_ENTER: {
+    case ROOM.ENTER: {
 
     }
-    case ROOM_EXIT: {
+    case ROOM.EXIT: {
 
     }
-    case GAME_START: {
+    case GAME.START: {
 
     }
-    case GAME_MOVE: {
+    case GAME.MOVE: {
 
     }
-    case GAME_END: {
+    case GAME.END: {
 
     }
-    case CHAT_SEND_MSG: {
+    case CHAT.SEND_MSG: {
 
     }
-    case CHAT_TYPING: {
-      
+    case CHAT.TYPING: {
+
     }
     default: return state;
   }

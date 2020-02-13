@@ -120,7 +120,7 @@ class Room extends Component {
       return (
         <div className="room-container">
           <PlayerHeader user={}/>
-          <Board game={this.state.game} size={BOARD_SIZE} players={PLAYERS}/>
+          <Game game={this.state.game} size={BOARD_SIZE} players={PLAYERS}/>
           <PlayerHeader user={}/>
         </div>
       );

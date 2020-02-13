@@ -6,7 +6,7 @@ class App extends React.Component {
   static ClientSocket = React.createContext();
   constructor () {
     super();
-    this.socket =
+    //this.socket =
     this.state = {
       user: {},
       settings: {
