@@ -1,3 +1,3 @@
-export const ACTIONS {
+export const ActionTypes {
 
 };
