@@ -1,8 +1,7 @@
 const USER = {
   LOGIN: 'userLogin',
   LOGOUT: 'userLogout',
-  UPDATE_PROFILE: 'userUpdateProfile',
-
-}
+  UPDATE: 'userUpdateInfo',
+};
 
 export default USER;

@@ -31,11 +31,6 @@ that'd be neat
 
 */
 
-var users = {};
-
-var ROOMS = {};
-
-
 io.sockets.on('connection', socket => {
 
   //login prompt (returning user / guest)
