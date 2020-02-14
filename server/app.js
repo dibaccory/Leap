@@ -1,17 +1,9 @@
-//import express from 'express';
-const socket = require('socket.io');
-const http = require('http');
-const express = require('express');
+import initHttpServer from './http';
+import initSocketIO from './socket';
 
-const PORT = process.env.PORT || 3001;
-const app = express();
-const router = express.Router();
-router.get('/', (req, res) => { res.send({response: 'hurrrr' }) } );
-app.use(router);
-const server = http.createServer( app );
-const io = socket(server);
-io.origins('*:*');
-server.listen(PORT, () => console.log(`Listening on port ${ PORT }`));
+const init = ctx => initHttpServer(ctx).then(initSocketIO);
+const config = {port: process.env.PORT || 3001};
+init(config);
 
 
 /*

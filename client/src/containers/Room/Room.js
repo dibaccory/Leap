@@ -47,49 +47,7 @@ class Room extends Component {
 
   }
 
-  loadGame (user, room) {
-    const isHost = user.name === room.host;
-  //  const sidesFull = !(room.playerOne || room.playerTwo);
-
-    const initGameState = () => {
-      const firstPlayer = room.hostGoesFirst ? playerOne : playerTwo;
-      const game = new Leap(firstPlayer, BOARD_SIZE, 0);
-      return {
-        online: true,
-        game: game,
-        ready: true,
-      };
-    };
-
-    if(room.hostGoesFirst) {
-      room.playerOne = room.playerOne || room.host;
-      room.playerTwo = isHost ? room.playerTwo : user.name;
-      this.player = isHost ? playerOne : playerTwo;
-    } else {
-      room.playerOne = isHost ? user.name : room.playerOne;
-      room.playerTwo = room.playerTwo || room.host;
-      this.player = isHost ? playerTwo : playerOne;
-    }
-
-    //if room.board exists, load the room details
-    //if room.invite === user.name, then set user as appropriate player
-    if (room.board) {
-      const game = new Leap(room.game.player, BOARD_SIZE, 0);
-      room.game = game.set(room.game);
-      this.setState({
-        online: true,
-        game: room.game,
-        ready: true,
-      });
-
-    } else {
-      this.setState(initGameState());
-    }
-    this.io.emit('gameSet', room);
-    PLAYERS[playerOne].name = room.playerOne;
-    PLAYERS[playerTwo].name = room.playerTwo;
-
-  }
+  
 
   componentDidMount () {
     if( this.state.online ) {
