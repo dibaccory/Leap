@@ -1,4 +1,5 @@
 import React from 'react';
+import NavItem from '../components/NavItem';
 import './BottomNavigation.css';
 
 function BottomNavigation (props) {
@@ -15,7 +16,5 @@ function BottomNavigation (props) {
       </div>
     );
 }
-
-const NavItem = ({id, icon}) => (  <a href={'#'+id} className='BottomNavigationItem'> <i className={icon} /> </a>);
 
 export default BottomNavigation;

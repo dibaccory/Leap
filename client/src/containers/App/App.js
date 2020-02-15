@@ -1,50 +1,46 @@
 import React, { useState } from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { bool, array, func, string, number, object } from 'prop-types';
+import ViewStack from '../ViewStack/';
 import './App.css';
 import './lib/fa/css/all.min.css';
 
-class App extends React.Component {
-  static ClientSocket = React.createContext();
-  constructor () {
-    super();
-    //this.socket =
-    this.state = {
-      user: {},
-      settings: {
-        musicVolume: 100,
-        sfxVolume: 100,
-        notificationBadges: true,
-      }
-    };
-
-
-  }
-
-  render () {
-
+const App = ({
+  me,
+  isLoggedIn,
+  io,
+}) => {
+  const ClientSocket = React.createContext();
     return (
       <div className="App">
-        <ClientSocket.Provider value={this.socket}>
+        <ClientSocket.Provider value={io}>
           //<Splash/> on initial render
           //<BannerContainer />
           <HeaderContainer /> //has settings at upper righthand
-          <ViewContainer/>
+          <ViewStack/>
           <BottomNavigation/>
         </ClientSocket.Provider>
       </div>
     );
-  }
+};
+
+App.propTypes = {
+  me: object.isRequired,
+  isLoggedIn: bool.isRequired,
 }
 
-const ViewContainer () => (
-  <div className="view-container">
-    <div className="view-window">
-      <Lobby id="Home" />
-      <Lobby id="Browse" />
-      <Leaderboard />
-      <Profile />
-    </div>
-    <NewGame/>
-  </div>
-);
+const actions = {
+    login,
+    changeView,
+};
 
-export default App;
+const mapDispatchToProps = dispatch => bindActionCreators(actions, dispatch);
+
+const mapStateToProps = state => ({
+  me: getMe(state),
+  isLoggedIn: getIsLoggedIn(state),
+});
+
+
+export default connect(mapStateToProps, mapDispatchToProps)(App);

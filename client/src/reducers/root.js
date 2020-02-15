@@ -3,6 +3,17 @@ const initialState = {
   base: {},
 };
 
+/* APP INITIAL STATE
+this.state = {
+  user: {},
+  settings: {
+    musicVolume: 100,
+    sfxVolume: 100,
+    notificationBadges: true,
+  },
+  activeView: 'Home',
+};
+*/
 function rootReducer (state = initialState, action) {
   switch (action.type) {
     case USER.LOGIN: {
