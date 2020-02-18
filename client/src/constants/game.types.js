@@ -3,7 +3,6 @@ const GAME = {
   MOVE: 'gameMove',
   END: 'gameEnd',
 
-
 };
 
 export default GAME;

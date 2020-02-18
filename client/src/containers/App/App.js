@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { bool, array, func, string, number, object } from 'prop-types';
 import ViewStack from '../ViewStack/';
+import BottomNavigation from '../BottomNavigation/';
 import './App.css';
 import './lib/fa/css/all.min.css';
 
@@ -11,16 +12,16 @@ const App = ({
   isLoggedIn,
   io,
 }) => {
-  const ClientSocket = React.createContext();
+  //const ClientSocket = React.createContext();
     return (
       <div className="App">
-        <ClientSocket.Provider value={io}>
-          //<Splash/> on initial render
+        //<ClientSocket.Provider value={io}>
+          {!isLoggedIn && <Splash/>}
           //<BannerContainer />
-          <HeaderContainer /> //has settings at upper righthand
-          <ViewStack/>
+          <HeaderContainer me={me}/> //has settings at upper righthand
+          <ViewStack me={me} io={io}/>
           <BottomNavigation/>
-        </ClientSocket.Provider>
+        //</ClientSocket.Provider>
       </div>
     );
 };
@@ -31,7 +32,6 @@ App.propTypes = {
 }
 
 const actions = {
-    login,
     changeView,
 };
 
@@ -41,6 +41,5 @@ const mapStateToProps = state => ({
   me: getMe(state),
   isLoggedIn: getIsLoggedIn(state),
 });
-
 
 export default connect(mapStateToProps, mapDispatchToProps)(App);
