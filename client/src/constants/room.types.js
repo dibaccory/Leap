@@ -1,8 +1,10 @@
 const ROOM = {
   ENTER: 'roomEnter',
   EXIT: 'roomExit',
-  ADD: 'roomAdd',
-  DELETE: 'roomDelete',
+  MOVE_READY: 'moveReady',
+  SUBMIT_MOVE: 'submitMove',
+  END_GAME: 'gameEnd',
+
 };
 
 export default ROOM;

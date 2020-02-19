@@ -1,16 +1,19 @@
-function Cell(props) {
-  const { cell, index, selected } = props;
+import React from 'react';
+import {cellType, CELL_COLORS} from './assets/util.js';
+import {UCT as Bot} from './assets/ai.js';
+
+export const Cell = ({ cell, index, moveType, highlight, select }) => {
   const color = CELL_COLORS[cellType(index)];
-  const status = selected || (highlight ? 'possible' : '');
+  const status =  moveType || (highlight ? 'possible' : '');
   const classes = `cell ${color} ${(status ? 'move-'+status : '')}`;
 
   return (
-    <div className={classes} onClick={ () => props.select(cell, index) }>
+    <div className={classes} onClick={ () => select({cell: cell, index: index}) }>
       { ((cell & 12) > 0) && <Piece
         key={cell >> 5}
         player={cell & 12}
         cloned={(cell >> 4) & 16}
-        selected={selected} />}
+        status={status} />}
     </div>
   );
 }

@@ -1,5 +1,6 @@
-import GAME from '../constants/game.types';
+import { GAME, PLAYER_ONE, PLAYER_TWO } from '../constants/game.types';
 
-export const gameStart = payload => dispatch => dispatch({type: GAME.START, payload});
-export const gameMove = payload => dispatch => dispatch({type: GAME.MOVE, payload});
-export const gameEnd = payload => dispatch => dispatch({type: GAME.END, payload});
+export const start = payload => dispatch => dispatch({type: GAME.START, payload});
+export const select = payload => dispatch => dispatch({type: GAME.SELECT, payload});
+
+//export const isPiece = cell =>

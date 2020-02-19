@@ -1,5 +1,6 @@
 export const LOBBY {
-  UPDATE: 'lobbyUpdate',
-  TOGGLE_SCROLL: 'lobbyToggleScroll',
-
+  UPDATE: 'update',
+  TOGGLE_SCROLL: 'toggleScroll',
+  ADD_ROOM: 'addRoom',
+  REMOVE_ROOM: 'removeRoom',
 }
