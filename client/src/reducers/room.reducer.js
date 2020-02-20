@@ -18,7 +18,7 @@ const initialState = {
 };
 
 
-function gameReducer (state = initialState, action) {
+function roomReducer (state = initialState, action) {
   const { game, move } = state;
   switch (action.type) {
     case ROOM.ENTER:

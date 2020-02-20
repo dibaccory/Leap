@@ -20,6 +20,7 @@ const App = ({
           {!isLoggedIn && <Splash/>}
           //<BannerContainer />
           //<HeaderContainer me={me}/> //has settings at upper righthand
+          //<CreateGameModal io={io}/>
           <ViewStack me={me} io={io}/>
           //<BottomNavigation/>
         //</ClientSocket.Provider>

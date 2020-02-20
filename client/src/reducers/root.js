@@ -1,7 +1,5 @@
 import CHAT from '../constants/ChatTypes';
-const initialState = {
-  base: {},
-};
+
 
 /* APP INITIAL STATE
 this.state = {
@@ -14,40 +12,10 @@ this.state = {
   activeView: 'Home',
 };
 */
-function rootReducer (state = initialState, action) {
-  switch (action.type) {
-    case USER.LOGIN: {
-
-    }
-    case USER.LOGOUT: {
-
-    }
-    case USER.UPDATE_PROFILE: {
-
-    }
-    case ROOM.ENTER: {
-
-    }
-    case ROOM.EXIT: {
-
-    }
-    case GAME.START: {
-
-    }
-    case GAME.MOVE: {
-
-    }
-    case GAME.END: {
-
-    }
-    case CHAT.SEND_MSG: {
-
-    }
-    case CHAT.TYPING: {
-
-    }
-    default: return state;
-  }
+function rootReducer (state = initialState, action) { return state;
+  // switch (action.type) {
+  //   default: return state;
+  // }
 }
 
 export default rootReducer;
