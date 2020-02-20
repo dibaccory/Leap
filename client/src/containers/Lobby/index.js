@@ -1,5 +1,5 @@
 import React from 'react';
-//import * as io from "socket.io-client";
+import Room from '../Room';
 import crypto from 'crypto';
 import { lobbyUpdate, lobbyToggleScroll } from '../../actions/lobby';
 
@@ -11,28 +11,31 @@ const CONFIG = {
   size: 8,
 };
 
-class Lobby extends React.Component {
-  constructor () {
-    super();
+const Lobby = ({
+  io,
+  index,
+  size,
+}) => {
 
-  }
+  /*
+   TODO: add actions
+    load Games through up/down arrows
+  */
 
-  componentDidMount () {
-    //window.addEventListener('keydown', e => {key: e.keyCode, });
-  }
+  return (
+    <div className="lobby-container">
+      {size > 1 && <Room index={(index-1)%size}/>} //previous game (if any)
+      <Room index={index}/>
+      {size > 1 && <Room index={(index+1)%size}/>} //next game (if any)
+    </div>
+  );
 
+};
+//TODO: make selectors
+const mapStateToProps = state => ({
+  index: getRoomIndex(state),
+  size: getLobbySize(state),
 
+})
 
-  render () {
-
-    return (
-      <div className="lobby-container">
-        <GameContainer/> //previous game (if any)
-        <GameContainer/>
-        <GameContainer/> //next game (if any)
-      </div>
-    );
-  }
-}
-
-export default Lobby;
+export default connect(mapStateToProps)(Lobby);

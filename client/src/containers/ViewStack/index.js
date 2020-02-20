@@ -11,11 +11,11 @@ const ViewStack ({
 
 }) => (
   <div className="view-container">
-    <CreateGameModal io={io}/>
+    //<CreateGameModal io={io}/>
     <Lobby id="Home" io={io}/>    //Loads games user is subscribed to
-    <Lobby id="Browse" io={io}/>  //Loads global public games
-    <Leaderboard id="Leaderboard"/>
-    <Profile id="Profile" me={me} settings={settings}/>
+    //<Lobby id="Browse" io={io}/>  //Loads global public games
+    //<Leaderboard id="Leaderboard"/>
+    //<Profile id="Profile" me={me} settings={settings}/>
   </div>
 );
 

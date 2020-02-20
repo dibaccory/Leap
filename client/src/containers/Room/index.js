@@ -3,8 +3,8 @@ import './ui.css';
 import Game from './Game';
 
 const Room = ({
-  game,
   io,
+  game,
   me,
   users,
   errorMessage,
@@ -30,7 +30,6 @@ Room.propTypes = {
 };
 //TODO: make selectors
 const mapStateToProps = state => ({
-  game: getGame(state),
   me: getMe(state),
   users: getUsers(state),
   errorMessage: getErrorMessage(state),

@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { bool, array, func, string, number, object } from 'prop-types';
 import ViewStack from '../ViewStack/';
+import Room from '../Room/';
 import BottomNavigation from '../BottomNavigation/';
 import './App.css';
 import './lib/fa/css/all.min.css';
@@ -18,9 +19,9 @@ const App = ({
         //<ClientSocket.Provider value={io}>
           {!isLoggedIn && <Splash/>}
           //<BannerContainer />
-          <HeaderContainer me={me}/> //has settings at upper righthand
+          //<HeaderContainer me={me}/> //has settings at upper righthand
           <ViewStack me={me} io={io}/>
-          <BottomNavigation/>
+          //<BottomNavigation/>
         //</ClientSocket.Provider>
       </div>
     );
