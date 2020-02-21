@@ -8,13 +8,13 @@ props:
   }
 */
 const initialState = {
-  gameState: null,
-  me: {
-    id: undefined,
-    name: 'Guest',
-    icon: undefined,
+  'aaa': {
+    game: {},
+    users: ['userA'],
+    host: ['userA'],
+    chat: {},
   },
-
+  
 };
 
 
@@ -30,3 +30,5 @@ function roomReducer (state = initialState, action) {
     default: return state;
   }
 }
+
+export default roomReducer;

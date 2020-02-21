@@ -1,4 +1,4 @@
-const GAME = {
+export const GAME = {
   START: 'gameStart',
   SELECT: 'gameSelectCell',
 };

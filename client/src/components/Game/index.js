@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import { object } from 'prop-types';
 import { connect } from 'react-redux';
 import { select } from '../../actions/game';
+import Cell from '../Cell';
 // this.state = {
 //   game: props.game,
 //   user: props.user, //value, isBot, color
@@ -31,8 +32,8 @@ export const Game = ({ game, move }) => {
   return (<div className="board"> { cells } </div>);
 };
 
-Game.propTypes = { game: object.isRequired, move: object.isRequired };
+Game.propTypes = { game: object.isRequired, move: object };
 //TODO: make selectors
-const mapStateToProps = state => ({move: getMoveSelections(state)});
+//const mapStateToProps = state => ({move: getMoveSelections(state)});
 
-export default connect(mapStateToProps)(Game);
+export default connect(/*mapStateToProps*/)(Game);

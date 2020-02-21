@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import { bool, array, func, string, number, object } from 'prop-types';
-import './ui.css';
-import Game from './Game';
+import { getUsers, getGame, getHost, getMe } from '../../selectors/';
+import Game from '../../components/Game';
 
 const Room = ({
   active,
@@ -11,30 +12,27 @@ const Room = ({
 }) => {
   return (
     <div className="room-container">
-      //<PlayerHeader user={}/>
-      //<Game game={game} />
-      //<PlayerHeader user={}/>
+
     </div>
   );
 }
-
+//<PlayerHeader user={}/>
+//<Game game={game} />
+//<PlayerHeader user={}/>
 Room.propTypes = {
-  active: bool,
-  game: object.isRequired,
-  //me: object.isRequired,
+  me: object,
   users: object.isRequired,
-  //errorMessage: string,
-  //modalMessage: string,
   host: string.isRequired, //userID string?
+  game: object.isRequired,
 };
 //TODO: make selectors
 const mapStateToProps = state => ({
-  //me: getMe(state),
+  me: getMe(state),
   users: getUsers(state),
+  host: getHost(state),
   game: getGame(state),
   //errorMessage: getErrorMessage(state),
   //modalMessage: getModalMessage(state),
-  host: getHost(state),
 });
 
 export default connect(mapStateToProps)(Room);

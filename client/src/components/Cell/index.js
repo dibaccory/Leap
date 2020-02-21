@@ -1,6 +1,5 @@
 import React from 'react';
-import {cellType, CELL_COLORS} from './assets/util.js';
-import {UCT as Bot} from './assets/ai.js';
+import {cellType, CELL_COLORS} from './util.js';
 
 export const Cell = ({ cell, index, moveType, highlight, select }) => {
   const color = CELL_COLORS[cellType(index)];
@@ -19,8 +18,10 @@ export const Cell = ({ cell, index, moveType, highlight, select }) => {
 }
 
 function Piece(props) {
-  const {...props} = props;
+  const { player, cloned, status } = props;
   const pieceColor = (player === 8 && 'white') || (player === 12 && 'black') || 'superposed';
   const classes = `piece ${cloned && 'cloned'} ${pieceColor}`;
   return (<div className={classes} ></div>);
 }
+
+export default Cell;

@@ -1,17 +1,16 @@
-import CHAT from '../constants/ChatTypes';
+//import CHAT from '../constants/ChatTypes';
 
 
-/* APP INITIAL STATE
-this.state = {
-  user: {},
+const initialState = {
+  me: {},
+  isLoggedIn: true,
   settings: {
-    musicVolume: 100,
     sfxVolume: 100,
-    notificationBadges: true,
+    musicVolume: 100,
+    display: undefined,
   },
-  activeView: 'Home',
+  activeView: 'home',
 };
-*/
 function rootReducer (state = initialState, action) { return state;
   // switch (action.type) {
   //   default: return state;

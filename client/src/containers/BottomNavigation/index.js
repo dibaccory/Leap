@@ -1,5 +1,5 @@
 import React from 'react';
-import NavItem from '../components/NavItem';
+import NavItem from '../../components/NavItem/';
 import './BottomNavigation.css';
 
 function BottomNavigation (props) {

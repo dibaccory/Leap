@@ -1,4 +1,4 @@
-import LOBBY from '../constants/lobby.types';
+import {LOBBY} from '../constants/lobby.types';
 
 export const update = payload => dispatch => dispatch({type: LOBBY.UPDATE, payload});
 export const toggleScroll = payload => dispatch => dispatch({type: LOBBY.TOGGLE_SCROLL, payload});

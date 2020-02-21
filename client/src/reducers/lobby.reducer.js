@@ -1,8 +1,15 @@
-import LOBBY from '../constants/lobby.types';
+import {LOBBY} from '../constants/lobby.types';
 
 const initialState = {
-
-}
+    'home': {
+      rooms: ['aaa'], //room ids contained here
+      activeRoom: 0,
+    },
+    'browse': {
+      rooms: ['aaa'],
+      activeRoom: 0,
+    },
+};
 
 function lobbyReducer (state = initialState, action) {
   switch (action.type) {
@@ -15,6 +22,8 @@ function lobbyReducer (state = initialState, action) {
     case LOBBY.TOGGLE_SCROLL:
       break;
     default:
-      break;
+      return state;
   }
 }
+
+export default lobbyReducer;

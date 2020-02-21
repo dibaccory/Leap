@@ -1,6 +1,8 @@
 import React from 'react';
+import { connect } from 'react-redux';
 import Room from '../Room';
 import crypto from 'crypto';
+import { getLobbyRooms, getActiveRoom } from '../../selectors/';
 import { lobbyUpdate, lobbyToggleScroll } from '../../actions/lobby';
 
 // const CONFIG = {
@@ -11,7 +13,7 @@ import { lobbyUpdate, lobbyToggleScroll } from '../../actions/lobby';
 //   size: 8,
 // };
 
-const Lobby = (rooms, activeRoomID) => {
+const Lobby = (rooms, activeRoom) => {
 
   /*
    TODO: add actions
@@ -20,8 +22,8 @@ const Lobby = (rooms, activeRoomID) => {
 
   return (
     <div className= "lobby-container">
-      { Object.entries(rooms).map( [id, ctx] => (
-        <Room key={id} {...ctx} active={id === activeRoomID} />
+      { Object.entries(rooms).map( ([id, ctx]) => (
+        <Room key={id} {...ctx} active={id === activeRoom} />
       )) }
     </div>
   );
@@ -30,7 +32,7 @@ const Lobby = (rooms, activeRoomID) => {
 //TODO: make selectors
 const mapStateToProps = state => ({
   rooms: getLobbyRooms(state),
-  activeRoomID: getActiveRoomID(state),
+  activeRoom: getActiveRoom(state),
 
 })
 
