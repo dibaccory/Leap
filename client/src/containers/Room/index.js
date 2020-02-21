@@ -12,12 +12,12 @@ const Room = ({
 }) => {
   return (
     <div className="room-container">
-
+      <Game game={game}/>
     </div>
   );
 }
 //<PlayerHeader user={}/>
-//<Game game={game} />
+//
 //<PlayerHeader user={}/>
 Room.propTypes = {
   me: object,

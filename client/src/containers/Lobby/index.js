@@ -13,7 +13,7 @@ import { lobbyUpdate, lobbyToggleScroll } from '../../actions/lobby';
 //   size: 8,
 // };
 
-const Lobby = (rooms, activeRoom) => {
+const Lobby = ({id, rooms, activeRoom}) => {
 
   /*
    TODO: add actions

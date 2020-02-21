@@ -1,20 +1,23 @@
 import ROOM from '../constants/room.types';
-/*
-props:
-  me: {
-    id: HASH
-    name: string
-    icon: yee
-  }
-*/
+import gameReducer from './game.reducer';
+import Leap from '../assets/leap';
+
+const game = new Leap (4,8,0);
+
 const initialState = {
-  'aaa': {
-    game: {},
-    users: ['userA'],
-    host: ['userA'],
+  'room1': {
+    game: game,
+    users: ['user1'],
+    host: ['user1'],
     chat: {},
   },
-  
+  'room2': {
+    game: game,
+    users: ['user2'],
+    host: ['user2'],
+    chat: {},
+  },
+
 };
 
 

@@ -2,11 +2,11 @@ import {LOBBY} from '../constants/lobby.types';
 
 const initialState = {
     'home': {
-      rooms: ['aaa'], //room ids contained here
+      rooms: ['room1'], //room ids contained here
       activeRoom: 0,
     },
     'browse': {
-      rooms: ['aaa'],
+      rooms: ['room2'],
       activeRoom: 0,
     },
 };
