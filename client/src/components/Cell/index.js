@@ -1,4 +1,5 @@
 import React from 'react';
+import './index.css';
 import {cellType, CELL_COLORS} from './util.js';
 
 export const Cell = ({ cell, index, moveType, highlight, select }) => {
@@ -7,20 +8,21 @@ export const Cell = ({ cell, index, moveType, highlight, select }) => {
   const classes = `cell ${color} ${(status ? 'move-'+status : '')}`;
 
   return (
-    <div className={classes} onClick={ () => select({cell: cell, index: index}) }>
+    <div className={classes} onClick={ () => select(cell, index) }>
       { ((cell & 12) > 0) && <Piece
         key={cell >> 5}
         player={cell & 12}
-        cloned={(cell >> 4) & 16}
+        cloned={(cell & 16) === 1}
         status={status} />}
     </div>
   );
 }
 
-function Piece(props) {
+const Piece = (props) => {
   const { player, cloned, status } = props;
-  const pieceColor = (player === 8 && 'white') || (player === 12 && 'black') || 'superposed';
-  const classes = `piece ${cloned && 'cloned'} ${pieceColor}`;
+  console.log(player);
+  const pieceColor = (player === 4 && 'white') || (player === 12 && 'black') || 'superposed';
+  const classes = `piece ${(cloned && 'cloned') || ''} ${pieceColor}`;
   return (<div className={classes} ></div>);
 }
 

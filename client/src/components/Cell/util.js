@@ -8,26 +8,26 @@ export const phaseLayouts = {
 export const cellType = index => {
 	let type;
 	switch (true) {
-		case (index === 17) || (index === 41):
+		case (index === 17) || (index === 46):
 			type = 2;
 			break;
-		case (index === 26) || (index === 34):
+		case (index === 19) || (index === 43):
 			type = 3;
 			break;
-		case (index === 19) || (index === 43):
+		case (index === 20) || (index === 44):
 			type = 4;
 			break;
-		case (index === 20) || (index === 44):
+		case (index === 29) || (index === 34):
 			type = 5;
 			break;
-		case (index === 29) || (index === 37):
+		case (index === 26) || (index === 37):
 			type = 6;
 			break;
-		case (index === 22) || (index === 46):
+		case (index === 22) || (index === 41):
 			type = 7;
 			break;
-		default:
-			type = (index % 2) ? 1 : 0;
+		default: //TODO import boardsize
+			type = ((index % 2) ^ ((index/8) %2)) ? 1 : 0;
 			break;
 	}
 	return type;

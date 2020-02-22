@@ -1,0 +1,96 @@
+.cell {
+  height: 50px;
+  /*box-sizing: border-box;*/
+  border-radius: 5px;
+  display: inline-block;
+  margin: 2px;
+  padding: 5px;
+  width: 50px;
+  transition: background-color 100ms ease-in;
+}
+
+.gray1 {
+  background-color: #f5f5f5;
+  box-shadow: inset 0 0 8px 2px #f0f0f0;
+}
+
+.gray2 {
+  background-color: #f0f0f0;
+  box-shadow: inset 0 0 8px 2px #e5e5e5;
+}
+
+.pink {
+  background-color: #ff99cc;
+  box-shadow: inset 0 0 8px 2px #e585b5;
+}
+
+.red {
+  background-color: #ee4444;
+  box-shadow: inset 0 0 8px 2px #d53939;
+}
+
+.orange {
+  background-color: #ee9900;
+  box-shadow: inset 0 0 8px 2px #d58500;
+}
+
+.yellow {
+  background-color: #eeee44;
+  box-shadow: inset 0 0 8px 2px #d5d539;
+}
+
+.green {
+  background-color: #44e944;
+  box-shadow: inset 0 0 8px 2px #39d539;
+}
+
+.blue {
+  background-color: #4444e9;
+  box-shadow: inset 0 0 8px 2px #3939d5;
+}
+
+
+.move-possible {
+  background-color: #aaf;
+  box-shadow: inset 0px 0 18px 1px #fff;
+  border: 1px solid #aaf;
+}
+
+.move-from {
+  background-color: #ffa;
+  box-shadow: inset 0px 0 18px 1px #fff;
+  border: 1px solid #ffa;
+}
+
+.move-to {
+  background-color: #afa;
+  box-shadow: inset 0px 0 18px 1px #fff;
+  border: 1px solid #afa;
+}
+
+.move-captured {
+  background-color: #f99;
+  box-shadow: inset 0px 0 18px 1px #fff;
+  border: 1px solid #f99;
+}
+
+
+.piece {
+  border-radius: 50%;
+  height: 100%;
+  transition: all ease-in-out 0.3s;
+  box-sizing: border-box;
+}
+
+.white {
+  background-color: white;
+  border: 1px solid #ccc;
+  box-shadow: inset 0 0 6px 2px #ddd;
+  box-sizing: border-box;
+}
+
+.black {
+  background-color: #333;
+  border: 1px solid black;
+  box-shadow: inset 0 0 6px 2px black;
+}

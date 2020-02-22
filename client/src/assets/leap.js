@@ -1,7 +1,7 @@
 //'use strict';
 import {phaseLayouts} from './util';
 
-export var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA;
+var BOARD_SIZE, BOARD_AREA, BIT_SIZE, BIT_MAX_PI, BIT_INDEX_SHIFT, BIT_AREA;
 const PLAYER_ONE = 4
 const PLAYER_TWO = 12;
 
@@ -334,6 +334,12 @@ Leap.prototype.getCapturedPiece = function (pid, to) {
 Leap.prototype.getInverseIndex = function (index) {
 	return (BOARD_AREA - 1) - index;
 }
+
+Leap.prototype.getConfig = () => ({
+  'BOARD_SIZE': BOARD_SIZE,
+  'BOARD_AREA': BOARD_AREA,
+  'BIT_SIZE': BIT_SIZE,
+});
 
 /*==========											UTILITY														==========*/
 

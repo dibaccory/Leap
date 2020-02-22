@@ -75,9 +75,10 @@ setDestination (to) {
 
 render () {
   const { game, move } = this.state;
+  const { BOARD_AREA } = game.getConfig();
   /*  display: grid for the cells  */
   let cells = [];
-  for (let index = 0; index < game.board.length; index++) {
+  for (let index = 0; index < BOARD_AREA; index++) {
     const cell = game.board[index];
     const moveType = (move.to === index && 'to')
      || (move.from === index && 'from')
