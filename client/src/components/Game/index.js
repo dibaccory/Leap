@@ -1,17 +1,17 @@
-import React, {useEffect, useState} from 'react';
-import { object } from 'prop-types';
+import React from 'react';
 import { connect } from 'react-redux';
-import { select } from '../../actions/game';
+import { select, moveReady, cacheMove } from '../../actions/game';
+import './index.css';
 import Cell from '../Cell';
 
 export class Game extends React.Component {
-  constructor ({ game }) {
+  constructor ({ game, move, }) {
     super();
     const player = 4;
     this.state = {
       game: game,
       player: player,
-      move: {to: undefined, from: undefined, captured: undefined},
+      move: move,
       continuedMove: false,
     }
   }
@@ -41,21 +41,21 @@ export class Game extends React.Component {
         this.endTurn();
       }
     } else {
-      const pieceType = cell & (8 | 10 | 12);
+      const pieceType = cell & (4 | 8 | 12);
       if (pieceType) {  //if piece
         const canSelectPiece = !(pieceType ^ player) || pieceType === 10;
         const hasMoves = game.moves[cell >> 5].length > 0;
 
         if (canSelectPiece && hasMoves) this.setPiece(cell, index);
         else try {
-          if (canSelectPiece) throw 'PIECE HAS NO MOVES';
-          if (hasMoves) throw 'OPPONENT PIECE';
+          if (!canSelectPiece) throw 'OPPONENT PIECE';
+          if (!hasMoves) throw 'PIECE HAS NO MOVES';
         } catch (error) {
           console.log(`CANNOT SELECT: ${error}`);
         }
       }
       else {  //if empty cell
-        if (cell & 2) this.move();
+        if (cell & 2) this.setDestination(index);
         else console.log('CANNOT SELECT: NOT EMPTY');
       }
   }
@@ -66,12 +66,32 @@ setPiece (cell, index) {
   const pi = cell >> 5;
   game.removeHighlight();
   game.highlightMoves(pi);
-  this.setState({ move: {from: index, to: undefined, captured: undefined} });
+  const move = {from: index, to: undefined, captured: undefined};
+  this.setState({ move: move });
+  cacheMove(move);
 }
 
 setDestination (to) {
   this.setState({ move: {from: this.state.move.from, to: to, captured: this.state.game.getCapturedPiece(to)} });
+  moveReady();
 }
+/*
+move() {
+  const { game, move } = this.state;
+  const { from, to } = move;
+  const pi = game.board[from] >> 5;
+
+  if (game.doMove(from, to)) { //win
+    this.endTurn(true);
+    return;
+  } else if (game.continuedMove) {
+    game.highlightMoves(pi);
+    this.setState({ game: game, move: {to: to, from: undefined, captured: undefined} });
+  } else {
+    this.endTurn();
+  }
+}
+*/
 
 render () {
   const { game, move } = this.state;
@@ -91,7 +111,7 @@ render () {
       cell={cell}
       highlight={cell & 2}
       moveType={moveType}
-      select={select.bind(this)} />);
+      select={this.selectCell.bind(this)} />);
   }
   return (<div className="board"> { cells } </div>);
 };
@@ -101,5 +121,10 @@ render () {
 //Game.propTypes = { game: object.isRequired, move: object };
 //TODO: make selectors
 //const mapStateToProps = state => ({move: getMoveSelections(state)});
+
+const actions = {
+  cacheMove,
+  moveReady,
+};
 
 export default connect(/*mapStateToProps*/)(Game);

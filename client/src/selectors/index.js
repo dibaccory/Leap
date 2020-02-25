@@ -20,4 +20,6 @@ export const getHost = state => state.rooms[getActiveRoom(state)].host;
 
 
 //LOCAL
-export const getMoveSelections = state => state.cachedGame.move;
+const isCachedMoveForThisRoom = state => (state.rooms[getActiveRoom(state)] === state.root.cachedGame.room);
+export const getMoveSelectionsForActiveGame = state => isCachedMoveForThisRoom(state) ? state.root.cachedGame.move : null;
+export const getMoveStatusForActiveGame = state => isCachedMoveForThisRoom(state) ? state.root.cachedGame.isMoveReadyToSubmit : false;

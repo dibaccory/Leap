@@ -1,10 +1,11 @@
-import io from 'socket.io-client';
-import { messageTypes, uri } from './constants/index';
+import socket from 'socket.io-client';
+import { ENDPOINT } from './constants/socket.types';
 
-export default function Socket () {
-  const socket = io.connect(ENDPOINT);
+export default function Socket (store) {
+  const io = socket.connect(ENDPOINT);
 
-  return {
-
-  };
+  io
+    .on('recieveMove', data => {
+      console.log(data);
+    });
 }

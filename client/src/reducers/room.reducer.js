@@ -1,5 +1,6 @@
 import ROOM from '../constants/room.types';
-import gameReducer from './game.reducer';
+import GAME from '../constants/game.types';
+import io from 'socket.io-client';
 import Leap from '../assets/leap';
 
 const game = new Leap (4,8,0);
@@ -27,7 +28,7 @@ function roomReducer (state = initialState, action) {
     case ROOM.ENTER:
 
       break;
-    case ROOM.MOVE_READY:
+    case GAME.MOVE_READY:
       //selectcell logic in here... when submiting move, confirm on server
       break;
     default: return state;

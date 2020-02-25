@@ -10,6 +10,11 @@ const initialState = {
     display: undefined,
   },
   activeView: 'home',
+  cachedGame: {
+    room: undefined,
+    move: {to: undefined, from: undefined, captured: undefined},
+    isMoveReadyToSubmit: false,
+  }
 };
 function rootReducer (state = initialState, action) { return state;
   // switch (action.type) {
