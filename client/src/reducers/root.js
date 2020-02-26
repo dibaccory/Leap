@@ -2,7 +2,10 @@
 
 
 const initialState = {
-  me: {},
+  me: {
+    id: 'user69',
+    name: 'richard',
+  },
   isLoggedIn: true,
   settings: {
     sfxVolume: 100,

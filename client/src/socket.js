@@ -1,11 +1,16 @@
-import socket from 'socket.io-client';
+import socketIOClient from 'socket.io-client';
+import store from './store/';
 import { ENDPOINT } from './constants/socket.types';
 
-export default function Socket (store) {
-  const io = socket.connect(ENDPOINT);
+function Socket (store) {
+  this.io = socketIOClient.connect(ENDPOINT);
 
-  io
+  this.io
     .on('recieveMove', data => {
       console.log(data);
     });
 }
+
+
+const socket = new Socket(store);
+export default socket;

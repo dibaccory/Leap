@@ -3,7 +3,7 @@ import initSocketIO from './socket';
 
 const init = ctx => initHttpServer(ctx).then(initSocketIO);
 const config = {port: process.env.PORT || 3001};
-init(config);
+init({config});
 
 
 /*
@@ -30,7 +30,7 @@ that'd be neat
 }
 
 */
-
+/*
 io.sockets.on('connection', socket => {
 
   //login prompt (returning user / guest)
@@ -114,4 +114,6 @@ io.sockets.on('connection', socket => {
   });
 
 });
+
+*/
 //const getAPIandEmit = "TODO";

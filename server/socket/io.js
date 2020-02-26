@@ -1,17 +1,17 @@
 import socket from 'socket.io';
 import { EVENT, CONNECTION, DISCONNECT } from '../constants/eventTypes';
-import { USER, ROOM, GAME, CHAT } from '../../shared/constants';
+import { USER, LOBBY, ROOM, GAME, CHAT } from '../constants/';
 
 const emitToRoom = () => {};
 const broadcastToRoom = () => {};
 const emitToSocket = () => {};
 
 function IO (server) {
-  const io = socket(server);
-  io.origins('*:*');
-  const users = {};
-  const rooms = {};
-  io.on(CONNECTION, async socket => {
+  this.io = socket(server);
+  this.io.origins('*:*');
+  this.user = {};
+  this.room = {};
+  this.io.on(CONNECTION, async socket => {
       socket
         .on(DISCONNECT, async () => { this.disconnect() })
         .on(EVENT.USER, async data => { this.userEvent(data) })
@@ -21,10 +21,9 @@ function IO (server) {
   });
 
 }
-IO.prototype.disconnect () {
-
+IO.prototype.disconnect = () => {
 }
-IO.prototype.userEvent (data) { //login, logout, updateUserInfo
+IO.prototype.userEvent = (data) => { //login, logout, updateUserInfo
   switch (data.action) {
     case USER.LOGIN:
       break;
@@ -33,11 +32,14 @@ IO.prototype.userEvent (data) { //login, logout, updateUserInfo
     case USER.UPDATE:
       break;
     default:
+      break;
   }
 }
-IO.prototype.roomEvent (data) { //roomEnter, roomExit, roomAdd, roomDelete
-  switch (data.action) {
+IO.prototype.roomEvent = (action) => { //roomEnter, roomExit, roomAdd, roomDelete
+  switch (action.type) {
     case ROOM.ENTER:
+      const { me, roomID } = action.payload;
+      this.room[roomID].users.push(me.id);
       break;
     case ROOM.EXIT:
       break;
@@ -48,7 +50,7 @@ IO.prototype.roomEvent (data) { //roomEnter, roomExit, roomAdd, roomDelete
     default:
   }
 }
-IO.prototype.gameEvent (data) { //gameStart, gameMove, gameEnd
+IO.prototype.gameEvent = (data) => { //gameStart, gameMove, gameEnd
   switch (data.action) {
     case GAME.START:
       break;
@@ -59,7 +61,7 @@ IO.prototype.gameEvent (data) { //gameStart, gameMove, gameEnd
     default:
   }
 }
-IO.prototype.chatEvent (data) { //chatSend, chatTyping
+IO.prototype.chatEvent = (data) => { //chatSend, chatTyping
   switch (data.action) {
     case CHAT.SEND:
       break;
@@ -68,3 +70,5 @@ IO.prototype.chatEvent (data) { //chatSend, chatTyping
     default:
   }
 }
+
+export default IO;

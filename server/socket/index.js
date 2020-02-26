@@ -1,15 +1,13 @@
 import IO from './io';
-import listeners from './listeners';
 
 const init = ctx => {
   const promise = new Promise( resolve => {
-    IO(ctx.http);
+
     //logger('Socket.io initialized');
-    resolve({ ...ctx, IO.io });
+    resolve({ ...ctx, io: (new IO(ctx.http).io) });
   });
 
   return promise;
 };
-
 
 export default init;

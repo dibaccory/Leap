@@ -1,4 +1,4 @@
-export const EVENT {
+export const EVENT = {
   USER: 'userEvent',
   ROOM: 'roomEvent',
   GAME: 'gameEvent',

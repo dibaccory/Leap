@@ -23,7 +23,7 @@ const Lobby = ({id, rooms, activeRoom}) => {
   return (
     <div className= "lobby-container">
       { Object.entries(rooms).map( ([id, ctx]) => (
-        <Room key={id} {...ctx} active={id === activeRoom} />
+        <Room key={id} room={id} {...ctx} active={id === activeRoom} />
       )) }
     </div>
   );

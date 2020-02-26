@@ -2,18 +2,22 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bool, array, func, string, number, object } from 'prop-types';
 import { getUsers, getGame, getHost, getMe, getMoveSelectionsForActiveGame, getMoveStatusForActiveGame } from '../../selectors/';
-import { submitMove } from '../../actions/room';
+import { bindActionCreators } from 'redux';
+import { submitMove, enter, exit } from '../../actions/room';
 import Game from '../../components/Game';
 
 const Room = ({
   active,
+  roomID,
+  me,
+  users,
+  host,
   game,
   move,
   isMoveReadyToSubmit,
-  users,
-  host,
 }) => {
   move = move || {to: undefined, from: undefined, captured: undefined};
+  if (active) enter(me, roomID);
   return (
     <div className="room-container">
       <Game game={game} move={move}/>
@@ -46,6 +50,10 @@ const mapStateToProps = state => ({
 
 const actions = {
   submitMove,
+  enter,
+  exit,
 };
 
-export default connect(mapStateToProps)(Room);
+const mapDispatchToProps = dispatch => bindActionCreators(actions, dispatch);
+
+export default connect(mapStateToProps, mapDispatchToProps)(Room);
