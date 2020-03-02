@@ -6,26 +6,30 @@ const emitToRoom = () => {};
 const broadcastToRoom = () => {};
 const emitToSocket = () => {};
 
-function IO (server) {
+const user = {};
+const room = {};
+
+async function IO (server) {
   this.io = socket(server);
   this.io.origins('*:*');
-  this.user = {};
-  this.room = {};
   this.io.on(CONNECTION, async socket => {
       socket
-        .on(DISCONNECT, async () => { this.disconnect() })
-        .on(EVENT.USER, async data => { this.userEvent(data) })
-        .on(EVENT.ROOM, async data => { this.roomEvent(data) })
-        .on(EVENT.GAME, async data => { this.gameEvent(data) })
-        .on(EVENT.CHAT, async data => { this.chatEvent(data) });
+        .on(DISCONNECT, () => { disconnect() })
+        .on(EVENT.USER, data => { userEvent(data) })
+        .on(EVENT.ROOM, data => { roomEvent(data) })
+        .on(EVENT.GAME, data => { gameEvent(data) })
+        .on(EVENT.CHAT, data => { chatEvent(data) });
   });
+}
 
+const disconnect = () => {
 }
-IO.prototype.disconnect = () => {
-}
-IO.prototype.userEvent = (data) => { //login, logout, updateUserInfo
-  switch (data.action) {
+const userEvent = (action) => { //login, logout, updateUserInfo
+  switch (action.type) {
     case USER.LOGIN:
+      console.log(action.payload);
+      user[action.payload.me.id] = action.payload.me;
+      console.log(`${action.payload.me.name} joined!`);
       break;
     case USER.LOGOUT:
       break;
@@ -35,11 +39,11 @@ IO.prototype.userEvent = (data) => { //login, logout, updateUserInfo
       break;
   }
 }
-IO.prototype.roomEvent = (action) => { //roomEnter, roomExit, roomAdd, roomDelete
+const roomEvent = (action) => { //roomEnter, roomExit, roomAdd, roomDelete
   switch (action.type) {
     case ROOM.ENTER:
       const { me, roomID } = action.payload;
-      this.room[roomID].users.push(me.id);
+      room[roomID].users.push(me.id);
       break;
     case ROOM.EXIT:
       break;
@@ -50,7 +54,7 @@ IO.prototype.roomEvent = (action) => { //roomEnter, roomExit, roomAdd, roomDelet
     default:
   }
 }
-IO.prototype.gameEvent = (data) => { //gameStart, gameMove, gameEnd
+const gameEvent = (data) => { //gameStart, gameMove, gameEnd
   switch (data.action) {
     case GAME.START:
       break;
@@ -61,7 +65,7 @@ IO.prototype.gameEvent = (data) => { //gameStart, gameMove, gameEnd
     default:
   }
 }
-IO.prototype.chatEvent = (data) => { //chatSend, chatTyping
+const chatEvent = (data) => { //chatSend, chatTyping
   switch (data.action) {
     case CHAT.SEND:
       break;

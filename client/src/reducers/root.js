@@ -1,5 +1,6 @@
 //import CHAT from '../constants/ChatTypes';
-
+import { USER } from '../constants/';
+import socket from '../socket';
 
 const initialState = {
   me: {
@@ -19,10 +20,15 @@ const initialState = {
     isMoveReadyToSubmit: false,
   }
 };
-function rootReducer (state = initialState, action) { return state;
-  // switch (action.type) {
-  //   default: return state;
-  // }
+function rootReducer (state = initialState, action) {
+  switch (action.type) {
+    case USER.LOGIN:
+      console.log('aw shit, here we go again');
+      socket.io.emit('userEvent', action);
+      break;
+    default: break;
+  }
+  return state;
 }
 
 export default rootReducer;

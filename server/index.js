@@ -2,7 +2,7 @@ import initHttpServer from './http';
 import initSocketIO from './socket';
 
 const init = ctx => initHttpServer(ctx).then(initSocketIO);
-const config = {port: process.env.PORT || 3001};
+const config = {port: process.env.PORT || 3001, host: 'localhost'};
 init({config});
 
 

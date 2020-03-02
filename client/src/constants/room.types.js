@@ -1,4 +1,4 @@
-const ROOM = {
+export const ROOM = {
   ENTER: 'roomEnter',
   EXIT: 'roomExit',
   END_GAME: 'gameEnd',

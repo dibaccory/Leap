@@ -3,23 +3,34 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { bool, array, func, string, number, object } from 'prop-types';
 import { getMe, getIsLoggedIn } from '../../selectors/';
+import { userLogin } from '../../actions/user';
+
 import ViewStack from '../ViewStack/';
 import Room from '../Room/';
 import BottomNavigation from '../BottomNavigation/';
 import './index.css';
 //import './lib/fa/css/all.min.css';
 
-const App = ({
-  me,
-  isLoggedIn,
-}) => {
+class App extends React.Component {
+  constructor({ socket, me, isLoggedIn, userLogin}) {
+    super();
+    this.me = me;
+    this.socket = socket;
+    this.isLoggedIn = isLoggedIn;
+    userLogin({me: this.me});
+  }
+
   //const ClientSocket = React.createContext();
-    return (
-      <div className="App">
-        <ViewStack/>
-      </div>
-    );
-};
+  render () {
+    return this.isLoggedIn
+      ? (
+        <div className="App">
+          <ViewStack/>
+          </div>
+      )
+      : (<div className="App"> LOADING </div>);
+  }
+}
 //{!isLoggedIn && <Splash/>}
 //<BannerContainer />
 //<HeaderContainer me={me}/> //has settings at upper righthand
@@ -31,15 +42,15 @@ App.propTypes = {
   isLoggedIn: bool.isRequired,
 }
 //
-// const actions = {
-//     changeView,
-// };
-//
-// const mapDispatchToProps = dispatch => bindActionCreators(actions, dispatch);
+const actions = {
+    userLogin,
+};
+
+const mapDispatchToProps = dispatch => bindActionCreators(actions, dispatch);
 
 const mapStateToProps = state => ({
   me: getMe(state),
   isLoggedIn: getIsLoggedIn(state),
 });
 
-export default connect(mapStateToProps)(App);
+export default connect(mapStateToProps, mapDispatchToProps)(App);

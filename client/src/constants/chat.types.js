@@ -1,4 +1,4 @@
-const CHAT = {
+export const CHAT = {
   SEND_MSG: 'chatSend',
   TYPING: 'chatTyping',
 };
