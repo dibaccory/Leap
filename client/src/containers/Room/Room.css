@@ -1,5 +1,5 @@
 .room-container {
-  display: flex;
+  //display: flex;
   transition-duration: 0.8s;
   transition-property: transform;
 }
