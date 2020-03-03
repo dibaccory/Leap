@@ -4,10 +4,10 @@ import socket from '../socket';
 
 const initialState = {
   me: {
-    id: 'user69',
-    name: 'richard',
+    id: '',
+    name: '',
   },
-  isLoggedIn: true,
+  isLoggedIn: false,
   settings: {
     sfxVolume: 100,
     musicVolume: 100,
@@ -25,7 +25,7 @@ function rootReducer (state = initialState, action) {
     case USER.LOGIN:
       console.log('aw shit, here we go again');
       socket.io.emit('userEvent', action);
-      break;
+      return {...state, ...action.payload, isLoggedIn: true};
     default: break;
   }
   return state;
