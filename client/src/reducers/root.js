@@ -25,7 +25,11 @@ function rootReducer (state = initialState, action) {
     case USER.LOGIN:
       console.log('aw shit, here we go again');
       socket.io.emit('userEvent', action);
-      return {...state, ...action.payload, isLoggedIn: true};
+      state = {...state, ...action.payload, isLoggedIn: true};
+      break;
+    case USER.LOGOUT:
+
+      break;
     default: break;
   }
   return state;

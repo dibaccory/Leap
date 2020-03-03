@@ -6,8 +6,9 @@ const emitToRoom = () => {};
 const broadcastToRoom = () => {};
 const emitToSocket = () => {};
 
-const user = {};
+const onlineUsers = {};
 const room = {};
+var client;
 
 async function IO (server) {
   this.io = socket(server);
@@ -23,15 +24,19 @@ async function IO (server) {
 }
 
 const disconnect = () => {
+  delete onlineUsers[client];
+  console.log(JSON.stringify(onlineUsers));
 }
-const userEvent = (action) => { //login, logout, updateUserInfo
+const userEvent = action => { //login, logout, updateUserInfo
   switch (action.type) {
     case USER.LOGIN:
       console.log(action.payload);
-      user[action.payload.me.id] = action.payload.me;
+      onlineUsers[action.payload.me.id] = action.payload.me;
+      client = action.payload.me.id;
       console.log(`${action.payload.me.name} joined!`);
       break;
     case USER.LOGOUT:
+      client = ''; //go back to session ID
       break;
     case USER.UPDATE:
       break;
