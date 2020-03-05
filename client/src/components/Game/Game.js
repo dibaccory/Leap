@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { select, moveReady, cacheMove } from '../../actions/game';
+import { select, moveReady, cacheMove } from '../../actions/game.actions';
 import './Game.css';
 import Cell from '../Cell';
 

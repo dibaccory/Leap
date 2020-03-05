@@ -1,9 +1,9 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
-import { bool, array, func, string, number, object } from 'prop-types';
+import { bool, array, string, object } from 'prop-types';
 import { getUsers, getGame, getHost, getMe, getMoveSelectionsForActiveGame, getMoveStatusForActiveGame } from '../../selectors/';
 import { bindActionCreators } from 'redux';
-import { submitMove, enter, exit } from '../../actions/room';
+import { submitMove, enter, exit } from '../../actions/room.actions';
 import Game from '../../components/Game';
 import './Room.css';
 
@@ -31,7 +31,7 @@ const Room = ({
 //<PlayerHeader user={}/>
 Room.propTypes = {
   me: object,
-  users: object.isRequired,
+  users: array.isRequired,
   host: string.isRequired, //userID string?
   game: object.isRequired,
   move: object,

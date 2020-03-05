@@ -1,6 +1,5 @@
 //import CHAT from '../constants/ChatTypes';
 import { USER } from '../constants/';
-import socket from '../socket';
 
 const initialState = {
   me: {
@@ -13,7 +12,7 @@ const initialState = {
     musicVolume: 100,
     display: undefined,
   },
-  activeView: 'home',
+  activeView: 'Browse',
   cachedGame: {
     room: undefined,
     move: {to: undefined, from: undefined, captured: undefined},
@@ -24,11 +23,10 @@ function rootReducer (state = initialState, action) {
   switch (action.type) {
     case USER.LOGIN:
       console.log('aw shit, here we go again');
-      socket.io.emit('userEvent', action);
       state = {...state, ...action.payload, isLoggedIn: true};
       break;
     case USER.LOGOUT:
-
+      state = {...state, ...action.payload, isLoggedIn: false};
       break;
     default: break;
   }

@@ -12,14 +12,13 @@ export const Cell = ({ cell, index, moveType, highlight, select }) => {
       { ((cell & 12) > 0) && <Piece
         key={cell >> 5}
         player={cell & 12}
-        cloned={(cell & 16) === 1}
-        status={status} />}
+        cloned={(cell & 16) === 1} />}
     </div>
   );
 }
 
 const Piece = (props) => {
-  const { player, cloned, status } = props;
+  const { player, cloned } = props;
   console.log(player);
   const pieceColor = (player === 4 && 'white') || (player === 12 && 'black') || 'superposed';
   const classes = `piece ${(cloned && 'cloned') || ''} ${pieceColor}`;

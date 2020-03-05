@@ -1,5 +1,6 @@
 export const EVENT = {
   USER: 'userEvent',
+  LOBBY: 'lobbyEvent',
   ROOM: 'roomEvent',
   GAME: 'gameEvent',
   CHAT: 'chatEvent',

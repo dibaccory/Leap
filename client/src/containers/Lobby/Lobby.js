@@ -3,17 +3,11 @@ import { connect } from 'react-redux';
 import Room from '../Room';
 import crypto from 'crypto';
 import { getLobbyRooms, getActiveRoom } from '../../selectors/';
-import { lobbyUpdate, lobbyToggleScroll } from '../../actions/lobby';
+//import { lobbyUpdate, lobbyToggleScroll } from '../../actions/lobby.actions';
+import { object, string } from 'prop-types';
 
 import './Lobby.css';
 
-// const CONFIG = {
-//   difficulty: 0,
-//   online: true,
-//   port: 3001,
-//   player: {},
-//   size: 8,
-// };
 
 const Lobby = ({id, rooms, activeRoom}) => {
 
@@ -21,16 +15,36 @@ const Lobby = ({id, rooms, activeRoom}) => {
    TODO: add actions
     load Games through up/down arrows + or - state roomIndex
   */
+  const roomKeys = Object.keys(rooms);
+  const activeRoomIndex = roomKeys.indexOf(activeRoom);
+  const size = roomKeys.length;
+  let loadedRooms = [];
+  if (size > 1) {
+    const prev = Math.abs( (activeRoomIndex-1)%size );
+    const next = (activeRoomIndex+1)%size;
+    loadedRooms.push(
+      <Room key={'prev_room'} room={rooms[roomKeys[prev]].id} active={false} />,
+      <Room key={'display_room'} room={rooms[roomKeys[activeRoomIndex]].id} active={true} />,
+      <Room key={'next_room'} room={rooms[roomKeys[next]].id} active={false} />
+    );
+  } else {
+    loadedRooms.push(<Room key={'display_room'} room={rooms[roomKeys[activeRoomIndex]].id} active={true} />);
+  }
+
 
   return (
     <div className= "lobby-container">
-      { Object.entries(rooms).map( ([id, ctx]) => (
-        <Room key={id} room={id} {...ctx} active={id === activeRoom} />
-      )) }
+      { loadedRooms }
     </div>
   );
 
 };
+
+Lobby.propTypes = {
+  rooms: object,
+  activeRoom: string,
+}
+
 //TODO: make selectors
 const mapStateToProps = state => ({
   rooms: getLobbyRooms(state),

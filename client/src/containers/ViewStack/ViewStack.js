@@ -6,8 +6,8 @@ import Leaderboard from '../Leaderboard';
 const ViewStack = () => {
   return (
     <div className="view-container">
-      <Lobby id="Home"/>
 
+      <Lobby id="Browse"/>
     </div>
   );
 };

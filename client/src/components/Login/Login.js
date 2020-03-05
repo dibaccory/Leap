@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { func } from 'prop-types';
-import { userLogin } from '../../actions/user';
+import { userLogin } from '../../actions/user.actions';
 import { v4 as getUUID } from 'uuid';
 
 const Login = ({ userLogin }) => {

@@ -2,10 +2,10 @@ import IO from './io';
 
 const init = ctx => {
   const promise = new Promise( resolve => {
-    const io = new IO(ctx.http);
+    const io = IO(ctx.http);
     //logger('Socket.io initialized');
     console.log(io);
-    resolve({ ...ctx, io: (io.io) });
+    resolve({ ...ctx, io: (io) });
   });
 
   return promise;
