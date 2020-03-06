@@ -27,8 +27,10 @@ const Lobby = ({id, rooms, activeRoom}) => {
       <Room key={'display_room'} room={rooms[roomKeys[activeRoomIndex]].id} active={true} />,
       <Room key={'next_room'} room={rooms[roomKeys[next]].id} active={false} />
     );
-  } else {
+  } else if (size) {
     loadedRooms.push(<Room key={'display_room'} room={rooms[roomKeys[activeRoomIndex]].id} active={true} />);
+  } else {
+    loadedRooms.push( (<div> LMAO NUTTIN </div>) );
   }
 
 

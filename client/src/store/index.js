@@ -1,6 +1,13 @@
-import { createStore } from 'redux';
+import { createStore, applyMiddleware, compose } from 'redux';
+import socket from '../middleware/socket';
+import thunk from 'redux-thunk';
 import reducer from '../reducers/';
 
-const store = createStore(reducer);
+const middleware = [thunk, socket];
+
+const store = createStore(
+  reducer,
+  applyMiddleware(...middleware)
+);
 
 export default store;

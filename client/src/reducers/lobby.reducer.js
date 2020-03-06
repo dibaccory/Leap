@@ -22,13 +22,14 @@ function lobbyReducer (state = initialState, action) {
       break;
     case LOBBY.UPDATE:
       console.log(action.payload);
-      state['Browse'].rooms = Object.keys(action.payload.rooms);
+      state['Browse'].rooms = Object.keys(action.payload);
       break;
     case LOBBY.TOGGLE_SCROLL:
       break;
     default:
-      return state;
+      break;
   }
+  return state;
 }
 
 export default lobbyReducer;

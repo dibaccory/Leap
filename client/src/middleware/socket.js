@@ -1,12 +1,12 @@
 import socketIOClient from 'socket.io-client';
-import store from './store/';
-import { ENDPOINT } from './constants/socket.types';
-import { USER, LOBBY, ROOM, GAME, CHAT } from './constants/';
-import ACTION from './actions';
+//import store from '../store/';
+import { ENDPOINT } from '../constants/socket.types';
+import { USER, LOBBY, ROOM, GAME, CHAT } from '../constants/';
+import ACTION from '../actions';
 
 
 const socketMiddleware = () => {
-  let socket;
+  let io = null;
 
   const onConnect = store => event => {
     console.log('Howdy!');
@@ -16,58 +16,68 @@ const socketMiddleware = () => {
     console.log('Bowdy?');
   };
 
-  const onMessage = store => event => {
+  const onMessage = dispatch => action => {
     //TODO: I guess this is where we handle the server data
+    console.log(JSON.stringify(action));
+    switch (action.type) {
+      case USER.LOGIN:
+        dispatch({type: ROOM.FETCH_ROOMS, payload: action.payload.rooms});
+        dispatch({type: LOBBY.UPDATE, payload: action.payload.rooms});
+        dispatch({type: USER.LOGIN, payload: action.payload.me});
+        break;
+      default: break;
+    }
   };
 
-  return store => next => action => {
+  return dispatch => action => {
+    console.log(dispatch);
     switch (action.type) {
-      case 'CONNECT':
-        if (socket) socket.close();
+      case 'connect':
+        if (io) break;
 
-        socket = socket(action.server);
-        socket
-          .on('connect', onConnect(store))
-          .on('message', onMessage(store))
-          .on('disconnect', onDisonnect(store));
+        io = socketIOClient(action.host);
+        io
+          .on('connect', onConnect(dispatch))
+          .on('message', onMessage(dispatch))
+          .on('disconnect', onDisconnect(dispatch));
         break;
 
-      case 'DISCONNECT':
-        if (socket) socket.close();
-        socket = null;
+      case 'disconnect':
+        if (io) io.close();
+        io = null;
         console.log('Disconnected.');
         break;
 
       case USER.LOGIN:
       case USER.LOGOUT:
-        socket.emit('eventUser', action);
+        io.emit('userEvent', action);
         break;
 
       case LOBBY.ADD_ROOM:
       case LOBBY.REMOVE_ROOM:
       case LOBBY.UPDATE:
-        socket.emit('eventLobby', action);
+        io.emit('lobbyEvent', action);
         break;
 
       case ROOM.ENTER:
       case ROOM.EXIT:
       case ROOM.SUBMIT_MOVE:
       case ROOM.END_GAME:
-        socket.emit('eventRoom', action);
+        io.emit('roomEvent', action);
         break;
 
       case GAME.START:
       case GAME.SELECT:
       case GAME.END:
-        socket.emit('eventGame', action);
+        io.emit('gameEvent', action);
         break;
 
 
       default:
-      return next(action);
+      return dispatch(action);
     }
   };
-}
+};
 
 // function Socket () {
 //   this.io = socketIOClient.connect('ws://localhost:3001');

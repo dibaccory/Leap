@@ -22,8 +22,8 @@ function roomReducer (state = initialState, action) {
       //selectcell logic in here... when submiting move, confirm on server
       break;
 
-    case LOBBY.UPDATE:
-      state = {...action.payload.rooms};
+    case 'fetchRooms':
+      state = {...action.payload};
       break
     default: break;
   }

@@ -31,6 +31,7 @@ async function IO (server) {
   io = socket(server);
   io.origins('*:*');
   io.on(CONNECTION, async socket => {
+    //io.emit('connect');
       socket
         .on(DISCONNECT, () => { disconnect() })
         .on(EVENT.USER, data => { userEvent(data) })
@@ -48,6 +49,7 @@ const disconnect = () => {
   console.log(JSON.stringify(onlineUsers));
 }
 const userEvent = action => { //login, logout, updateUserInfo
+  console.log('USER EVENT')
   switch (action.type) {
     case USER.LOGIN:
       console.log(action.payload);
@@ -55,7 +57,7 @@ const userEvent = action => { //login, logout, updateUserInfo
       client = action.payload.me.id;
       console.log(`${action.payload.me.name} joined!`);
       console.log('send rooms over');
-      io.emit('message', {type: LOBBY.UPDATE, data: rooms});
+      io.emit('message', {type: USER.LOGIN, payload: {rooms: rooms, me: action.payload.me}});
       break;
     case USER.LOGOUT:
       client = ''; //go back to session ID
@@ -68,6 +70,7 @@ const userEvent = action => { //login, logout, updateUserInfo
 }
 
 const lobbyEvent = action => {
+    console.log('LOBBY EVENT')
   switch (action.type) {
     case LOBBY.ADD_ROOM:
       rooms[action.payload.id] = action.payload.room;
@@ -89,7 +92,8 @@ const lobbyEvent = action => {
   }
 }
 
-const roomEvent = (action) => { //roomEnter, roomExit, roomAdd, roomDelete
+const roomEvent = (action) => {
+    console.log('ROOM EVENT')
   switch (action.type) {
     case ROOM.ENTER:
       const { me, roomID } = action.payload;
