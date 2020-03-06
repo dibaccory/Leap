@@ -16,13 +16,15 @@ const Room = ({
   game,
   move,
   isMoveReadyToSubmit,
+  enter,
+  submitMove,
 }) => {
   move = move || {to: undefined, from: undefined, captured: undefined};
-  if (active) enter(me, roomID);
+  if (active) enter({me, roomID});
   return (
     <div className="room-container">
       <Game game={game} move={move}/>
-      <button onClick={() => {isMoveReadyToSubmit ? submitMove(game, move): console.log('boopies')} }>Play</button>
+      <button onClick={() => {isMoveReadyToSubmit ? submitMove({roomID, game, move}): console.log('boopies')} }>Play</button>
     </div>
   );
 }

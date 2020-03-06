@@ -1,23 +1,23 @@
 import socket from 'socket.io';
 import Leap from '../assets/leap';
-const game = new Leap (4,8,0);
 import { EVENT, CONNECTION, DISCONNECT } from '../constants/eventTypes';
 import { USER, LOBBY, ROOM, GAME, CHAT } from '../constants/';
 
-const emitToRoom = () => {};
-const broadcastToRoom = () => {};
-const emitToSocket = () => {};
+
 
 const onlineUsers = {};
 const rooms = {
   'room1': {
-    game: game,
+    game: new Leap (4,8,0),
     whitelist: false,
     users: ['user1'],
     host: 'user1',
+    playerOne: '',
+    playerTwo: '',
+
   },
   'room2': {
-    game: game,
+    game: new Leap (4,8,0),
     whitelist: false,
     users: ['user2'],
     host: 'user2',
@@ -26,6 +26,10 @@ const rooms = {
 var client;
 
 var io;
+
+const emitToRoom = (action) => { io.emit('message', action) };
+const broadcastToRoom = () => {};
+const emitToSocket = () => {};
 
 async function IO (server) {
   io = socket(server);
@@ -94,12 +98,27 @@ const lobbyEvent = action => {
 
 const roomEvent = (action) => {
     console.log('ROOM EVENT')
+
   switch (action.type) {
     case ROOM.ENTER:
-      const { me, roomID } = action.payload;
-      room[roomID].users.push(me.id);
+    console.log(JSON.stringify(action));
+    console.log(`${action.payload.me.name} entered Room ${action.payload.roomID}`);
+      rooms[action.payload.roomID].users.push(action.payload.me.id);
       break;
     case ROOM.EXIT:
+      break;
+    case ROOM.SUBMIT_MOVE:
+      //TODO: verify board state first
+      //let { roomID, game, move } = action.payload;
+      /*
+      CHECKS:
+        is move valid?
+        is rooms[roomID].game === game?
+      */
+      const isWin = rooms[action.payload.roomID].game.doMove(action.payload.move);
+      action.type = ROOM.UPDATE_GAME;
+      emitToRoom(action);
+
       break;
     case ROOM.ADD:
       break;

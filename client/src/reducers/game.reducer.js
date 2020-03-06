@@ -1,8 +1,8 @@
 import GAME from '../constants/game.types';
 
 const initialState = {
-  board: {},
-  move: {to: undefined, from: undefined, captured: undefined},
+  // board: {},
+  // move: {to: undefined, from: undefined, captured: undefined},
 };
 function gameReducer (state = initialState, action) {
   const { game, move } = state;
@@ -12,8 +12,10 @@ function gameReducer (state = initialState, action) {
       break;
     case GAME.SELECT:
       break;
-    default: return state;
+
+    default: break;
   }
+  return state;
 }
 
 

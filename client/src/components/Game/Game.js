@@ -1,25 +1,23 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { select, moveReady, cacheMove } from '../../actions/game.actions';
+import { bindActionCreators } from 'redux';
 import Leap from '../../assets/leap';
 import './Game.css';
 import Cell from '../Cell';
 
 export class Game extends React.Component {
-  constructor ({ game, move, }) {
+  constructor ({ game, player, move, cacheMove, moveReady}) {
     super();
-    const player = 4;
     this.state = {
-      game: (new Leap().set(game)),
+      game: game,
       player: player,
       move: move,
       continuedMove: false,
     }
   }
 
-  componentDidUpdate (prevProps, prevState) {
-    /*
-    THIS SHOULD BE HANDLED IN SERVER
+  componentDidMount () {
     const { game, player } = this.state;
     if (game.turn === player) {
       if (!game.getAllMoves(game.turn)) {
@@ -27,7 +25,16 @@ export class Game extends React.Component {
         this.endTurn(true);
       }
     }
-    */
+  }
+
+  componentDidUpdate (prevProps, prevState) {
+    const { game, player } = this.state;
+    if (game.turn === player) {
+      if (!game.getAllMoves(game.turn)) {
+        console.log(`${game.turn} has no more moves!`);
+        this.endTurn(true);
+      }
+    }
   }
 
   selectCell (cell, index) { //call implies it's this user's turn
@@ -128,4 +135,4 @@ const actions = {
   moveReady,
 };
 
-export default connect(/*mapStateToProps*/)(Game);
+export default connect(/*mapStateToProps*/null, dispatch => bindActionCreators({moveReady},dispatch))(Game);

@@ -1,10 +1,10 @@
 import { GAME } from '../constants/game.types';
 
-export const start = payload => dispatch => dispatch({type: GAME.START, payload});
-export const select = payload => dispatch => dispatch({type: GAME.SELECT, payload});
-export const cacheMove = payload => dispatch => dispatch({type: GAME.CACHE_MOVE, payload});
-export const moveReady = payload => dispatch => dispatch({type: GAME.MOVE_READY, payload});
-export const end = payload => dispatch => dispatch({type: GAME.END, payload});
+export const start = payload => ({type: GAME.START, payload});
+export const select = payload => ({type: GAME.SELECT, payload});
+export const cacheMove = payload => ({type: GAME.CACHE_MOVE, payload});
+export const moveReady = payload => ({type: GAME.MOVE_READY, payload});
+export const end = payload => ({type: GAME.END, payload});
 
 
 export default {

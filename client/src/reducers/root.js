@@ -1,5 +1,5 @@
 //import CHAT from '../constants/ChatTypes';
-import { USER } from '../constants/';
+import { USER, GAME, ROOM } from '../constants/';
 
 const initialState = {
   me: {
@@ -28,6 +28,13 @@ function rootReducer (state = initialState, action) {
     case USER.LOGOUT:
       state = {...state, me: {...action.payload}, isLoggedIn: false};
       break;
+
+    case GAME.MOVE_READY:
+      state.cachedGame.isMoveReadyToSubmit = true;
+
+    case ROOM.SUBMIT_MOVE:
+      state.cachedGame.isMoveReadyToSubmit = false;
+
     default: break;
   }
   return state;

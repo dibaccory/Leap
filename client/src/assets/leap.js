@@ -88,6 +88,7 @@ Leap.prototype.set = function (board) {
   this.continuedMove = board.continuedMove;
   this.pAmount = board.pAmount;
   this.moves = board.moves;
+  this.turn = board.turn;
   return this;
 }
 

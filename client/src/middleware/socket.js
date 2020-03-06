@@ -25,6 +25,10 @@ const socketMiddleware = () => {
         dispatch({type: LOBBY.UPDATE, payload: action.payload.rooms});
         dispatch({type: USER.LOGIN, payload: action.payload.me});
         break;
+
+      case ROOM.UPDATE_GAME:
+        dispatch(action);
+        break;
       default: break;
     }
   };

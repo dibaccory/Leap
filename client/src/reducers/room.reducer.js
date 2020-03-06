@@ -22,9 +22,14 @@ function roomReducer (state = initialState, action) {
       //selectcell logic in here... when submiting move, confirm on server
       break;
 
-    case 'fetchRooms':
+    case ROOM.FETCH_ROOMS:
       state = {...action.payload};
-      break
+      break;
+
+    case ROOM.UPDATE_GAME:
+      state.game = action.payload;
+      break;
+
     default: break;
   }
   return state;

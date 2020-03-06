@@ -4,6 +4,7 @@ export const ROOM = {
   END_GAME: 'gameEnd',
   SUBMIT_MOVE: 'submitMove',
   FETCH_ROOMS: 'fetchRooms',
+  UPDATE_GAME: 'updateGame',
 };
 
 export default ROOM;

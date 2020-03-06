@@ -1,3 +1,5 @@
+import Leap from '../assets/leap';
+
 export const getMe = state => state.root.me;
 export const getIsLoggedIn = state => state.root.isLoggedIn;
 export const getRooms = state => state.rooms;
@@ -14,9 +16,10 @@ export const getActiveRoom = state => {
 }
 
 //TODO: do emit instead and grab from server
-export const getUsers = state => state.rooms[getActiveRoom(state)].users;
-export const getGame = state => state.rooms[getActiveRoom(state)].game;
-export const getHost = state => state.rooms[getActiveRoom(state)].host;
+export const getRoom = state => state.rooms[getActiveRoom(state)];
+export const getUsers = state => getRoom(state).users;
+export const getGame = state => new Leap().set(getRoom(state).game);
+export const getHost = state => getRoom(state).host;
 
 
 //LOCAL

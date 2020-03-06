@@ -23,12 +23,12 @@ const Lobby = ({id, rooms, activeRoom}) => {
     const prev = Math.abs( (activeRoomIndex-1)%size );
     const next = (activeRoomIndex+1)%size;
     loadedRooms.push(
-      <Room key={'prev_room'} room={rooms[roomKeys[prev]].id} active={false} />,
-      <Room key={'display_room'} room={rooms[roomKeys[activeRoomIndex]].id} active={true} />,
-      <Room key={'next_room'} room={rooms[roomKeys[next]].id} active={false} />
+      <Room key={'prev_room'} roomID={roomKeys[prev]} active={false} />,
+      <Room key={'display_room'} roomID={roomKeys[activeRoomIndex]} active={true} />,
+      <Room key={'next_room'} roomID={roomKeys[next]} active={false} />
     );
   } else if (size) {
-    loadedRooms.push(<Room key={'display_room'} room={rooms[roomKeys[activeRoomIndex]].id} active={true} />);
+    loadedRooms.push(<Room key={'display_room'} roomID={roomKeys[activeRoomIndex]} active={true} />);
   } else {
     loadedRooms.push( (<div> LMAO NUTTIN </div>) );
   }
