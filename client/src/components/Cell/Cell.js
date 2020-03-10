@@ -19,7 +19,6 @@ export const Cell = ({ cell, index, moveType, highlight, select }) => {
 
 const Piece = (props) => {
   const { player, cloned } = props;
-  console.log(player);
   const pieceColor = (player === 4 && 'white') || (player === 12 && 'black') || 'superposed';
   const classes = `piece ${(cloned && 'cloned') || ''} ${pieceColor}`;
   return (<div className={classes} ></div>);

@@ -7,7 +7,8 @@ import { submitMove, enter, exit } from '../../actions/room.actions';
 import Game from '../../components/Game';
 import './Room.css';
 
-const Room = ({
+class Room extends React.Component {
+  constructor ({
   active,
   roomID,
   me,
@@ -18,15 +19,26 @@ const Room = ({
   isMoveReadyToSubmit,
   enter,
   submitMove,
-}) => {
+}) {
+  super();
+}
+
+componentDidMount () {
+  const { me, enter, roomID } = this.props;
+  if (me) enter({me, roomID});
+}
+
+render () {
+  let { isMoveReadyToSubmit, submitMove, game, move, roomID } = this.props;
   move = move || {to: undefined, from: undefined, captured: undefined};
-  if (active) enter({me, roomID});
+
   return (
     <div className="room-container">
       <Game game={game} move={move}/>
       <button onClick={() => {isMoveReadyToSubmit ? submitMove({roomID, game, move}): console.log('boopies')} }>Play</button>
     </div>
   );
+}
 }
 //<PlayerHeader user={}/>
 //
@@ -41,7 +53,6 @@ Room.propTypes = {
 };
 //TODO: make selectors
 const mapStateToProps = state => ({
-  me: getMe(state),
   users: getUsers(state),
   host: getHost(state),
   game: getGame(state),

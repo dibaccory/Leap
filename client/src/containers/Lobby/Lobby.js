@@ -2,14 +2,14 @@ import React from 'react';
 import { connect } from 'react-redux';
 import Room from '../Room';
 import crypto from 'crypto';
-import { getLobbyRooms, getActiveRoom } from '../../selectors/';
+import { getLobbyRooms, getActiveRoom, getMe } from '../../selectors';
 //import { lobbyUpdate, lobbyToggleScroll } from '../../actions/lobby.actions';
 import { object, string } from 'prop-types';
 
 import './Lobby.css';
 
 
-const Lobby = ({id, rooms, activeRoom}) => {
+const Lobby = ({id, rooms, me, activeRoom}) => {
 
   /*
    TODO: add actions
@@ -24,13 +24,13 @@ const Lobby = ({id, rooms, activeRoom}) => {
     const next = (activeRoomIndex+1)%size;
     loadedRooms.push(
       <Room key={'prev_room'} roomID={roomKeys[prev]} active={false} />,
-      <Room key={'display_room'} roomID={roomKeys[activeRoomIndex]} active={true} />,
+      <Room key={'display_room'} me={me} roomID={roomKeys[activeRoomIndex]} active={true} />,
       <Room key={'next_room'} roomID={roomKeys[next]} active={false} />
     );
   } else if (size) {
-    loadedRooms.push(<Room key={'display_room'} roomID={roomKeys[activeRoomIndex]} active={true} />);
+    loadedRooms.push(<Room key={'display_room'} me={me} roomID={roomKeys[activeRoomIndex]} active={true} />);
   } else {
-    loadedRooms.push( (<div> LMAO NUTTIN </div>) );
+    loadedRooms.push( (<div key={'non'}> LMAO NUTTIN </div>) );
   }
 
 
@@ -43,12 +43,14 @@ const Lobby = ({id, rooms, activeRoom}) => {
 };
 
 Lobby.propTypes = {
+  me: object,
   rooms: object,
   activeRoom: string,
 }
 
 //TODO: make selectors
 const mapStateToProps = state => ({
+  me: getMe(state),
   rooms: getLobbyRooms(state),
   activeRoom: getActiveRoom(state),
 

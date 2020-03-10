@@ -22,7 +22,7 @@ const initialState = {
 function rootReducer (state = initialState, action) {
   switch (action.type) {
     case USER.LOGIN:
-      console.log('user login: ' + JSON.stringify(action.payload));
+      console.log('USER LOGIN: ' + JSON.stringify(action.payload));
       state = {...state, me: {...action.payload}, isLoggedIn: true};
       break;
     case USER.LOGOUT:

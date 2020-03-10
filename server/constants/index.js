@@ -16,6 +16,7 @@ const ROOM = {
   EXIT: 'roomExit',
   END_GAME: 'gameEnd',
   SUBMIT_MOVE: 'submitMove',
+  FETCH_ROOMS: 'fetchRooms',
 };
 
 const GAME = {

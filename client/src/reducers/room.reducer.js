@@ -23,6 +23,7 @@ function roomReducer (state = initialState, action) {
       break;
 
     case ROOM.FETCH_ROOMS:
+      console.log('fetch rooms: %o', action);
       state = {...action.payload};
       break;
 

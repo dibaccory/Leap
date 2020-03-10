@@ -1,8 +1,9 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { select, moveReady, cacheMove } from '../../actions/game.actions';
+import { number, object } from 'prop-types';
+import { getUserPlaymode } from '../../selectors/';
 import { bindActionCreators } from 'redux';
-import Leap from '../../assets/leap';
 import './Game.css';
 import Cell from '../Cell';
 
@@ -51,7 +52,7 @@ export class Game extends React.Component {
     } else {
       const pieceType = cell & (4 | 8 | 12);
       if (pieceType) {  //if piece
-        const canSelectPiece = !(pieceType ^ player) || pieceType === 10;
+        const canSelectPiece = !(pieceType ^ player) || pieceType === 8;
         const hasMoves = game.moves[cell >> 5].length > 0;
 
         if (canSelectPiece && hasMoves) this.setPiece(cell, index);
@@ -76,7 +77,7 @@ setPiece (cell, index) {
   game.highlightMoves(pi);
   const move = {from: index, to: undefined, captured: undefined};
   this.setState({ move: move });
-  cacheMove(move);
+  //cacheMove(move);
 }
 
 setDestination (to) {
@@ -126,13 +127,20 @@ render () {
 
 }
 
-//Game.propTypes = { game: object.isRequired, move: object };
-//TODO: make selectors
-//const mapStateToProps = state => ({move: getMoveSelections(state)});
+Game.propTypes = {
+  game: object.isRequired,
+  player: number.isRequired,
+  ///move: object
+};
+
+const mapStateToProps = state => ({
+  player: getUserPlaymode(state),
+  //move: getMoveSelections(state)
+});
 
 const actions = {
   cacheMove,
   moveReady,
 };
 
-export default connect(/*mapStateToProps*/null, dispatch => bindActionCreators({moveReady},dispatch))(Game);
+export default connect(mapStateToProps, dispatch => bindActionCreators(actions ,dispatch))(Game);

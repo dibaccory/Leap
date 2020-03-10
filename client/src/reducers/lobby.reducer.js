@@ -9,7 +9,7 @@ const initialState = {
     },
     'Browse': {
       rooms: ['room2'],
-      activeRoom: 0,
+      activeRoom: 'room2',
     },
 };
 
@@ -21,7 +21,7 @@ function lobbyReducer (state = initialState, action) {
     case LOBBY.REMOVE_ROOM:
       break;
     case LOBBY.UPDATE:
-      console.log(action.payload);
+      console.log('Lobby reducer, UPDATE: ' +  Object.keys(action.payload));
       state['Browse'].rooms = Object.keys(action.payload);
       break;
     case LOBBY.TOGGLE_SCROLL:

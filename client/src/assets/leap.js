@@ -419,7 +419,7 @@ Leap.prototype.score = function () {
 		const pieces = Object.keys(p)
 			.filter( item => p[item] !== undefined)
 			.reduce( (res, key) => (res[key] = p[key], res), {} );
-		const n = Object.keys(pieces).length;
+		//const n = Object.keys(pieces).length;
 		for (let pi in pieces) {
 			const isClone = 2*(pieces[pi] & 16);
 			const score = (5+!isClone);

@@ -9,7 +9,6 @@ import Login from '../../components/Login/';
 import './app.css';
 
 const App = ({ me, isLoggedIn, wsConnect }) => {
-  //const ClientSocket = React.createContext();
     return (
         <div className="App">
           {isLoggedIn ? <ViewStack/> : <Login/>}
