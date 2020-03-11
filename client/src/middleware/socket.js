@@ -54,17 +54,17 @@ const socketMiddleware = () => {
         io = null;
         console.log('Disconnected.');
         break;
-
-      case USER.LOGIN:
-      case USER.LOGOUT:
-        io.emit('userEvent', action);
-        break;
-
-      case LOBBY.ADD_ROOM:
-      case LOBBY.REMOVE_ROOM:
-      case LOBBY.UPDATE:
-        io.emit('lobbyEvent', action);
-        break;
+      //
+      // case USER.LOGIN:
+      // case USER.LOGOUT:
+      //   io.emit('userEvent', action);
+      //   break;
+      //
+      // case LOBBY.ADD_ROOM:
+      // case LOBBY.REMOVE_ROOM:
+      // case LOBBY.UPDATE:
+      //   io.emit('lobbyEvent', action);
+      //  break;
 
       case ROOM.ENTER:
       case ROOM.EXIT:
