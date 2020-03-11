@@ -1,20 +1,16 @@
 {
-  "name": "my-app",
+  "name": "Leap",
+  "main": "index.js",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@colyseus/monitor": "^0.11.17",
     "axios": "^0.19.2",
-    "colyseus.js": "^0.11.7",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "pubnub-react": "^1.3.1",
-    "rc-slider": "^8.7.1",
     "react": "^16.9.0",
     "react-bootstrap": "^1.0.0-beta.16",
     "react-countdown-now": "^2.1.1",
     "react-dom": "^16.9.0",
-    "react-input-slider": "^5.1.4",
     "react-redux": "^7.2.0",
     "react-scripts": "^3.3.0",
     "react-transition-group": "^4.3.0",
@@ -22,14 +18,15 @@
     "redux-thunk": "^2.3.0",
     "serve-index": "^1.9.1",
     "socket.io": "^2.3.0",
-    "socket.io-client": "^2.3.0",
-    "typescript": "^3.7.5"
+    "socket.io-client": "^2.3.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "NODE_ENV=production node src/server/run",
+    "dev": "node src/server/run",
+    "test": "mocha './test/**/*.test.js' --compilers js:babel-core/register --recursive",
+    "test:watch": "npm test -- --watch",
+    "lint": "eslint 'src'",
+    "build": "NODE_ENV=production webpack --config ./webpack.config.prod.js"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -48,6 +45,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.8.4",
+    "@babel/polyfill": "^7.8.7",
     "@babel/preset-env": "^7.8.4",
     "@babel/register": "^7.8.3",
     "@types/cors": "^2.8.6",
