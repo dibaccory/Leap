@@ -3,12 +3,13 @@ import path from 'path';
 import express from 'express';
 import { Provider } from 'react-redux';
 import React from 'react';
+import webpack from 'webpack';
+import webpackConfig from '../../../webpack.config.dev';
 //import { RouterContext, match } from 'react-router';
-import { renderToString } from 'react-dom/server'
+import { renderToString } from 'react-dom/server';
 import configureStore from '../../common/store';
-import { SocketConnection } from '../../common/middleware/socket';
-import App from '../../common/containers/App';
-
+import { SocketConnection } from '../../common/containers/SocketConnection';
+//import App from '../../common/containers/App';
 
 const getUrl = server => `http://${server.address().address}:${server.address().port}`;
 const bindCtx = (ctx) => (req, res, next) => {
@@ -21,6 +22,7 @@ function renderFullPage(html, initialState) {
     <!doctype html>
     <html lang="en">
       <head>
+        <link rel="stylesheet" href="/dist/bundle.css" />
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" />
         <link rel="icon" href="./favicon.ico" type="image/x-icon" />
@@ -33,11 +35,12 @@ function renderFullPage(html, initialState) {
         <script>
           window.__INITIAL_STATE__ = ${JSON.stringify(initialState)}
         </script>
-        <script src="/dist/bundle.js"></script>
+        <script src="main.bundle.js"></script>
       </body>
     </html>
   `
 }
+
 
 const init = ctx => {
   const { config } = ctx;
@@ -46,15 +49,19 @@ const init = ctx => {
   const app = express();
   const router = express.Router();
   app.use(router);
-  app.use('/', express.static(path.join(__dirname, '../..', 'public')));
+  //app.use(passport.initialize());
+  if (process.env.NODE_ENV === 'development') {
+    const compiler = webpack(webpackConfig);
+    app.use(require('webpack-dev-middleware')(compiler, {
+      publicPath: webpackConfig.output.publicPath
+    }));
+    app.use('/', express.static(path.join(__dirname, '..', 'static')));
+  } else app.use('/', express.static(path.join(__dirname, '../..', 'public')));
   app.get('/*', (req, res) => {
 
     const store = configureStore();
     const InitialView = (
     <Provider store={store}>
-      <SocketConnection>
-        <App key={0}/>
-      </SocketConnection>
     </Provider>);
 
     const initialState = (process.NODE_ENV === 'production')

@@ -7,7 +7,7 @@
 /client/coverage
 
 # production
-/client/build
+/static/
 
 # misc
 ./client/DS_Store

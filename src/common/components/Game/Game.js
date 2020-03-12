@@ -4,8 +4,9 @@ import { select, moveReady, cacheMove } from '../../actions/game.actions';
 import { number, object } from 'prop-types';
 import { getUserPlaymode } from '../../selectors/';
 import { bindActionCreators } from 'redux';
-import './Game.css';
 import Cell from '../Cell';
+import './Game.css';
+
 
 export class Game extends React.Component {
   constructor ({ game, player, move, cacheMove, moveReady}) {

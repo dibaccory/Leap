@@ -3,10 +3,10 @@ import { connect } from 'react-redux';
 import { bool, object } from 'prop-types';
 import { getMe, getIsLoggedIn } from '../../selectors/';
 //TODO: import WithAuth from 'AuthenticationWrapper'
-
+import './App.css';
 import ViewStack from '../ViewStack/';
 import Login from '../../components/Login/';
-import './app.css';
+
 
 const App = ({ me, isLoggedIn, wsConnect }) => {
     return (
