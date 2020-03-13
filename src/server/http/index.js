@@ -7,7 +7,7 @@ import { getUrl, bindCtx, renderFullPage } from './util';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { Provider } from 'react-redux';
-import configureStore from '../../common/store';
+import configureStore from '../../app/store';
 import mongoose from 'mongoose';
 
 

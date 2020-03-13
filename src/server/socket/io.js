@@ -1,7 +1,7 @@
 import socket from 'socket.io';
 import Leap from '../assets/leap';
 import { EVENT, CONNECTION, DISCONNECT } from '../constants/eventTypes';
-import { USER, LOBBY, ROOM, GAME, CHAT } from '../../common/constants/';
+import { USER, LOBBY, ROOM, GAME, CHAT } from '../../app/constants/';
 
 
 
