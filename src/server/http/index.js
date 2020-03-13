@@ -1,51 +1,21 @@
 import http from 'http';
-import path from 'path';
 import express from 'express';
-import { Provider } from 'react-redux';
-import React from 'react';
+import path from 'path';
 import webpack from 'webpack';
 import webpackConfig from '../../../webpack.config.dev';
-//import { RouterContext, match } from 'react-router';
+import { getUrl, bindCtx, renderFullPage } from './util';
+import React from 'react';
 import { renderToString } from 'react-dom/server';
+import { Provider } from 'react-redux';
 import configureStore from '../../common/store';
-import { SocketConnection } from '../../common/containers/SocketConnection';
-//import App from '../../common/containers/App';
-
-const getUrl = server => `http://${server.address().address}:${server.address().port}`;
-const bindCtx = (ctx) => (req, res, next) => {
-  req.ctx = ctx;
-  next();
-};
-
-function renderFullPage(html, initialState) {
-  return `
-    <!doctype html>
-    <html lang="en">
-      <head>
-        <link rel="stylesheet" href="/dist/bundle.css" />
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" />
-        <link rel="icon" href="./favicon.ico" type="image/x-icon" />
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-        <title>Leap</title>
-      </head>
-      <body>
-        <div id="root">${html}</div>
-        <script>
-          window.__INITIAL_STATE__ = ${JSON.stringify(initialState)}
-        </script>
-        <script src="main.bundle.js"></script>
-      </body>
-    </html>
-  `
-}
+import mongoose from 'mongoose';
 
 
 const init = ctx => {
   const { config } = ctx;
-  console.log('config: ', config)
   const { port, host } = config;
+  console.log(`Our endpoint: ${host}:${port}`)
+  mongoose.connect(`mongodb://${host}/Leap`, {useNewUrlParser: true, useUnifiedTopology: true});
   const app = express();
   const router = express.Router();
   app.use(router);
@@ -55,8 +25,8 @@ const init = ctx => {
     app.use(require('webpack-dev-middleware')(compiler, {
       publicPath: webpackConfig.output.publicPath
     }));
-    app.use('/', express.static(path.join(__dirname, '..', 'static')));
-  } else app.use('/', express.static(path.join(__dirname, '../..', 'public')));
+  }
+  app.use('/', express.static(path.join(__dirname, '../../..', 'static')));
   app.get('/*', (req, res) => {
 
     const store = configureStore();
@@ -64,7 +34,7 @@ const init = ctx => {
     <Provider store={store}>
     </Provider>);
 
-    const initialState = (process.NODE_ENV === 'production')
+    const initialState = (process.env.NODE_ENV === 'production')
     ? store.getState()
     : {};
 

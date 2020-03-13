@@ -1,6 +1,5 @@
 import path from 'path';
 import webpack from 'webpack';
-var MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 module.exports = {

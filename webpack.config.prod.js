@@ -1,7 +1,6 @@
 var path = require('path');
 var webpack = require('webpack');
-var MiniCssExtractPlugin = require('mini-css-extract-plugin');
-//var CleanPlugin = require('clean-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 module.exports = {
   devtool: 'source-map',
@@ -11,7 +10,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, './static/dist'),
     filename: '[name].bundle.js',
-    publicPath: '/dist/'
+    publicPath: '/'
   },
   plugins: [
     new webpack.DefinePlugin({
@@ -19,13 +18,13 @@ module.exports = {
         'NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production')
       },
     }),
-    //new MiniCssExtractPlugin({ filename: 'bundle.css'}),
+    new CleanWebpackPlugin()
   ],
   module: {
     rules: [{
       test: /\.jsx?$/,
       exclude: /node_modules/,
-      loader: 'babel-loader',
+      use: 'babel-loader',
       include: [path.resolve(__dirname, 'src')]
     },
     {
