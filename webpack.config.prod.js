@@ -5,10 +5,10 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 module.exports = {
   devtool: 'source-map',
   entry: [
-    path.resolve(__dirname, 'src/client/index'),
+    './src/client/index.js'
   ],
   output: {
-    path: path.resolve(__dirname, './static/dist'),
+    path: path.resolve(__dirname, 'static/dist'),
     filename: '[name].bundle.js',
     publicPath: '/'
   },
@@ -35,8 +35,3 @@ module.exports = {
   },
   mode: 'production'
 };
-/* {
-  loader: 'babel-loader',
-  options: {
-    presets: ['@babel/preset-env']
-},*/

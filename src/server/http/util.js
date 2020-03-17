@@ -21,7 +21,7 @@ export const renderFullPage = (html, initialState) => (
       <script>
         window.__INITIAL_STATE__ = ${JSON.stringify(initialState)}
       </script>
-      <script src="/dist/main.bundle.js"></script>
+      <script src="main.bundle.js"></script>
     </body>
   </html>
 `

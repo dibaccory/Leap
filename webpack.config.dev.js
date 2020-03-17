@@ -5,10 +5,10 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 module.exports = {
   devtool: 'inline-source-map',
   entry: [
-    './src/client/index.js',
+    './src/client/index.js'
   ],
   output: {
-    path: path.resolve(__dirname, './static/dist'),
+    path: path.resolve(__dirname, 'static/dist'),
     filename: '[name].bundle.js',
     publicPath: '/'
   },
@@ -22,7 +22,7 @@ module.exports = {
   ],
   module: {
     rules: [{
-      test: /\.js?$/,
+      test: /\.jsx?$/,
       use: 'babel-loader',
       include: [path.resolve(__dirname, 'src')]
     },

@@ -2,14 +2,13 @@ import http from 'http';
 import express from 'express';
 import path from 'path';
 import webpack from 'webpack';
-import webpackConfig from '../../../webpack.config.dev';
+import webpackConfig from '../../../webpack.config.dev.js';
 import { getUrl, bindCtx, renderFullPage } from './util';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { Provider } from 'react-redux';
 import {configureStore} from '../../app';
 import mongoose from 'mongoose';
-
 
 const init = ctx => {
   const { config } = ctx;
@@ -26,7 +25,7 @@ const init = ctx => {
       publicPath: webpackConfig.output.publicPath
     }));
   }
-  app.use('/', express.static(path.join(__dirname, '../../..', 'static')));
+  app.use('/', express.static(path.join(__dirname, '../../..', 'static/dist')));
   app.get('/*', (req, res) => {
 
     const store = configureStore();
@@ -47,7 +46,7 @@ const init = ctx => {
   const promise = new Promise( resolve => {
     app.use(bindCtx(ctx));
     httpServer.listen(port, host, () => {
-        console.log('httpServer: ', httpServer.address())
+        console.log('httpServer: ', httpServer.address());
         httpServer.url = getUrl(httpServer);
         resolve({ ...ctx, http: httpServer });
     });
