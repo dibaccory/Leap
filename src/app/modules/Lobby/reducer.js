@@ -13,7 +13,7 @@ const initialState = {
     },
 };
 
-function lobbyReducer (state = initialState, action) {
+export function lobbyReducer (state = initialState, action) {
   switch (action.type) {
     case LOBBY.ADD_ROOM:
       //socket.io.emit('eventLobby', action);

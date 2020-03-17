@@ -4,3 +4,5 @@ export const LOBBY = {
   ADD_ROOM: 'addRoom',
   REMOVE_ROOM: 'removeRoom',
 };
+
+export default LOBBY;

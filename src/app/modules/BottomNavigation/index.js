@@ -17,4 +17,6 @@ function BottomNavigation (props) {
     );
 }
 
+//export {default} from './actions';
+//export {defualt} from './constants';
 export default BottomNavigation;

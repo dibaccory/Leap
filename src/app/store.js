@@ -10,6 +10,6 @@ const initStore = compose(
   //DevTools.instrument()
 )(createStore);
 
-export default function configureStore (initialState) {
+export function configureStore (initialState) {
   return initStore(reducer, initialState);
 };

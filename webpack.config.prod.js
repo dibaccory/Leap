@@ -5,7 +5,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 module.exports = {
   devtool: 'source-map',
   entry: [
-    './src/client/index.js',
+    path.resolve(__dirname, 'src/client/index'),
   ],
   output: {
     path: path.resolve(__dirname, './static/dist'),
@@ -29,11 +29,8 @@ module.exports = {
     },
     {
       test: /\.css$/,
-      use: [{
-        loader: 'style-loader',
-      }, {
-        loader: 'css-loader'
-      }]
+      use: [ 'style-loader', 'css-loader'],
+      include: [path.resolve(__dirname, 'src')]
     }]
   },
   mode: 'production'

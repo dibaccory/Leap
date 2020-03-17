@@ -4,7 +4,7 @@ const initialState = {
   // board: {},
   // move: {to: undefined, from: undefined, captured: undefined},
 };
-function gameReducer (state = initialState, action) {
+export function gameReducer (state = initialState, action) {
   const { game, move } = state;
   switch (action.type) {
     case GAME.START:

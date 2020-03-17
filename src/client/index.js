@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
 import './styles.css';
-import configureStore from '../app';
+import {configureStore} from '../app';
 import App from '../app';
 import SocketConnection from '../app/modules/SocketConnection';
 

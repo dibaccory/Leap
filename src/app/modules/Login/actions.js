@@ -7,5 +7,4 @@ export const userLogout = payload => ({type: USER.LOGOUT, payload});
 export default {
   userLogin,
   userLogout,
-  userUpdateInfo,
 };

@@ -1,9 +1,10 @@
 LEAP
 
-REFACTOR CHANGES:
-Leap.js -> Game.js
-	<Leap> -> <GameController>
-board.js -> leap.js
+REFACTORING:
+components will be structured as modules
+global redux files in ./modules (actions, reducers, middlewares, ... etc)
+
+
 
 
 TODO:

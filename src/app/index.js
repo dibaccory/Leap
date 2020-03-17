@@ -1,14 +1,14 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { bool, object } from 'prop-types';
-import { getMe, getIsLoggedIn } from './modules/selectors/';
+import { getMe, getIsLoggedIn } from './modules/selectors';
 //TODO: import WithAuth from 'AuthenticationWrapper'
 import './styles.css';
 import ViewStack from './modules/ViewStack';
 import Login from './modules/Login';
 
 
-const App = ({ me, isLoggedIn, wsConnect }) => {
+const App = ({ me, isLoggedIn }) => {
     return (
         <div className="App">
           {isLoggedIn ? <ViewStack/> : <Login/>}
@@ -25,5 +25,5 @@ const mapStateToProps = state => ({
   isLoggedIn: getIsLoggedIn(state),
 });
 
-export {defualt} from './store';
+export {configureStore} from './store';
 export default connect(mapStateToProps)(App);

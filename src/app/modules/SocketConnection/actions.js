@@ -1,4 +1,4 @@
-import { ENDPOINT } from '../constants/socket.types';
+import { ENDPOINT } from './constants';
 const host = ENDPOINT;
 export const wsConnect = () => ({type: 'connect', host: host});
 export const wsConnecting = () => ({type: 'connecting', host: host});
