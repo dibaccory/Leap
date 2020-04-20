@@ -1,8 +1,8 @@
 
 
 # dependencies
-/node_modules
-/db
+node_modules
+db/
 
 # testing
 /client/coverage

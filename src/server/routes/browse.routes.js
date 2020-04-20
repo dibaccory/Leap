@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import express from 'express';
-import Feed from '../models/Feed';
+import Room from '../models/Room';
 let router = express.Router();
 
-router.route('/browse').post((req, res, next) => {
-  
+router.get('/browse', (req, res) => {
+  Room.find({private: false}).catch(err => console.log("Room error: ", err.message));
 });
