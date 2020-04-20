@@ -1,11 +1,7 @@
-/.idea/
-/bkup
+/db/
 
 # dependencies
-/client/node_modules
-/server/node_modules
-/.pnp
-.pnp.js
+/node_modules/
 
 # testing
 /client/coverage
